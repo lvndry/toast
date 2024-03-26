@@ -1,4 +1,4 @@
-import Fastify from "fastify";
+import Fastify, { FastifyError } from "fastify";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -25,6 +25,21 @@ fastify.register(cors);
 export const server = fastify.withTypeProvider<ZodTypeProvider>();
 
 export type Api = typeof server;
+
+server.addContentTypeParser(
+  "application/json",
+  { parseAs: "string" },
+  function (req, body, done) {
+    try {
+      const json = JSON.parse(body as string);
+      done(null, json);
+    } catch (err) {
+      const error = err as FastifyError;
+      error.statusCode = 400;
+      done(error, undefined);
+    }
+  }
+);
 
 server.register((api: Api, opts, done) => {
   agentRouter(api);

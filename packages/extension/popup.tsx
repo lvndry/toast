@@ -1,7 +1,24 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
+
+const PUBLIC_API_URL = process.env.PUBLIC_API_URL || "http://localhost:3000"
 
 function IndexPopup() {
   const [data, setData] = useState("")
+
+  chrome.tabs.query({ active: true, lastFocusedWindow: true }, async (tabs) => {
+    const url = new URL(tabs[0].url)
+    const response = await fetch(`${PUBLIC_API_URL}/get-tos-url`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        website: url.host
+      })
+    })
+    const tosURL = await response.json()
+    console.log({ tosURL })
+  })
 
   return (
     <div
