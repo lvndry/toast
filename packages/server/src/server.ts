@@ -1,4 +1,4 @@
-import Fastify, { FastifyInstance } from "fastify";
+import Fastify from "fastify";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -7,9 +7,11 @@ import {
 import helmet from "@fastify/helmet";
 import rate_limit from "@fastify/rate-limit";
 import cors from "@fastify/cors";
-import z from "zod";
+import { agentRouter } from "./routes/agent";
 
-const fastify: FastifyInstance = Fastify({});
+const fastify = Fastify({
+  logger: true,
+});
 
 fastify.setValidatorCompiler(validatorCompiler);
 fastify.setSerializerCompiler(serializerCompiler);
@@ -20,22 +22,22 @@ fastify.register(rate_limit, {
 });
 fastify.register(cors);
 
-const server = fastify.withTypeProvider<ZodTypeProvider>();
+export const server = fastify.withTypeProvider<ZodTypeProvider>();
 
-server.post(
-  "/get-tos-url",
-  { schema: { body: z.object({ website: z.string() }) } },
-  (req, reply) => {
-    return { data: req.body.website };
-  }
-);
+export type Api = typeof server;
+
+server.register((api: Api, opts, done) => {
+  agentRouter(api);
+  done();
+});
 
 const start = async () => {
   try {
-    await server.listen({ port: 3000 });
-
     const address = server.server.address();
-    const port = typeof address === "string" ? address : address?.port;
+    const addressPort = typeof address === "string" ? address : address?.port;
+    const port = Number(addressPort) || 3000;
+    await server.listen({ port });
+    console.log("Listening on port:", port);
   } catch (err) {
     server.log.error(err);
     process.exit(1);
