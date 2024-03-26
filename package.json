@@ -3,7 +3,12 @@
   "displayName": "Toast",
   "version": "0.0.1",
   "description": "Terms of services summarizer",
-  "author": "lvndry",
+  "contributors": [
+    {
+      "name": "lvndry",
+      "email": "lvndry@protonmail.com"
+    }
+  ],
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",
