@@ -98,7 +98,7 @@ class LegalDocumentCrawler:
 
     def _create_domain_filter(self) -> DomainFilter:
         """Create the domain filter."""
-        return DomainFilter(allowed_domains=["facebook.com"])
+        return DomainFilter(allowed_domains=["notion.so", "notion.com"])
 
     def _create_url_pattern_filter(self) -> URLPatternFilter:
         """Create the URL pattern filter."""
@@ -107,7 +107,7 @@ class LegalDocumentCrawler:
     def _create_content_relevance_filter(self) -> ContentRelevanceFilter:
         """Create the content relevance filter."""
         relevancer_query = "legal documents like privacy policy, terms of service, cookie policy, gdrp, terms and conditions, etc. Content should not be a 404 page."
-        return ContentRelevanceFilter(query=relevancer_query, threshold=0.6)
+        return ContentRelevanceFilter(query=relevancer_query, threshold=0.1)
 
     def _create_filter_chain(self) -> FilterChain:
         """Create the filter chain."""
@@ -164,15 +164,15 @@ class LegalDocumentCrawler:
 
 
 async def main():
-    urls = [
-        "https://www.facebook.com/legal",
-        "https://www.facebook.com/privacy",
-        "https://www.facebook.com/terms",
-    ]
+    # urls = [
+    #     "https://www.facebook.com/legal",
+    #     "https://www.facebook.com/privacy",
+    #     "https://www.facebook.com/terms",
+    # ]
 
     # urls = ["https://policies.google.com/"]
 
-    # urls = ["https://www.notion.so/notion", "https://www.notion.com/help"]
+    urls = ["https://www.notion.so/notion", "https://www.notion.com/help"]
 
     crawler = LegalDocumentCrawler()
     results = await crawler.crawl(urls)

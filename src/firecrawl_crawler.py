@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, List
 from firecrawl import FirecrawlApp
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient
-from fetchfox_sdk import FetchFox
+from url_classifier import WebpageClassifier
 
 MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "toast"
@@ -90,37 +90,21 @@ async def main(company_name: str):
 
     if "sources" not in document:
         logger.info(f"Starting crawl for {company_name} (ID: {company_id})")
-        # mapped_urls = await map_urls(base_urls=document["base_sources"])
-        # logger.info(mapped_urls)
-        # classifier = WebpageClassifier(firecrawl_api_key=FIRECRAWL_API_KEY)
-        # legal_documents: List[str] = [{}
-        FOX_API_KEY = os.getenv("FOX_API_KEY")
-        fox = FetchFox(api_key=FOX_API_KEY)
-        items = fox.extract(
-            "https://www.facebook.com/legal/wifi_terms",
-            {
-                "content": "Page content",
-                "published_at": "Date of publication",
-                "updated_at": "Last update date",
-                "content_type": "terms_of_service or cookie_policy or legal_document or other",
-            },
-        )
+        mapped_urls = await map_urls(base_urls=document["base_sources"])
+        logger.info(mapped_urls)
+        classifier = WebpageClassifier(firecrawl_api_key=FIRECRAWL_API_KEY)
+        legal_documents: List[str] = []
+        for url in mapped_urls:
+            classification = await classifier.classify_page(url=url)
+            logger.info(classification)
+        if classification["classification"] in [
+            "legal_document",
+            "privacy_policy",
+            "terms_of_service",
+            "cookie_policy",
+        ]:
+            legal_documents.append(url)
 
-        for item in items:
-            print(item)
-
-
-#
-# for url in mapped_urls:
-#     classification = await classifier.classify_page(url=url)
-#     logger.info(classification)
-#     if classification["classification"] in [
-#         "legal_document",
-#         "privacy_policy",
-#         "terms_of_service",
-#         "cookie_policy",
-#     ]:
-#         legal_documents.append(url)
 
 # logger.info(f"Legal document found: {legal_documents}")
 
