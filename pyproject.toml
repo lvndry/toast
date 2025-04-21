@@ -1,0 +1,32 @@
+[project]
+name = "toast"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    "asyncpg>=0.30.0",
+    "bs4>=0.0.2",
+    "crawl4ai>=0.5.0.post8",
+    "fastapi[standard]>=0.115.11",
+    "fetchfox-sdk-beta",
+    "firecrawl-py>=1.13.5",
+    "litellm>=1.65.1",
+    "loguru>=0.7.3",
+    "motor>=3.7.0",
+    "mypy>=1.15.0",
+    "nanoid>=2.0.0",
+    "newspaper3k>=0.2.8",
+    "plotly>=6.0.1",
+    "psycopg2-binary>=2.9.10",
+    "pydantic>=2.10.6",
+    "python-dotenv>=1.0.1",
+    "sqlalchemy>=2.0.39",
+    "streamlit>=1.43.2",
+    "supabase>=2.13.0",
+    "trafilatura>=2.0.0",
+]
+
+[tool.uv.sources]
+fetchfox-sdk-beta = { git = "https://github.com/fetchfox/fetchfox-sdk-python.git", rev = "dev" }
