@@ -1,7 +1,8 @@
 import os
 from urllib.parse import urlparse, urlunparse
-from fetchfox_sdk import FetchFox
+
 from dotenv import load_dotenv
+from fetchfox_sdk import FetchFox  # type: ignore
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient
 

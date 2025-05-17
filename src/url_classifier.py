@@ -1,12 +1,12 @@
-import json
 import asyncio
+import json
 import logging
 from datetime import datetime
-from typing import Dict, Any, List
-from firecrawl import FirecrawlApp
-from litellm import completion
-from tqdm.asyncio import tqdm as async_tqdm
+from typing import Any, Dict, List
 
+from firecrawl import FirecrawlApp  # type: ignore
+from litellm import completion  # type: ignore
+from tqdm.asyncio import tqdm as async_tqdm  # type: ignore
 
 logger = logging.getLogger("WebpageClassifier")
 

@@ -1,9 +1,11 @@
 import asyncio
 import os
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
+
 from firecrawl import FirecrawlApp
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient
+
 from url_classifier import WebpageClassifier
 
 MONGO_URI = "mongodb://localhost:27017"

@@ -1,17 +1,20 @@
 import asyncio
-from loguru import logger
-from dotenv import load_dotenv
+
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig  # type: ignore
+from crawl4ai.async_configs import BrowserConfig  # type: ignore
 from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy  # type: ignore
 from crawl4ai.deep_crawling import BestFirstCrawlingStrategy  # type: ignore
-from crawl4ai.deep_crawling.scorers import KeywordRelevanceScorer  # type: ignore
 from crawl4ai.deep_crawling.filters import (  # type: ignore
-    FilterChain,
     ContentRelevanceFilter,
     DomainFilter,
+    FilterChain,
     URLPatternFilter,
 )
-from crawl4ai.async_configs import BrowserConfig  # type: ignore
+from crawl4ai.deep_crawling.scorers import KeywordRelevanceScorer  # type: ignore
+from dotenv import load_dotenv
+from loguru import logger
+
+from src.company import get_all_companies
 
 load_dotenv()
 
@@ -22,9 +25,10 @@ class LegalDocumentCrawler:
     def __init__(
         self,
         max_depth: int = 3,
-        max_pages: int = 500,
+        max_pages: int = 300,
+        allowed_domains: list[str] = [],
         include_external: bool = False,
-        verbose: bool = True,
+        verbose: bool = False,
     ):
         """
         Initialize the legal document crawler.
@@ -37,6 +41,7 @@ class LegalDocumentCrawler:
         """
         self.max_depth = max_depth
         self.max_pages = max_pages
+        self.allowed_domains = allowed_domains
         self.include_external = include_external
         self.verbose = verbose
 
@@ -93,12 +98,12 @@ class LegalDocumentCrawler:
                 "statement",
                 "data",
             ],
-            weight=0.1,
+            weight=0.8,
         )
 
     def _create_domain_filter(self) -> DomainFilter:
         """Create the domain filter."""
-        return DomainFilter(allowed_domains=["notion.so", "notion.com"])
+        return DomainFilter(allowed_domains=self.allowed_domains)
 
     def _create_url_pattern_filter(self) -> URLPatternFilter:
         """Create the URL pattern filter."""
@@ -106,7 +111,7 @@ class LegalDocumentCrawler:
 
     def _create_content_relevance_filter(self) -> ContentRelevanceFilter:
         """Create the content relevance filter."""
-        relevancer_query = "legal documents like privacy policy, terms of service, cookie policy, gdrp, terms and conditions, etc. Content should not be a 404 page."
+        relevancer_query = "legal documents like privacy policy, terms of service, cookie policy, gdrp, terms and conditions, etc. Content should not be a 404 page. Content should be in english"
         return ContentRelevanceFilter(query=relevancer_query, threshold=0.1)
 
     def _create_filter_chain(self) -> FilterChain:
@@ -133,6 +138,9 @@ class LegalDocumentCrawler:
         """Create the crawler configuration."""
         return CrawlerRunConfig(
             deep_crawl_strategy=self.strategy,
+            exclude_external_links=not self.include_external,
+            remove_overlay_elements=True,
+            process_iframes=True,
             scraping_strategy=LXMLWebScrapingStrategy(),
             verbose=self.verbose,
             stream=True,
@@ -152,38 +160,66 @@ class LegalDocumentCrawler:
 
         async with AsyncWebCrawler(config=self.browser_config) as crawler:
             results = []
+
             for url in urls:
                 async for result in await crawler.arun(url, config=self.crawler_config):
-                    results.append(result)
+                    if result.success:
+                        results.append(result)
+                    else:
+                        logger.warning(f"Crawl failed: {result.error_message}")
+                        logger.warning(f"Status code: {result.status_code}")
 
-                logger.info(f"Crawled {len(results)} pages from {url}")
+                logger.info(f"Crawled {results} from {url}")
 
                 all_results.extend(results)
 
             return all_results
 
 
-async def main():
-    # urls = [
-    #     "https://www.facebook.com/legal",
-    #     "https://www.facebook.com/privacy",
-    #     "https://www.facebook.com/terms",
+async def crawl_documents_for_companies():
+    # Used for testing without database
+    # companies = [
+    #     Company(
+    #         id="1",
+    #         name="Facebook",
+    #         slug="facebook",
+    #         domains=["facebook.com"],
+    #         crawl_base_urls=[
+    #             "https://facebook.com/legal",
+    #             "https://facebook.com/privacy",
+    #         ],
+    #         categories=["test"],
+    #     )
     # ]
 
-    # urls = ["https://policies.google.com/"]
+    companies = await get_all_companies()
 
-    urls = ["https://www.notion.so/notion", "https://www.notion.com/help"]
+    documents = []
 
-    crawler = LegalDocumentCrawler()
-    results = await crawler.crawl(urls)
+    for company in companies:
+        if not company.crawl_base_urls:
+            logger.warning(f"No crawl base URLs for {company.name}")
+            continue
 
-    for result in results:
-        logger.info(f"URL: {result.url}")
-        logger.info(f"Metadata: {result.metadata}")
-        # logger.info(f"Markdown: {result.markdown}")
+        if company.slug == "notion":
+            continue
 
-    logger.info(f"Crawled {len(results)} pages in total")
+        crawler = LegalDocumentCrawler(allowed_domains=company.domains, verbose=True)
+
+        logger.info(
+            f"Crawling {company.name} ({company.domains}) with {company.crawl_base_urls} base URLs"
+        )
+
+        results = await crawler.crawl(company.crawl_base_urls)
+
+        for result in results:
+            logger.info(f"URL: {result.url}")
+            logger.info(f"Result: {result}")
+            # logger.info(f"Metadata: {result.metadata}")
+            # logger.info(f"Markdown: {result.markdown}")
+
+    return documents
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(crawl_documents_for_companies())

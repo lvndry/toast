@@ -1,9 +1,10 @@
 """Migrate from SQL to NOSQL"""
 
 import asyncio
+
 import asyncpg
-from motor.motor_asyncio import AsyncIOMotorClient
 from loguru import logger
+from motor.motor_asyncio import AsyncIOMotorClient
 
 # Connection settings
 POSTGRES_URL = "postgresql://lvndry@localhost/toast"
@@ -11,7 +12,7 @@ MONGO_URI = "mongodb://localhost:27017"
 MONGO_DB = "toast"
 
 
-async def migrate_data():
+async def migrate_from_sql_to_mongo():
     """Migrate data from PostgreSQL to MongoDB"""
     # Connect to PostgreSQL
     pg_conn = await asyncpg.connect(POSTGRES_URL)
@@ -106,8 +107,63 @@ async def inspect_postgres_schema():
         await pg_conn.close()
 
 
+async def migrate_crawl_base_urls():
+    """
+    Migrate the crawl_base_urls field from documents collection to companies collection.
+    Only remove from documents after confirming successful migration.
+
+    Args:
+        db: Motor database connection
+    """
+    client = AsyncIOMotorClient(MONGO_URI)
+    db = client[MONGO_DB]
+    # Find all documents with crawl_base_urls field
+    documents = await db.documents.find({"crawl_base_urls": {"$exists": True}}).to_list(
+        None
+    )
+
+    print(f"Found {len(documents)} documents with crawl_base_urls field")
+
+    successful = 0
+    failed = 0
+
+    for doc in documents:
+        # Check if document has company_id
+        if "company_id" not in doc:
+            print(f"Document {doc['_id']} has no company_id, skipping")
+            failed += 1
+            continue
+
+        company_id = doc["company_id"]
+        crawl_base_urls = doc["crawl_base_urls"]
+
+        # Check if company exists
+        company = await db.companies.find_one({"_id": company_id})
+        if not company:
+            print(f"Company {company_id} not found, skipping")
+            failed += 1
+            continue
+
+        # Update company with crawl_base_urls
+        result = await db.companies.update_one(
+            {"_id": company_id}, {"$set": {"crawl_base_urls": crawl_base_urls}}
+        )
+
+        # If update was successful, remove field from document
+        if result.modified_count > 0:
+            await db.documents.update_one(
+                {"_id": doc["_id"]}, {"$unset": {"crawl_base_urls": ""}}
+            )
+            successful += 1
+            print(f"Migrated crawl_base_urls for company {company_id}")
+        else:
+            failed += 1
+            print(f"Failed to update company {company_id}")
+
+    print(f"\nMigration complete: {successful} successful, {failed} failed")
+
+
 if __name__ == "__main__":
     # First inspect the schema to understand the data structure
-    asyncio.run(inspect_postgres_schema())
-
-    asyncio.run(migrate_data())
+    # asyncio.run(inspect_postgres_schema())
+    asyncio.run(migrate_crawl_base_urls())
