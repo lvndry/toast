@@ -66,12 +66,13 @@ class LegalDocumentCrawler:
         return KeywordRelevanceScorer(
             keywords=[
                 # Specific document titles (high priority)
-                "privacy policy",
-                "terms of service",
-                "terms and conditions",
-                "cookie policy",
-                "end user license agreement",
-                "data processing agreement",
+                # "privacy policy",
+                # "terms of service",
+                # "terms and conditions",
+                # "cookie policy",
+                # "information security",
+                # "end user license agreement",
+                # "data processing agreement",
                 # Legal frameworks & regulations
                 "gdpr",
                 "ccpa",
@@ -80,11 +81,11 @@ class LegalDocumentCrawler:
                 "coppa",
                 "compliance",
                 # Data-specific terms
-                "data retention",
-                "data protection",
-                "personal data",
-                "user data",
-                "data collection",
+                # "data retention",
+                # "data protection",
+                # "personal data",
+                # "user data",
+                # "data collection",
                 # keywords
                 "cookie",
                 "privacy",
@@ -95,8 +96,9 @@ class LegalDocumentCrawler:
                 "disclaimer",
                 "notice",
                 "policy",
-                "statement",
                 "data",
+                "subprocessor",
+                "copyright",
             ],
             weight=0.8,
         )
@@ -201,7 +203,7 @@ async def crawl_documents_for_companies():
             logger.warning(f"No crawl base URLs for {company.name}")
             continue
 
-        if company.slug == "notion":
+        if company.slug in ["notion", "google"]:
             continue
 
         crawler = LegalDocumentCrawler(allowed_domains=company.domains, verbose=True)
@@ -214,8 +216,7 @@ async def crawl_documents_for_companies():
 
         for result in results:
             logger.info(f"URL: {result.url}")
-            logger.info(f"Result: {result}")
-            # logger.info(f"Metadata: {result.metadata}")
+            logger.info(f"Metadata: {result.metadata}")
             # logger.info(f"Markdown: {result.markdown}")
 
     return documents

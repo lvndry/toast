@@ -6,7 +6,7 @@ from firecrawl import FirecrawlApp
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from url_classifier import WebpageClassifier
+from src.firecrawl_url_classifier import WebpageClassifier
 
 MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "toast"
