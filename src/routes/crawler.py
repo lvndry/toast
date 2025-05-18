@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from src.crawl4ai_deep_crawl import crawl_documents_for_companies
+from src.crawl4ai_crawler import crawl_documents_for_companies
 
 router = APIRouter(prefix="/crawler")
 

@@ -1,24 +1,21 @@
 import hashlib
 from datetime import UTC, datetime
+from typing import Literal
 
-from src.db import DATABASE_NAME, client
+from pydantic import BaseModel
+
+from src.db import mongo
+
+DocumentCategory = Literal["privacy", "terms", "cookies", "other"]
 
 
-class Document:
-    def __init__(
-        self,
-        id: str,
-        domain: str,
-        doc_type: str,
-        markdown: str,
-        metadata: dict,
-        versions: list[dict],
-    ):
-        self.id = id
-        self.domain = domain
-        self.doc_type = doc_type
-        self.markdown = markdown
-        self.metadata = metadata
+class Document(BaseModel):
+    id: str
+    url: str
+    doc_type: DocumentCategory
+    markdown: str
+    metadata: dict
+    versions: list[dict]
 
 
 class DocumentService:
@@ -28,10 +25,8 @@ class DocumentService:
         # Archive older versions when exceeding this count
         self.max_versions_inline = 3
 
-        self.client = client
-        self.db = self.client[DATABASE_NAME]
-        self.documents = self.db.documents
-        self.versions = self.db.document_versions
+        self.documents = mongo.db.documents
+        self.versions = mongo.db.document_versions
 
     async def _archive_oldest_version(self, doc: dict):
         await self.versions.insert_one(

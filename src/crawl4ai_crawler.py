@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from src.company import get_all_companies
+from src.db import mongo
+from src.document import Document
 
 load_dotenv()
 
@@ -26,7 +28,7 @@ class LegalDocumentCrawler:
         self,
         max_depth: int = 3,
         max_pages: int = 300,
-        allowed_domains: list[str] = [],
+        allowed_domains: list[str] | None = None,
         include_external: bool = False,
         verbose: bool = False,
     ):
@@ -41,7 +43,7 @@ class LegalDocumentCrawler:
         """
         self.max_depth = max_depth
         self.max_pages = max_pages
-        self.allowed_domains = allowed_domains
+        self.allowed_domains = allowed_domains or []
         self.include_external = include_external
         self.verbose = verbose
 
@@ -196,7 +198,7 @@ async def crawl_documents_for_companies():
 
     companies = await get_all_companies()
 
-    documents = []
+    documents: list[Document] = []
 
     for company in companies:
         if not company.crawl_base_urls:
@@ -222,5 +224,36 @@ async def crawl_documents_for_companies():
     return documents
 
 
+async def document_classification(documents: list[Document]) -> list[Document]:
+    """
+    Classify the documents into categories.
+    """
+    for document in documents:
+        if any(
+            keyword in document.url.lower() for keyword in ["privacy", "privacy-policy"]
+        ):
+            document.doc_type = "privacy"
+        elif any(keyword in document.url.lower() for keyword in ["terms", "tos"]):
+            document.doc_type = "terms"
+        elif any(
+            keyword in document.url.lower() for keyword in ["cookies", "cookie-policy"]
+        ):
+            document.doc_type = "cookies"
+        elif any(
+            keyword in document.url.lower()
+            for keyword in ["gdpr", "ccpa", "caloppa", "hipaa", "coppa"]
+        ):
+            document.doc_type = "compliance"
+        else:
+            document.doc_type = "other"
+
+        await mongo.db.documents.update_one(
+            {"id": document.id},
+            {"$set": {"doc_type": document.doc_type}},
+        )
+
+    return documents
+
+
 if __name__ == "__main__":
-    asyncio.run(crawl_documents_for_companies())
+    cralwed_documents = asyncio.run(crawl_documents_for_companies())

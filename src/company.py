@@ -2,7 +2,7 @@ from typing import Union
 
 from pydantic import BaseModel
 
-from src.db import DATABASE_NAME, client
+from src.db import mongo
 
 
 class Company(BaseModel):
@@ -19,14 +19,12 @@ class Company(BaseModel):
 
 
 async def get_all_companies() -> list[Company]:
-    db = client[DATABASE_NAME]
-    companies: list[dict] = await db.companies.find().to_list(None)
+    companies: list[dict] = await mongo.db.companies.find().to_list(None)
     return [Company(**company) for company in companies]
 
 
 async def get_company_by_id(id: str) -> Company:
-    db = client[DATABASE_NAME]
-    company = await db.companies.find_one({"id": id})
+    company = await mongo.db.companies.find_one({"id": id})
     if not company:
         raise ValueError("Company not found")
     return Company(**company)
