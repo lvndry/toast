@@ -228,31 +228,45 @@ async def document_classification(documents: list[Document]) -> list[Document]:
     """
     Classify the documents into categories.
     """
-    for document in documents:
-        if any(
-            keyword in document.url.lower() for keyword in ["privacy", "privacy-policy"]
-        ):
-            document.doc_type = "privacy"
-        elif any(keyword in document.url.lower() for keyword in ["terms", "tos"]):
-            document.doc_type = "terms"
-        elif any(
-            keyword in document.url.lower() for keyword in ["cookies", "cookie-policy"]
-        ):
-            document.doc_type = "cookies"
-        elif any(
-            keyword in document.url.lower()
-            for keyword in ["gdpr", "ccpa", "caloppa", "hipaa", "coppa"]
-        ):
-            document.doc_type = "compliance"
-        else:
-            document.doc_type = "other"
+    classified_documents = []
 
-        await mongo.db.documents.update_one(
-            {"id": document.id},
-            {"$set": {"doc_type": document.doc_type}},
+    for document in documents:
+        new_doc = Document(
+            id=document.id,
+            url=document.url,
+            markdown=document.markdown,
+            metadata=document.metadata,
+            versions=document.versions,
+            doc_type=document.doc_type,
         )
 
-    return documents
+        # Classify the document
+        if any(
+            keyword in new_doc.url.lower() for keyword in ["privacy", "privacy-policy"]
+        ):
+            new_doc.doc_type = "privacy"
+        elif any(keyword in new_doc.url.lower() for keyword in ["terms", "tos"]):
+            new_doc.doc_type = "terms"
+        elif any(
+            keyword in new_doc.url.lower() for keyword in ["cookies", "cookie-policy"]
+        ):
+            new_doc.doc_type = "cookies"
+        elif any(
+            keyword in new_doc.url.lower()
+            for keyword in ["gdpr", "ccpa", "caloppa", "hipaa", "coppa"]
+        ):
+            new_doc.doc_type = "compliance"
+        else:
+            new_doc.doc_type = "other"
+
+        classified_documents.append(new_doc)
+
+    return classified_documents
+
+
+async def store_documents(documents: list[Document]):
+    for document in documents:
+        await mongo.db.documents.insert_one(document.model_dump())
 
 
 if __name__ == "__main__":
