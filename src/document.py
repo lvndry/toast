@@ -12,6 +12,7 @@ DocumentCategory = Literal["privacy", "terms", "cookies", "other"]
 class Document(BaseModel):
     id: str
     url: str
+    company_id: str
     doc_type: DocumentCategory
     markdown: str
     metadata: dict
@@ -88,3 +89,9 @@ class DocumentService:
                 "extracted_at": new_version["extracted_at"],
             }
         )
+
+    async def get_documents_by_type(self, doc_type: DocumentCategory):
+        return await self.documents.find({"doc_type": doc_type}).to_list(None)
+
+    async def get_documents_by_company_id(self, company_id: str):
+        return await self.documents.find({"company_id": company_id}).to_list(None)

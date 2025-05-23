@@ -173,7 +173,7 @@ class LegalDocumentCrawler:
                         logger.warning(f"Crawl failed: {result.error_message}")
                         logger.warning(f"Status code: {result.status_code}")
 
-                logger.info(f"Crawled {results} from {url}")
+                logger.info(f"Crawled {len(results)} from {url}")
 
                 all_results.extend(results)
 
@@ -200,12 +200,11 @@ async def crawl_documents_for_companies():
 
     documents: list[Document] = []
 
+    companies = companies[:1]
+
     for company in companies:
         if not company.crawl_base_urls:
             logger.warning(f"No crawl base URLs for {company.name}")
-            continue
-
-        if company.slug in ["notion", "google"]:
             continue
 
         crawler = LegalDocumentCrawler(allowed_domains=company.domains, verbose=True)
@@ -238,6 +237,7 @@ async def document_classification(documents: list[Document]) -> list[Document]:
             metadata=document.metadata,
             versions=document.versions,
             doc_type=document.doc_type,
+            company_id=document.company_id,
         )
 
         # Classify the document

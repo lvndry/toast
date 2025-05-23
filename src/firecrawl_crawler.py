@@ -1,8 +1,8 @@
 import asyncio
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from firecrawl import FirecrawlApp
+from firecrawl import FirecrawlApp  # type: ignore
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -17,19 +17,19 @@ client: AsyncIOMotorClient = AsyncIOMotorClient(MONGO_URI)
 db = client[DB_NAME]
 
 
-async def get_company_record(company_name: str) -> Optional[Dict[str, Any]]:
+async def get_company_record(company_name: str) -> dict[str, Any] | None:
     """Retrieve company ID from database"""
     company = await db.companies.find_one({"slug": company_name.lower()})
     return company
 
 
-async def get_company_base_sources(company_id: str) -> Optional[Dict[str, Any]]:
+async def get_company_base_sources(company_id: str) -> dict[str, Any] | None:
     """Retrieve company base sources from database"""
     document = await db.documents.find_one({"company_id": company_id})
     return document
 
 
-async def map_urls(base_urls: List[str]) -> List[str]:
+async def map_urls(base_urls: list[str]) -> list[str]:
     """Crawl sub-urls for company's base sources"""
     app = FirecrawlApp(api_key=FIRECRAWL_API_KEY)
 
@@ -52,7 +52,7 @@ async def map_urls(base_urls: List[str]) -> List[str]:
     return []
 
 
-async def store_mapped_urls(company_id: str, urls: List[str]):
+async def store_mapped_urls(company_id: str, urls: list[str]):
     """Update documents with sources field where company_id matches"""
     try:
         result = await db.documents.update_one(
@@ -67,7 +67,7 @@ async def store_mapped_urls(company_id: str, urls: List[str]):
 
 
 # unused
-async def scrape_page_content(url: str) -> Optional[Dict[str, Any]]:
+async def scrape_page_content(url: str) -> dict[str, Any] | None:
     app = FirecrawlApp(api_key=FIRECRAWL_API_KEY)
     crawl_result = app.scrape_url(url=url)
     logger.info(crawl_result)
@@ -95,7 +95,7 @@ async def main(company_name: str):
         mapped_urls = await map_urls(base_urls=document["base_sources"])
         logger.info(mapped_urls)
         classifier = WebpageClassifier(firecrawl_api_key=FIRECRAWL_API_KEY)
-        legal_documents: List[str] = []
+        legal_documents: list[str] = []
         for url in mapped_urls:
             classification = await classifier.classify_page(url=url)
             logger.info(classification)
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     asyncio.run(main(sys.argv[1].strip().lower()))
 
 
-def is_legal_document(page: Dict[str, Any]) -> bool:
+def is_legal_document(page: dict[str, Any]) -> bool:
     """Enhanced document detection"""
     content = (page.get("markdown") or "").lower()
     return any(

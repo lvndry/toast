@@ -18,19 +18,17 @@ class Database:
     client: AsyncIOMotorClient = None
     db: AgnosticDatabase = None
 
+    def __init__(self):
+        self.connect_to_mongo()
+
+    def connect_to_mongo(self):
+        self.client = AsyncIOMotorClient(MONGO_URI)
+        self.db = self.client[DATABASE_NAME]
+        logger.info(f"Connected to MongoDB at {MONGO_URI}")
+
+    def close_mongo_connection(self):
+        self.client.close()
+        logger.info("Closed MongoDB connection")
+
 
 mongo = Database()
-
-
-async def connect_to_mongo():
-    """Connect to MongoDB."""
-    mongo.client = AsyncIOMotorClient(MONGO_URI)
-    mongo.db = mongo.client[DATABASE_NAME]
-    logger.info(f"Connected to MongoDB at {MONGO_URI}")
-
-
-async def close_mongo_connection():
-    """Close MongoDB connection."""
-    if mongo.client:
-        mongo.client.close()
-        logger.info("Closed MongoDB connection")

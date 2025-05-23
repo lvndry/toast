@@ -12,6 +12,7 @@ def test_document_classification_privacy():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         )
     ]
 
@@ -29,6 +30,7 @@ def test_document_classification_terms():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         )
     ]
 
@@ -46,6 +48,7 @@ def test_document_classification_cookies():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         )
     ]
 
@@ -63,6 +66,7 @@ def test_document_classification_other():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         )
     ]
 
@@ -80,6 +84,7 @@ def test_document_classification_multiple_documents():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         ),
         Document(
             id="2",
@@ -88,6 +93,7 @@ def test_document_classification_multiple_documents():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         ),
         Document(
             id="3",
@@ -96,6 +102,7 @@ def test_document_classification_multiple_documents():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         ),
         Document(
             id="4",
@@ -104,6 +111,7 @@ def test_document_classification_multiple_documents():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         ),
     ]
 
@@ -124,6 +132,7 @@ def test_document_classification_case_insensitive():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         ),
         Document(
             id="2",
@@ -132,6 +141,7 @@ def test_document_classification_case_insensitive():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         ),
         Document(
             id="3",
@@ -140,6 +150,7 @@ def test_document_classification_case_insensitive():
             markdown="",
             metadata={},
             versions=[],
+            company_id="1",
         ),
     ]
 
