@@ -1,4 +1,7 @@
 import asyncio
+import json
+import os
+from typing import Any, Dict
 
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig  # type: ignore
 from crawl4ai.async_configs import BrowserConfig  # type: ignore
@@ -12,10 +15,10 @@ from crawl4ai.deep_crawling.filters import (  # type: ignore
 )
 from crawl4ai.deep_crawling.scorers import KeywordRelevanceScorer  # type: ignore
 from dotenv import load_dotenv
+from litellm import completion
 from loguru import logger
 
-from src.company import get_all_companies
-from src.db import mongo
+from src.db import get_all_companies, mongo
 from src.document import Document
 
 load_dotenv()
@@ -123,7 +126,7 @@ class LegalDocumentCrawler:
         return FilterChain(
             [
                 self.domain_filter,
-                # self.url_pattern_filter,
+                self.url_pattern_filter,
                 self.content_relevance_filter,
             ]
         )
@@ -134,7 +137,7 @@ class LegalDocumentCrawler:
             max_depth=self.max_depth,
             include_external=self.include_external,
             url_scorer=self.keyword_relevance_scorer,
-            filter_chain=self.filter_chain,
+            # filter_chain=self.filter_chain,
             max_pages=self.max_pages,
         )
 
@@ -184,15 +187,14 @@ async def crawl_documents_for_companies():
     # Used for testing without database
     # companies = [
     #     Company(
-    #         id="1",
-    #         name="Facebook",
-    #         slug="facebook",
-    #         domains=["facebook.com"],
+    #         id="ZJ54kBL6GYbkpt99e6ecof",
+    #         name="LinkedIn",
+    #         slug="linkedin",
+    #         domains=["linkedin.com"],
     #         crawl_base_urls=[
-    #             "https://facebook.com/legal",
-    #             "https://facebook.com/privacy",
+    #             "https://www.linkedin.com/legal/user-agreement-summary",
     #         ],
-    #         categories=["test"],
+    #         categories=["social"],
     #     )
     # ]
 
@@ -200,14 +202,17 @@ async def crawl_documents_for_companies():
 
     documents: list[Document] = []
 
-    companies = companies[:1]
-
     for company in companies:
         if not company.crawl_base_urls:
             logger.warning(f"No crawl base URLs for {company.name}")
             continue
 
-        crawler = LegalDocumentCrawler(allowed_domains=company.domains, verbose=True)
+        crawler = LegalDocumentCrawler(
+            allowed_domains=company.domains,
+            verbose=True,
+            max_depth=1,
+            max_pages=1,
+        )
 
         logger.info(
             f"Crawling {company.name} ({company.domains}) with {company.crawl_base_urls} base URLs"
@@ -218,50 +223,63 @@ async def crawl_documents_for_companies():
         for result in results:
             logger.info(f"URL: {result.url}")
             logger.info(f"Metadata: {result.metadata}")
-            # logger.info(f"Markdown: {result.markdown}")
-
+            documents.append(
+                Document(
+                    id=result.url,
+                    url=result.url,
+                    markdown=result.markdown,
+                    metadata=result.metadata,
+                    text=result.text,
+                    company_id=company.id,
+                    doc_type="other",
+                    versions=[],
+                )
+            )
     return documents
 
 
-async def document_classification(documents: list[Document]) -> list[Document]:
+async def document_classifier(
+    url: str, markdown: str, metadata: Dict[str, Any]
+) -> Dict[str, Any]:
     """
-    Classify the documents into categories.
+    Classify a document using Mistral via LiteLLM.
     """
-    classified_documents = []
+    prompt = f"""Analyze this document and classify it into one of these categories:
+    - privacy_policy
+    - terms_of_service
+    - cookie_policy
+    - legal_document
+    - other
 
-    for document in documents:
-        new_doc = Document(
-            id=document.id,
-            url=document.url,
-            markdown=document.markdown,
-            metadata=document.metadata,
-            versions=document.versions,
-            doc_type=document.doc_type,
-            company_id=document.company_id,
+    URL: {url}
+    Content: {markdown[:4000]}
+    Metadata: {json.dumps(metadata, indent=2)}
+
+    Return a JSON object with:
+    - classification: the category
+    - confidence: float between 0 and 1
+    - explanation: brief explanation of the classification
+    """
+
+    try:
+        response = completion(
+            model="mistral/mistral-small-latest",
+            api_key=os.getenv("MISTRAL_API_KEY"),
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a document classifier specialized in legal documents. Analyze the content and classify it accurately.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.1,
         )
 
-        # Classify the document
-        if any(
-            keyword in new_doc.url.lower() for keyword in ["privacy", "privacy-policy"]
-        ):
-            new_doc.doc_type = "privacy"
-        elif any(keyword in new_doc.url.lower() for keyword in ["terms", "tos"]):
-            new_doc.doc_type = "terms"
-        elif any(
-            keyword in new_doc.url.lower() for keyword in ["cookies", "cookie-policy"]
-        ):
-            new_doc.doc_type = "cookies"
-        elif any(
-            keyword in new_doc.url.lower()
-            for keyword in ["gdpr", "ccpa", "caloppa", "hipaa", "coppa"]
-        ):
-            new_doc.doc_type = "compliance"
-        else:
-            new_doc.doc_type = "other"
-
-        classified_documents.append(new_doc)
-
-    return classified_documents
+        return json.loads(response.choices[0].message.content)
+    except Exception as e:
+        logger.error(f"Error classifying document with Mistral: {str(e)}")
+        return {"classification": "other", "confidence": 0.0, "explanation": str(e)}
 
 
 async def store_documents(documents: list[Document]):
@@ -271,3 +289,10 @@ async def store_documents(documents: list[Document]):
 
 if __name__ == "__main__":
     cralwed_documents = asyncio.run(crawl_documents_for_companies())
+    doc = cralwed_documents[0]
+    classification = asyncio.run(
+        document_classifier(url=doc.url, markdown=doc.markdown, metadata=doc.metadata)
+    )
+    logger.info(f"Classification: {classification}")
+    doc.doc_type = classification["classification"]
+    asyncio.run(store_documents([doc]))

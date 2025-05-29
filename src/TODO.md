@@ -1,0 +1,7 @@
+- Summarize each documents -> done
+- Get a summary for each doc -> done
+- Do embedding for each company -> done
+- Get a global summary of each doc ->
+- Do the RAG
+- Connect to the FastAPI
+- Quickly do a frontend
