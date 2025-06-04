@@ -36,6 +36,7 @@ class LegalDocumentCrawler:
         allowed_domains: list[str] | None = None,
         include_external: bool = False,
         verbose: bool = False,
+        page_timeout: int = 60000,
     ):
         """
         Initialize the legal document crawler.
@@ -52,6 +53,7 @@ class LegalDocumentCrawler:
         self.allowed_domains = allowed_domains or []
         self.include_external = include_external
         self.verbose = verbose
+        self.page_timeout = page_timeout
 
         # Initialize the crawler components
         self.browser_config = self._create_browser_config()
@@ -158,6 +160,7 @@ class LegalDocumentCrawler:
             scraping_strategy=LXMLWebScrapingStrategy(),
             verbose=self.verbose,
             stream=self.stream,
+            page_timeout=self.page_timeout,
         )
 
     def clean_url(self, url: str) -> str:
