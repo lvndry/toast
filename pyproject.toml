@@ -6,9 +6,9 @@ readme = "README.md"
 requires-python = ">=3.11"
 
 dependencies = [
-    "crawl4ai>=0.5.0.post8",
+    "crawl4ai>=0.6.2",
     "fastapi[standard]>=0.115.11",
-    "fetchfox-sdk-beta",
+    "fetchfox-sdk>=0.7.0",
     "firecrawl-py>=1.13.5",
     "langchain>=0.3.25",
     "litellm>=1.65.1",
@@ -24,7 +24,3 @@ dependencies = [
     "streamlit>=1.43.2",
     "supabase>=2.13.0",
 ]
-
-[tool.uv.sources]
-fetchfox-sdk-beta = { git = "https://github.com/fetchfox/fetchfox-sdk-python.git", rev = "dev" }
-crawl4ai = { git = "https://github.com/Joorrit/crawl4ai", rev = "7a3cede39d95cbdb914b01569a006d577f412eb0" }

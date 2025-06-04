@@ -382,7 +382,7 @@ wheels = [
 [[package]]
 name = "crawl4ai"
 version = "0.6.2"
-source = { git = "https://github.com/Joorrit/crawl4ai?rev=7a3cede39d95cbdb914b01569a006d577f412eb0#7a3cede39d95cbdb914b01569a006d577f412eb0" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
     { name = "aiohttp" },
@@ -413,6 +413,10 @@ dependencies = [
     { name = "snowballstemmer" },
     { name = "tf-playwright-stealth" },
     { name = "xxhash" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7e/9d/0f63b4f8ea487843b33a6da4b1ffff9e77dc4eee32cd25fb8bb52f3e6e04/crawl4ai-0.6.2.tar.gz", hash = "sha256:f52acee539500ec5fc8edbb7d3a3378a1b26f79017a52117bd10673a90a0f562", size = 291051, upload-time = "2025-04-26T13:10:23.809Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/de/35/a604b5bc889c23f0960823092a75241fe81d1c7ae0762c5277583da08c5b/crawl4ai-0.6.2-py3-none-any.whl", hash = "sha256:f52ae16081afcd4b398c023fb9c9c8d31c592047bade4a97054a82c2271c54e6", size = 287248, upload-time = "2025-04-26T13:10:21.594Z" },
 ]
 
 [[package]]
@@ -569,11 +573,15 @@ standard = [
 ]
 
 [[package]]
-name = "fetchfox-sdk-beta"
-version = "0.3.0"
-source = { git = "https://github.com/fetchfox/fetchfox-sdk-python.git?rev=dev#80de9903fbf6fe6f087a55403609527864d40a2d" }
+name = "fetchfox-sdk"
+version = "0.7.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f0/8c/7228e6086bf91f11591b71de5b87eae3e46e8354ee6ecacad140ae866c48/fetchfox_sdk-0.7.0.tar.gz", hash = "sha256:87b5ee12a236d38d2f2c3cce36eca5b218e9942b4620d8db1b1d2c6c573a01d1", size = 20818, upload-time = "2025-05-06T20:07:00.526Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/40/d1d194152da16745985dd1c5d2f64b13d8772cd352670c22e97050fa8fb6/fetchfox_sdk-0.7.0-py3-none-any.whl", hash = "sha256:506fc5d1b72c0a07683c2f9241677168b8ca25021a23594cb6494339153ea5a0", size = 16150, upload-time = "2025-05-06T20:06:58.87Z" },
 ]
 
 [[package]]
@@ -2649,7 +2657,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "crawl4ai" },
     { name = "fastapi", extra = ["standard"] },
-    { name = "fetchfox-sdk-beta" },
+    { name = "fetchfox-sdk" },
     { name = "firecrawl-py" },
     { name = "langchain" },
     { name = "litellm" },
@@ -2668,9 +2676,9 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "crawl4ai", git = "https://github.com/Joorrit/crawl4ai?rev=7a3cede39d95cbdb914b01569a006d577f412eb0" },
+    { name = "crawl4ai", specifier = ">=0.6.2" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.11" },
-    { name = "fetchfox-sdk-beta", git = "https://github.com/fetchfox/fetchfox-sdk-python.git?rev=dev" },
+    { name = "fetchfox-sdk", specifier = ">=0.7.0" },
     { name = "firecrawl-py", specifier = ">=1.13.5" },
     { name = "langchain", specifier = ">=0.3.25" },
     { name = "litellm", specifier = ">=1.65.1" },

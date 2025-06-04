@@ -1,0 +1,3 @@
+"""
+Dashboard components package initialization
+"""
