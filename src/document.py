@@ -34,4 +34,5 @@ class Document(BaseModel):
     metadata: dict
     versions: list[dict] = []
     analysis: DocumentAnalysis | None = None
+    locale: str | None = None
     created_at: datetime = Field(default_factory=datetime.now)

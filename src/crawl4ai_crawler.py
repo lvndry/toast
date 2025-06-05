@@ -340,6 +340,94 @@ class DocumentClassifier:
             }
 
 
+async def detect_locale(text: str, metadata: dict[str, Any]) -> str:
+    """
+    Detect the locale of a document.
+
+    First checks metadata for og:locale, then uses LLM to detect from text sample.
+
+    Args:
+        text: The document content in text format
+        metadata: Document metadata that might contain locale information
+
+    Returns:
+        str: Detected locale (e.g., "en-US", "fr-FR", "de-DE")
+    """
+    # First, try to get locale from metadata
+    if metadata and "og:locale" in metadata:
+        locale = metadata["og:locale"]
+        if locale:
+            logger.info(f"Found locale in metadata: {locale}")
+            return locale
+
+    # Also check other common metadata fields
+    if metadata:
+        for key in ["locale", "language", "lang", "og:language"]:
+            if key in metadata and metadata[key]:
+                locale = metadata[key]
+                logger.info(f"Found locale in metadata ({key}): {locale}")
+                return locale
+
+    # If not found in metadata, use LLM to detect locale
+    logger.info("Locale not found in metadata, using LLM to detect from text")
+
+    # Get a sample from the middle of the text (1000 characters)
+    text_length = len(text)
+    if text_length > 1000:
+        start_pos = text_length // 2 - 500
+        text_sample = text[start_pos : start_pos + 1000]
+    else:
+        text_sample = text
+
+    api_key = os.getenv("MISTRAL_API_KEY")
+    if not api_key:
+        logger.warning("MISTRAL_API_KEY not set, defaulting to en-US")
+        return "en-US"
+
+    prompt = f"""Analyze this text sample and determine the language/locale.
+
+Text sample:
+{text_sample}
+
+Return a JSON object with:
+- locale: the detected locale in format like "en-US", "fr-FR", "de-DE", "es-ES", etc.
+- confidence: float between 0 and 1 indicating confidence in the detection
+- language_name: human readable language name (e.g., "English", "French", "German")
+
+Be as specific as possible with the locale (include country code when possible).
+"""
+
+    system_prompt = """
+    You are a language detection expert. Analyze the given text and determine its language and locale accurately.
+    Return results in the specified JSON format.
+    """
+
+    try:
+        response = await acompletion(
+            model="mistral/mistral-small-latest",
+            api_key=api_key,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.1,
+        )
+
+        result = json.loads(response.choices[0].message.content)
+        detected_locale = result.get("locale", "en-US")
+        confidence = result.get("confidence", 0.0)
+
+        logger.info(
+            f"LLM detected locale: {detected_locale} (confidence: {confidence})"
+        )
+        return detected_locale
+
+    except Exception as e:
+        logger.error(f"Error detecting locale with LLM: {str(e)}")
+        return "en-US"  # Default fallback
+
+
 async def store_documents(documents: list[Document]):
     """Store documents with deduplication and update logic."""
     for document in documents:
@@ -406,21 +494,27 @@ async def process_company(company: Company) -> list[Document]:
         )
         logger.info(f"Classifying document: {result.url}")
         logger.info(f"URL: {result.url} - Classification: {classification}")
+
+        # Detect locale for the document
+        text_content = markdown_to_text(result.markdown)
+        detected_locale = await detect_locale(text_content, result.metadata)
+        logger.info(f"URL: {result.url} - Detected locale: {detected_locale}")
+
         legal_documents.append(
             Document(
                 url=result.url,
                 company_id=company.id,
                 markdown=result.markdown,
-                text=markdown_to_text(result.markdown),
+                text=text_content,
                 metadata=result.metadata,
                 doc_type=classification["classification"],
                 is_legal_document=classification["is_legal_document"],
+                locale=detected_locale,
             )
         )
 
-    for doc in legal_documents:
-        if not doc.is_legal_document:
-            legal_documents.remove(doc)
+    # Filter to keep only legal documents
+    legal_documents = [doc for doc in legal_documents if doc.is_legal_document]
 
     # Store legal documents
     if legal_documents:
