@@ -176,8 +176,8 @@ class LegalDocumentCrawler:
             str: The cleaned URL
         """
         whitelist_urls = [
-            "https://www.amazon.com",
-            "https://www.youtube.com",
+            "amazon.com",
+            "youtube.com",
         ]
 
         if url in whitelist_urls:
