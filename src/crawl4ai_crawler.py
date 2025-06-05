@@ -15,12 +15,13 @@ from crawl4ai.deep_crawling.filters import (  # type: ignore
 )
 from crawl4ai.deep_crawling.scorers import KeywordRelevanceScorer  # type: ignore
 from dotenv import load_dotenv
-from litellm import completion
+from litellm import acompletion
 from loguru import logger
 
 from src.company import Company
 from src.db import get_all_companies, mongo
-from src.document import Document
+from src.document import DocType, Document
+from src.utils.md import markdown_to_text
 
 load_dotenv()
 
@@ -161,6 +162,7 @@ class LegalDocumentCrawler:
             verbose=self.verbose,
             stream=self.stream,
             page_timeout=self.page_timeout,
+            locale="en-US",  # TODO: make this configurable
         )
 
     def clean_url(self, url: str) -> str:
@@ -229,7 +231,7 @@ class DocumentClassifier:
         self,
         model: str = "mistral/mistral-small-latest",
         temperature: float = 0.1,
-        max_content_length: int = 4000,
+        max_content_length: int = 5000,
     ):
         """
         Initialize the document classifier.
@@ -247,55 +249,56 @@ class DocumentClassifier:
         if not self.api_key:
             raise ValueError("MISTRAL_API_KEY environment variable is not set")
 
-        self.categories = [
+        self.categories: list[DocType] = [
             "privacy_policy",
             "terms_of_service",
             "cookie_policy",
             "terms_and_conditions",
             "data_processing_agreement",
             "gdpr_policy",
+            "copyright_policy",
             "other",
         ]
 
-    def _create_prompt(self, url: str, markdown: str, metadata: Dict[str, Any]) -> str:
+    def _create_prompt(self, url: str, text: str, metadata: Dict[str, Any]) -> str:
         """Create the classification prompt."""
         categories_list = "\n".join(f"- {cat}" for cat in self.categories)
         return f"""Analyze this document and classify it into one of these categories:
         {categories_list}
 
         URL: {url}
-        Content: {markdown[: self.max_content_length]}
+        Content: {text[: self.max_content_length]}
         Metadata: {json.dumps(metadata, indent=2)}
 
         Return a JSON object with:
         - classification: the category
-        - classification_confidence: float between 0 and 1
+        - classification_confidence: float between 0 and 1. 0 low confidence, 1 high confidence.
         - is_legal_document: boolean
-        - is_legal_document_confidence: float between 0 and 1
+        - is_legal_document_confidence: float between 0 and 1. 0 low confidence, 1 high confidence.
         - explanation: brief explanation of the classification
         """
 
     async def classify(
-        self, url: str, markdown: str, metadata: Dict[str, Any]
+        self, url: str, text: str, metadata: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Classify a document using the configured LLM.
 
         Args:
             url: The URL of the document
-            markdown: The document content in markdown format
+            text: The document content in text format
             metadata: Additional metadata about the document
 
         Returns:
             Dict containing classification results
         """
-        prompt = self._create_prompt(url, markdown, metadata)
+        prompt = self._create_prompt(url, text, metadata)
         system_prompt = """
         You are a document classifier specialized in legal documents. Analyze the content and classify it accurately.
         """
 
         try:
-            response = completion(
+            response = await acompletion(
                 model=self.model,
                 api_key=self.api_key,
                 messages=[
@@ -373,6 +376,7 @@ async def process_company(company: Company) -> list[Document]:
                 url=result.url,
                 company_id=company.id,
                 markdown=result.markdown,
+                text=markdown_to_text(result.markdown),
                 metadata=result.metadata,
                 doc_type="other",  # temporary, classification is done on a later stage
             )
@@ -381,20 +385,14 @@ async def process_company(company: Company) -> list[Document]:
     # Create classifier instance
     classifier = DocumentClassifier()
 
-    # Classify documents in parallel
-    classifications = await asyncio.gather(
-        *[
-            classifier.classify(
-                url=doc.url, markdown=doc.markdown, metadata=doc.metadata
-            )
-            for doc in documents
-        ]
-    )
-
-    # Update documents with classifications
     legal_documents = []
-    for doc, classification in zip(documents, classifications):
+    for doc in documents:
+        logger.info(f"Classifying document: {doc.url}")
+        classification = await classifier.classify(
+            url=doc.url, text=doc.text, metadata=doc.metadata
+        )
         logger.info(f"URL: {doc.url} - Classification: {classification}")
+
         doc.doc_type = classification["classification"]
         doc.is_legal_document = classification["is_legal_document"]
 
@@ -412,15 +410,16 @@ async def process_company(company: Company) -> list[Document]:
 async def main():
     # Get all companies
     companies = await get_all_companies()
+    all_documents = []
 
-    # Process all companies in parallel
-    all_documents = await asyncio.gather(
-        *[process_company(company) for company in companies]
-    )
+    # Process companies sequentially to respect rate limits
+    for i, company in enumerate(companies, 1):
+        logger.info(f"Processing company {i}/{len(companies)}: {company.name}")
+        documents = await process_company(company)
+        all_documents.extend(documents)
+        logger.info(f"Completed processing {company.name}")
 
-    # Flatten the list of documents
-    total_documents = [doc for docs in all_documents for doc in docs]
-    logger.info(f"Total documents processed: {len(total_documents)}")
+    logger.info(f"Total documents processed: {len(all_documents)}")
 
 
 if __name__ == "__main__":

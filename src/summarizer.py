@@ -27,7 +27,7 @@ async def summarize_document(document: Document) -> DocumentAnalysis:
     prompt = f"""You are a privacy-focused document summarizer. Your task is to read and analyze this legal document and produce a comprehensive yet easy-to-understand summary, specifically for readers who care about how their data is handled.
 
 Document content:
-{document.markdown}
+{document.text}
 
 Please provide:
 
