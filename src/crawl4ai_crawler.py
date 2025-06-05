@@ -1,7 +1,8 @@
 import asyncio
+import hashlib
 import json
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig  # type: ignore
 from crawl4ai.async_configs import BrowserConfig  # type: ignore
@@ -332,13 +333,38 @@ class DocumentClassifier:
             }
 
 
+async def get_document_by_url(url: str) -> Optional[Document]:
+    """Get a document by its URL from the database."""
+    doc = await mongo.db.documents.find_one({"url": url})
+    return Document(**doc) if doc else None
+
+
 async def store_documents(documents: list[Document]):
-    await asyncio.gather(
-        *[
-            mongo.db.documents.insert_one(document.model_dump())
-            for document in documents
-        ]
-    )
+    """Store documents with deduplication and update logic."""
+    for document in documents:
+        # Check if document with same URL exists
+        existing_doc = await get_document_by_url(document.url)
+
+        if existing_doc:
+            # Calculate SHA-256 hash of the document text
+            current_hash = hashlib.sha256(document.text.encode()).hexdigest()
+
+            # Calculate SHA-256 hash of existing document text
+            existing_hash = hashlib.sha256(existing_doc.text.encode()).hexdigest()
+
+            if current_hash != existing_hash:
+                # Update existing document if content is different
+                logger.info(f"Updating document with URL: {document.url}")
+                document.id = existing_doc.id  # Preserve the original ID
+                await mongo.db.documents.update_one(
+                    {"url": document.url}, {"$set": document.model_dump()}
+                )
+            else:
+                logger.info(f"Skipping document with URL: {document.url} (no changes)")
+        else:
+            # Create new document if URL doesn't exist
+            logger.info(f"Creating new document with URL: {document.url}")
+            await mongo.db.documents.insert_one(document.model_dump())
 
 
 async def process_company(company: Company) -> list[Document]:
