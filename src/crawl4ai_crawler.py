@@ -74,47 +74,45 @@ class LegalDocumentCrawler:
 
     def _create_keyword_relevance_scorer(self) -> KeywordRelevanceScorer:
         """Create the keyword relevance scorer."""
-        keywords = (
-            [
-                # generic terms
-                "policy",
-                "policies",
-                "notice",
-                "trust",
-                "safety",
-                "compliance",
-                "conditions",
-                "agreement",
-                "license",
-                "disclaimer",
-                "legal",
-                # privacy
-                "privacy-policy",
-                "privacy",
-                # cookies
-                "cookie",
-                "cookies",
-                "cookie-policy",
-                # data
-                "data",
-                "subprocessor",
-                "security",
-                # terms
-                "terms",
-                "terms-of-service",
-                "terms-and-conditions",
-                "terms-of-use",
-                "use-policy"
-                # protection & safety
-                "coppa",
-                # copyright
-                "copyright",
-                "dmca",
-                # regional terms
-                "gdpr",
-                "hipaa",
-            ],
-        )
+        keywords = [
+            # generic terms
+            "policy",
+            "policies",
+            "notice",
+            "trust",
+            "safety",
+            "compliance",
+            "conditions",
+            "agreement",
+            "license",
+            "disclaimer",
+            "legal",
+            # privacy
+            "privacy-policy",
+            "privacy",
+            # cookies
+            "cookie",
+            "cookies",
+            "cookie-policy",
+            # data
+            "data",
+            "subprocessor",
+            "security",
+            # terms
+            "terms",
+            "terms-of-service",
+            "terms-and-conditions",
+            "terms-of-use",
+            "use-policy",
+            # protection & safety
+            "coppa",
+            # copyright
+            "copyright",
+            "dmca",
+            # regional terms
+            "gdpr",
+            "hipaa",
+        ]
 
         return KeywordRelevanceScorer(
             keywords=keywords,

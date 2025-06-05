@@ -214,7 +214,7 @@ def show_company_view():
 
                     # Action buttons
                     st.write("---")
-                    col3, col4, col5, col6 = st.columns(4)
+                    col3, col4, col5, col6, col7 = st.columns(5)
                     with col3:
                         if st.button("📊 Analytics", key=f"analytics_{company.id}"):
                             st.info("Analytics feature coming soon!")
@@ -222,11 +222,17 @@ def show_company_view():
                         if st.button("📄 Documents", key=f"docs_{company.id}"):
                             st.info("Documents view coming soon!")
                     with col5:
+                        if st.button("🕷️ Crawl", key=f"crawl_{company.id}"):
+                            # Set the selected company for crawling and navigate to crawl page
+                            st.session_state["selected_company_for_crawl"] = company.id
+                            st.session_state["current_page"] = "Start Crawling"
+                            st.rerun()
+                    with col6:
                         if st.button("✏️ Edit", key=f"edit_{company.id}"):
                             # Set the editing state
                             st.session_state[edit_key] = True
                             st.rerun()
-                    with col6:
+                    with col7:
                         if st.button("🗑️ Delete", key=f"delete_{company.id}"):
                             # Set the delete confirmation state
                             st.session_state[delete_confirm_key] = True
@@ -254,12 +260,6 @@ def show_company_view():
             for company in companies:
                 unique_categories.update(company.categories)
             st.metric("Unique Categories", len(unique_categories))
-
-        # Categories breakdown
-        if unique_categories:
-            st.write("**All Categories:**")
-            categories_list = sorted(list(unique_categories))
-            st.write(", ".join(categories_list))
 
         # Companies without crawl URLs
         companies_without_crawl_urls = [c for c in companies if not c.crawl_base_urls]
