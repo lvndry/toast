@@ -37,11 +37,23 @@ class Database:
 mongo = Database()
 
 
+##### Company ######
 async def get_company_by_slug(slug: str) -> Company:
     company = await mongo.db.companies.find_one({"slug": slug})
     if not company:
         raise ValueError(f"Company with slug {slug} not found")
     return Company(**company)
+
+
+async def get_all_companies() -> list[Company]:
+    companies = await mongo.db.companies.find().to_list(length=None)
+    return [Company(**company) for company in companies]
+
+
+####### Documents #######
+async def get_all_documents() -> list[Document]:
+    documents = await mongo.db.documents.find().to_list(length=None)
+    return [Document(**document) for document in documents]
 
 
 async def get_company_documents(company_slug: str) -> list[Document]:
@@ -53,14 +65,10 @@ async def get_company_documents(company_slug: str) -> list[Document]:
     return [Document(**document) for document in documents]
 
 
-async def get_all_companies() -> list[Company]:
-    companies = await mongo.db.companies.find().to_list(length=None)
-    return [Company(**company) for company in companies]
-
-
-async def get_all_documents() -> list[Document]:
-    documents = await mongo.db.documents.find().to_list(length=None)
-    return [Document(**document) for document in documents]
+async def get_document_by_url(url: str) -> Document | None:
+    """Get a document by its URL from the database."""
+    doc = await mongo.db.documents.find_one({"url": url})
+    return Document(**doc) if doc else None
 
 
 async def update_document(document: Document):

@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig  # type: ignore
 from crawl4ai.async_configs import BrowserConfig  # type: ignore
@@ -20,7 +20,7 @@ from litellm import acompletion
 from loguru import logger
 
 from src.company import Company
-from src.db import get_all_companies, mongo
+from src.db import get_all_companies, get_document_by_url, mongo
 from src.document import DocType, Document
 from src.utils.md import markdown_to_text
 
@@ -36,9 +36,8 @@ class LegalDocumentCrawler:
         max_depth: int = 3,
         max_pages: int = 100,
         allowed_domains: list[str] | None = None,
-        include_external: bool = False,
         verbose: bool = False,
-        page_timeout: int = 60000,
+        page_timeout: int = 60000,  # ms
     ):
         """
         Initialize the legal document crawler.
@@ -53,7 +52,7 @@ class LegalDocumentCrawler:
         self.max_depth = max_depth
         self.max_pages = max_pages
         self.allowed_domains = allowed_domains or []
-        self.include_external = include_external
+        self.include_external = False
         self.verbose = verbose
         self.page_timeout = page_timeout
 
@@ -75,41 +74,51 @@ class LegalDocumentCrawler:
 
     def _create_keyword_relevance_scorer(self) -> KeywordRelevanceScorer:
         """Create the keyword relevance scorer."""
-        return KeywordRelevanceScorer(
-            keywords=[
-                # "privacy policy",
-                # "terms of service",
-                # "terms and conditions",
-                # "cookie policy",
-                # "information security",
-                # "end user license agreement",
-                # "data processing agreement",
-                "gdpr",
-                # "ccpa",
-                # "caloppa",
-                # "hipaa",
-                # "coppa",
-                "compliance",
-                # Data-specific terms
-                # "data retention",
-                # "data protection",
-                # "personal data",
-                # "user data",
-                # "data collection",
-                "cookie",
-                "privacy",
+        keywords = (
+            [
+                # generic terms
                 "policy",
-                "terms",
+                "policies",
+                "notice",
+                "trust",
+                "safety",
+                "compliance",
                 "conditions",
                 "agreement",
                 "license",
                 "disclaimer",
-                "notice",
+                "legal",
+                # privacy
+                "privacy-policy",
+                "privacy",
+                # cookies
+                "cookie",
+                "cookies",
+                "cookie-policy",
+                # data
                 "data",
                 "subprocessor",
+                "security",
+                # terms
+                "terms",
+                "terms-of-service",
+                "terms-and-conditions",
+                "terms-of-use",
+                "use-policy"
+                # protection & safety
+                "coppa",
+                # copyright
                 "copyright",
+                "dmca",
+                # regional terms
+                "gdpr",
+                "hipaa",
             ],
-            weight=0.7,
+        )
+
+        return KeywordRelevanceScorer(
+            keywords=keywords,
+            weight=len(keywords),
         )
 
     def _create_domain_filter(self) -> DomainFilter:
@@ -136,7 +145,7 @@ class LegalDocumentCrawler:
         """Create the filter chain."""
         return FilterChain(
             [
-                self.domain_filter,
+                # self.domain_filter,
                 # self.url_pattern_filter,
                 # self.content_relevance_filter,
             ]
@@ -149,7 +158,7 @@ class LegalDocumentCrawler:
             max_pages=self.max_pages,
             include_external=self.include_external,
             url_scorer=self.keyword_relevance_scorer,
-            filter_chain=self.filter_chain,
+            # filter_chain=self.filter_chain,
         )
 
     def _create_crawler_config(self) -> CrawlerRunConfig:
@@ -261,7 +270,7 @@ class DocumentClassifier:
             "other",
         ]
 
-    def _create_prompt(self, url: str, text: str, metadata: Dict[str, Any]) -> str:
+    def _create_prompt(self, url: str, text: str, metadata: dict[str, Any]) -> str:
         """Create the classification prompt."""
         categories_list = "\n".join(f"- {cat}" for cat in self.categories)
         return f"""Analyze this document and classify it into one of these categories:
@@ -280,8 +289,8 @@ class DocumentClassifier:
         """
 
     async def classify(
-        self, url: str, text: str, metadata: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, url: str, text: str, metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Classify a document using the configured LLM.
 
@@ -331,12 +340,6 @@ class DocumentClassifier:
                 "is_legal_document_confidence": 0.0,
                 "explanation": str(e),
             }
-
-
-async def get_document_by_url(url: str) -> Optional[Document]:
-    """Get a document by its URL from the database."""
-    doc = await mongo.db.documents.find_one({"url": url})
-    return Document(**doc) if doc else None
 
 
 async def store_documents(documents: list[Document]):
@@ -391,39 +394,35 @@ async def process_company(company: Company) -> list[Document]:
         f"Crawling {company.name} ({company.domains}) from {company.crawl_base_urls} base URLs"
     )
 
+    # Create classifier instance
+    classifier = DocumentClassifier()
+
     # Crawl documents
     results = await crawler.crawl(company.crawl_base_urls)
-    documents: list[Document] = []
+    legal_documents: list[Document] = []
 
     for result in results:
         logger.info(f"URL: {result.url} -  Metadata: {result.metadata}")
-        documents.append(
+        classification = await classifier.classify(
+            result.url, result.markdown, result.metadata
+        )
+        logger.info(f"Classifying document: {result.url}")
+        logger.info(f"URL: {result.url} - Classification: {classification}")
+        legal_documents.append(
             Document(
                 url=result.url,
                 company_id=company.id,
                 markdown=result.markdown,
                 text=markdown_to_text(result.markdown),
                 metadata=result.metadata,
-                doc_type="other",  # temporary, classification is done on a later stage
+                doc_type=classification["classification"],
+                is_legal_document=classification["is_legal_document"],
             )
         )
 
-    # Create classifier instance
-    classifier = DocumentClassifier()
-
-    legal_documents = []
-    for doc in documents:
-        logger.info(f"Classifying document: {doc.url}")
-        classification = await classifier.classify(
-            url=doc.url, text=doc.text, metadata=doc.metadata
-        )
-        logger.info(f"URL: {doc.url} - Classification: {classification}")
-
-        doc.doc_type = classification["classification"]
-        doc.is_legal_document = classification["is_legal_document"]
-
-        if doc.is_legal_document:
-            legal_documents.append(doc)
+    for doc in legal_documents:
+        if not doc.is_legal_document:
+            legal_documents.remove(doc)
 
     # Store legal documents
     if legal_documents:
