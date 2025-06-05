@@ -53,6 +53,28 @@ async def create_company_isolated(company: Company) -> bool:
         client.close()
 
 
+async def update_company_isolated(company: Company) -> bool:
+    """Update an existing company with a fresh database connection"""
+    client, db = await get_mongo_client()
+    try:
+        result = await db.companies.update_one(
+            {"id": company.id}, {"$set": company.model_dump()}
+        )
+        return result.modified_count > 0
+    finally:
+        client.close()
+
+
+async def delete_company_isolated(company_id: str) -> bool:
+    """Delete a company with a fresh database connection"""
+    client, db = await get_mongo_client()
+    try:
+        result = await db.companies.delete_one({"id": company_id})
+        return result.deleted_count > 0
+    finally:
+        client.close()
+
+
 # Document functions (for future use)
 async def get_company_documents_isolated(company_slug: str) -> list[Document]:
     """Get all documents for a company with a fresh database connection"""
