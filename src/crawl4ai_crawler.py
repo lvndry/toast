@@ -26,6 +26,11 @@ from src.utils.md import markdown_to_text
 
 load_dotenv()
 
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+
+if not MISTRAL_API_KEY:
+    raise ValueError("MISTRAL_API_KEY environment variable is not set")
+
 
 class LegalDocumentCrawler:
     """A crawler specialized for finding legal documents on websites."""
@@ -34,7 +39,7 @@ class LegalDocumentCrawler:
         self,
         stream: bool = False,
         max_depth: int = 3,
-        max_pages: int = 100,
+        max_pages: int = 200,
         allowed_domains: list[str] | None = None,
         verbose: bool = False,
         page_timeout: int = 60000,  # ms
@@ -43,10 +48,12 @@ class LegalDocumentCrawler:
         Initialize the legal document crawler.
 
         Args:
+            stream: Whether to stream the output
             max_depth: Maximum crawl depth
             max_pages: Maximum number of pages to crawl
-            include_external: Whether to include external links
+            allowed_domains: List of allowed domains
             verbose: Whether to print verbose output
+            page_timeout: Timeout for each page in milliseconds
         """
         self.stream = stream
         self.max_depth = max_depth
@@ -70,23 +77,25 @@ class LegalDocumentCrawler:
 
     def _create_browser_config(self) -> BrowserConfig:
         """Create the browser configuration."""
-        return BrowserConfig(verbose=self.verbose)
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        return BrowserConfig(
+            user_agent=user_agent, text_mode=True, verbose=self.verbose
+        )
 
     def _create_keyword_relevance_scorer(self) -> KeywordRelevanceScorer:
         """Create the keyword relevance scorer."""
         keywords = [
             # generic terms
-            "policy",
-            "policies",
             "notice",
             "trust",
-            "safety",
             "compliance",
             "conditions",
             "agreement",
             "license",
             "disclaimer",
             "legal",
+            # security
+            "security",
             # privacy
             "privacy-policy",
             "privacy",
@@ -97,15 +106,18 @@ class LegalDocumentCrawler:
             # data
             "data",
             "subprocessor",
-            "security",
+            # policy
+            "policy",
+            "policies",
+            "use-policy",
             # terms
             "terms",
             "terms-of-service",
             "terms-and-conditions",
             "terms-of-use",
-            "use-policy",
             # protection & safety
             "coppa",
+            "safety",
             # copyright
             "copyright",
             "dmca",
@@ -209,7 +221,9 @@ class LegalDocumentCrawler:
         all_results = []
         seen_base_urls = set()
 
-        async with AsyncWebCrawler(config=self.browser_config) as crawler:
+        async with AsyncWebCrawler(
+            config=self.browser_config, verbose=self.verbose
+        ) as crawler:
             for url in urls:
                 results = []
                 async for result in await crawler.arun(url, config=self.crawler_config):
@@ -252,10 +266,7 @@ class DocumentClassifier:
         self.model = model
         self.temperature = temperature
         self.max_content_length = max_content_length
-        self.api_key = os.getenv("MISTRAL_API_KEY")
-
-        if not self.api_key:
-            raise ValueError("MISTRAL_API_KEY environment variable is not set")
+        self.api_key = MISTRAL_API_KEY
 
         self.categories: list[DocType] = [
             "privacy_policy",
@@ -271,7 +282,7 @@ class DocumentClassifier:
     def _create_prompt(self, url: str, text: str, metadata: dict[str, Any]) -> str:
         """Create the classification prompt."""
         categories_list = "\n".join(f"- {cat}" for cat in self.categories)
-        return f"""Analyze this document and classify it into one of these categories:
+        return f"""Analyze the url and content and metadata of the document and classify it into one of these categories:
         {categories_list}
 
         URL: {url}
@@ -280,10 +291,9 @@ class DocumentClassifier:
 
         Return a JSON object with:
         - classification: the category
-        - classification_confidence: float between 0 and 1. 0 low confidence, 1 high confidence.
-        - is_legal_document: boolean
-        - is_legal_document_confidence: float between 0 and 1. 0 low confidence, 1 high confidence.
-        - explanation: brief explanation of the classification
+        - classification_justification: brief explanation of the classification
+        - is_legal_document: boolean. If the URL has no mention of legal terms/keywords and that the content is short it's unlikely to be a legal document.
+        - is_legal_document_justification: brief explanation of why the document is or is not a legal document.
         """
 
     async def classify(
@@ -333,10 +343,9 @@ class DocumentClassifier:
             logger.error(f"Error classifying document with {self.model}: {str(e)}")
             return {
                 "classification": "other",
-                "classification_confidence": 0.0,
+                "classification_justification": str(e),
                 "is_legal_document": False,
-                "is_legal_document_confidence": 0.0,
-                "explanation": str(e),
+                "is_legal_document_justification": str(e),
             }
 
 
@@ -353,19 +362,11 @@ async def detect_locale(text: str, metadata: dict[str, Any]) -> str:
     Returns:
         str: Detected locale (e.g., "en-US", "fr-FR", "de-DE")
     """
-    # First, try to get locale from metadata
-    if metadata and "og:locale" in metadata:
-        locale = metadata["og:locale"]
-        if locale:
-            logger.info(f"Found locale in metadata: {locale}")
-            return locale
-
-    # Also check other common metadata fields
     if metadata:
-        for key in ["locale", "language", "lang", "og:language"]:
+        for key in ["og:locale", "og:language", "locale", "language", "lang"]:
             if key in metadata and metadata[key]:
                 locale = metadata[key]
-                logger.info(f"Found locale in metadata ({key}): {locale}")
+                logger.success(f"Found locale in metadata ({key}): {locale}")
                 return locale
 
     # If not found in metadata, use LLM to detect locale
@@ -378,11 +379,6 @@ async def detect_locale(text: str, metadata: dict[str, Any]) -> str:
         text_sample = text[start_pos : start_pos + 1000]
     else:
         text_sample = text
-
-    api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key:
-        logger.warning("MISTRAL_API_KEY not set, defaulting to en-US")
-        return "en-US"
 
     prompt = f"""Analyze this text sample and determine the language/locale.
 
@@ -405,7 +401,7 @@ Be as specific as possible with the locale (include country code when possible).
     try:
         response = await acompletion(
             model="mistral/mistral-small-latest",
-            api_key=api_key,
+            api_key=MISTRAL_API_KEY,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
@@ -446,14 +442,14 @@ async def store_documents(documents: list[Document]):
                 logger.info(f"Updating document with URL: {document.url}")
                 document.id = existing_doc.id  # Preserve the original ID
                 await mongo.db.documents.update_one(
-                    {"url": document.url}, {"$set": document.model_dump()}
+                    {"url": document.url}, {"$set": document.to_db()}
                 )
             else:
                 logger.info(f"Skipping document with URL: {document.url} (no changes)")
         else:
             # Create new document if URL doesn't exist
             logger.info(f"Creating new document with URL: {document.url}")
-            await mongo.db.documents.insert_one(document.model_dump())
+            await mongo.db.documents.insert_one(document.to_db())
 
 
 async def process_company(company: Company) -> list[Document]:
@@ -476,27 +472,28 @@ async def process_company(company: Company) -> list[Document]:
         stream=True,
     )
 
+    classifier = DocumentClassifier()
+
     logger.info(
         f"Crawling {company.name} ({company.domains}) from {company.crawl_base_urls} base URLs"
     )
-
-    # Create classifier instance
-    classifier = DocumentClassifier()
 
     # Crawl documents
     results = await crawler.crawl(company.crawl_base_urls)
     legal_documents: list[Document] = []
 
     for result in results:
-        logger.info(f"URL: {result.url} -  Metadata: {result.metadata}")
+        logger.info(f"URL: {result.url} - Metadata: {result.metadata}")
+
+        text_content = markdown_to_text(result.markdown)
+
+        # Classify the document
         classification = await classifier.classify(
-            result.url, result.markdown, result.metadata
+            result.url, text_content, result.metadata
         )
-        logger.info(f"Classifying document: {result.url}")
         logger.info(f"URL: {result.url} - Classification: {classification}")
 
         # Detect locale for the document
-        text_content = markdown_to_text(result.markdown)
         detected_locale = await detect_locale(text_content, result.metadata)
         logger.info(f"URL: {result.url} - Detected locale: {detected_locale}")
 
@@ -514,7 +511,11 @@ async def process_company(company: Company) -> list[Document]:
         )
 
     # Filter to keep only legal documents
-    legal_documents = [doc for doc in legal_documents if doc.is_legal_document]
+    legal_documents = [
+        doc
+        for doc in legal_documents
+        if doc.is_legal_document and "en" in doc.locale.lower()
+    ]
 
     # Store legal documents
     if legal_documents:

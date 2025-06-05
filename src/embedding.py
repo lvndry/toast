@@ -1,15 +1,23 @@
 import os
-import re
 
+import nltk  # type: ignore
 import shortuuid
 from dotenv import load_dotenv
 from langchain.text_splitter import NLTKTextSplitter
 from loguru import logger
-from pinecone import Pinecone  # type: ignore
+from mistralai import Mistral  # type: ignore
+from pinecone import Pinecone, ServerlessSpec  # type: ignore
 
-from src.document import Document
+from src.db import get_company_documents
 
 load_dotenv()
+
+
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+if not MISTRAL_API_KEY:
+    raise ValueError("MISTRAL_API_KEY is not set")
+
+client = Mistral(api_key=MISTRAL_API_KEY)
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 if not PINECONE_API_KEY:
@@ -17,25 +25,21 @@ if not PINECONE_API_KEY:
 
 pc = Pinecone(api_key=PINECONE_API_KEY)
 
+nltk.download("punkt")
+
 INDEX_NAME = "toast-pinecone"
 
 if not pc.has_index(INDEX_NAME):
-    pc.create_index_for_model(
+    pc.create_index(
         name=INDEX_NAME,
-        cloud="aws",
-        region="us-east-1",
-        embed={"model": "llama-text-embed-v2", "field_map": {"text": "markdown"}},
+        dimension=1024,  # dimension on mistal-embed model
+        vector_type="dense",
+        metric="dotproduct",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
     )
 
 
-def clean_markdown(md: str) -> str:
-    md = re.sub(r"`{3}[\s\S]*?`{3}", "", md)  # code blocks
-    md = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", md)  # links
-    md = re.sub(r"\|.*\|", "", md)  # tables
-    return md
-
-
-async def embed_documents(company_slug: str, documents: list[Document]):
+async def embed_company_documents(company_slug: str):
     """
     Process documents by splitting their markdown content and creating embeddings for each chunk.
 
@@ -43,33 +47,30 @@ async def embed_documents(company_slug: str, documents: list[Document]):
         company_slug: The slug of the company
         documents: List of documents to process
     """
-    # Create splitter
-    splitter = NLTKTextSplitter(chunk_size=1500, chunk_overlap=100)
+    documents = await get_company_documents(company_slug)
     index = pc.Index(INDEX_NAME)
+    splitter = NLTKTextSplitter(chunk_size=1500, chunk_overlap=100)
     all_vectors = []
 
     for doc in documents:
-        # Clean and split the markdown content
-        cleaned_markdown = clean_markdown(doc.markdown)
-        chunks = splitter.split_text(cleaned_markdown)
+        chunks = splitter.split_text(doc.text)
 
-        # Create embeddings for all chunks of this document
-        chunk_embeddings = pc.inference.embed(
-            model="llama-text-embed-v2",
+        chunk_embeddings = client.embeddings.create(
+            model="mistral-embed",
             inputs=chunks,
-            parameters={"input_type": "passage"},
         )
 
         # Create vectors for each chunk
-        for chunk, embedding in zip(chunks, chunk_embeddings):
+        for chunk, embedding in zip(chunks, chunk_embeddings.data):
             vector = {
                 "id": shortuuid.uuid(),
-                "values": embedding.values,
+                "values": embedding.embedding,
                 "metadata": {
                     "company_slug": company_slug,
                     "document_type": doc.doc_type,
                     "url": doc.url,
                     "created_at": doc.created_at.isoformat(),
+                    "locale": doc.locale,
                     "chunk_text": chunk,  # Store the actual chunk text for reference
                 },
             }
@@ -84,7 +85,7 @@ async def embed_documents(company_slug: str, documents: list[Document]):
         logger.warning("No vectors were created to upsert")
 
 
-async def search_query(query: str, company_slug: str, top_k: int = 1):
+async def search_query(query: str, company_slug: str, top_k: int = 3):
     index = pc.Index(INDEX_NAME)
     search_results = index.search(
         namespace=company_slug,

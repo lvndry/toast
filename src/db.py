@@ -50,10 +50,13 @@ async def get_all_companies() -> list[Company]:
     return [Company(**company) for company in companies]
 
 
+###########
+
+
 ####### Documents #######
 async def get_all_documents() -> list[Document]:
     documents = await mongo.db.documents.find().to_list(length=None)
-    return [Document(**document) for document in documents]
+    return [Document.from_db(document) for document in documents]
 
 
 async def get_company_documents(company_slug: str) -> list[Document]:
@@ -62,13 +65,13 @@ async def get_company_documents(company_slug: str) -> list[Document]:
         length=None
     )
 
-    return [Document(**document) for document in documents]
+    return [Document.from_db(document) for document in documents]
 
 
 async def get_document_by_url(url: str) -> Document | None:
     """Get a document by its URL from the database."""
     doc = await mongo.db.documents.find_one({"url": url})
-    return Document(**doc) if doc else None
+    return Document.from_db(doc) if doc else None
 
 
 async def update_document(document: Document):
@@ -76,3 +79,6 @@ async def update_document(document: Document):
         {"id": document.id},
         {"$set": document.model_dump(mode="json")},
     )
+
+
+###########

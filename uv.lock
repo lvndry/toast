@@ -525,6 +525,15 @@ wheels = [
 ]
 
 [[package]]
+name = "eval-type-backport"
+version = "0.2.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/ea/8b0ac4469d4c347c6a385ff09dc3c048c2d021696664e26c7ee6791631b5/eval_type_backport-0.2.2.tar.gz", hash = "sha256:f0576b4cf01ebb5bd358d02314d31846af5e07678387486e2c798af0e7d849c1", size = 9079, upload-time = "2024-12-21T20:09:46.005Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ce/31/55cd413eaccd39125368be33c46de24a1f639f2e12349b0361b4678f3915/eval_type_backport-0.2.2-py3-none-any.whl", hash = "sha256:cb6ad7c393517f476f96d456d0412ea80f0a8cf96f6892834cd9340149111b0a", size = 5830, upload-time = "2024-12-21T20:09:44.175Z" },
+]
+
+[[package]]
 name = "fake-http-header"
 version = "0.3.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1301,6 +1310,22 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "mistralai"
+version = "1.8.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "eval-type-backport" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "python-dateutil" },
+    { name = "typing-inspection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/23/c1/b3cecb41695fd6cb5483fbb8ecaceb5586346c3ed53a78808d10c1b537c4/mistralai-1.8.1.tar.gz", hash = "sha256:b967ca443726b71ec45632cb33825ee2e55239a652e73c2bda11f7cc683bf6e5", size = 175819, upload-time = "2025-05-28T19:13:42.937Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b0/14/e9ef675928768f508dfcedbb0e0ed601784a6911620a2bc25c9065921420/mistralai-1.8.1-py3-none-any.whl", hash = "sha256:badfc7e6832d894b3e9071d92ad621212b7cccd7df622c6cacdb525162ae338f", size = 373197, upload-time = "2025-05-28T19:13:41.154Z" },
 ]
 
 [[package]]
@@ -2685,6 +2710,7 @@ dependencies = [
     { name = "litellm" },
     { name = "loguru" },
     { name = "markdown" },
+    { name = "mistralai" },
     { name = "motor", extra = ["zstd"] },
     { name = "mypy" },
     { name = "nanoid" },
@@ -2695,6 +2721,7 @@ dependencies = [
     { name = "shortuuid" },
     { name = "streamlit" },
     { name = "supabase" },
+    { name = "tenacity" },
 ]
 
 [package.metadata]
@@ -2708,6 +2735,7 @@ requires-dist = [
     { name = "litellm", specifier = ">=1.65.1" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "markdown", specifier = ">=3.8" },
+    { name = "mistralai", specifier = ">=1.8.1" },
     { name = "motor", extras = ["zstd"], specifier = ">=3.7.0" },
     { name = "mypy", specifier = ">=1.15.0" },
     { name = "nanoid", specifier = ">=2.0.0" },
@@ -2718,6 +2746,7 @@ requires-dist = [
     { name = "shortuuid", specifier = ">=1.0.13" },
     { name = "streamlit", specifier = ">=1.43.2" },
     { name = "supabase", specifier = ">=2.13.0" },
+    { name = "tenacity", specifier = ">=9.1.2" },
 ]
 
 [[package]]
