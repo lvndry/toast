@@ -111,12 +111,21 @@ def show_company_view():
                 unique_categories.update(company.categories)
             st.metric("Unique Categories", len(unique_categories))
 
-        # Categories breakdown
-        if unique_categories:
-            st.write("**All Categories:**")
-            categories_list = sorted(list(unique_categories))
-            st.write(", ".join(categories_list))
+        # Companies without crawl URLs
+        companies_without_crawl_urls = [c for c in companies if not c.crawl_base_urls]
 
+        if companies_without_crawl_urls:
+            st.write("---")
+            st.write("**⚠️ Companies without Crawl Base URLs:**")
+            company_names = [company.name for company in companies_without_crawl_urls]
+            st.write(", ".join(company_names))
+
+            if len(companies_without_crawl_urls) == 1:
+                st.info("1 company needs crawl URLs configured.")
+            else:
+                st.info(
+                    f"{len(companies_without_crawl_urls)} companies need crawl URLs configured."
+                )
     except Exception as e:
         st.error(f"Error loading companies: {str(e)}")
         st.write("Please try refreshing the page or check your database connection.")
