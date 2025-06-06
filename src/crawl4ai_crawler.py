@@ -22,7 +22,7 @@ from loguru import logger
 from src.company import Company
 from src.db import get_all_companies, get_document_by_url, mongo
 from src.document import DocType, Document
-from src.utils.md import markdown_to_text
+from src.utils.markdown import markdown_to_text
 
 load_dotenv()
 
@@ -574,7 +574,7 @@ async def process_company(company: Company) -> list[Document]:
             result.markdown,
             result.metadata,
             result.url,
-            classification["classification"]
+            classification["classification"],
         )
         logger.info(f"URL: {result.url} - Extracted title: {extracted_title}")
 

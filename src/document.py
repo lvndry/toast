@@ -26,6 +26,7 @@ DocType = Literal[
     "terms_of_service",
     "cookie_policy",
     "terms_of_use",
+    "terms_and_conditions",
     "data_processing_agreement",
     "gdpr_policy",
     "copyright_policy",
