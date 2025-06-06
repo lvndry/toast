@@ -6,6 +6,16 @@ from pydantic import BaseModel, Field
 
 
 class DocumentAnalysis(BaseModel):
+    """
+    Document analysis model.
+
+    - summary: A user-oriented explanation of what this document means in practice.
+    - scores: A dictionary with the following keys:
+        - transparency: A number between 0 and 1 indicating the transparency of the document.
+        - data_usage: A number between 0 and 1 indicating the amount of data used by the document.
+    - key_points: A list of bullet points capturing the most relevant and impactful ideas.
+    """
+
     summary: str
     scores: dict[str, float]
     key_points: list[str]
