@@ -8,7 +8,3 @@ class Company(BaseModel):
     domains: list[str] = []
     categories: list[str] = []
     crawl_base_urls: list[str] = []
-
-    model_config = {
-        "extra": "ignore"  # This will ignore any extra fields not defined in the model
-    }

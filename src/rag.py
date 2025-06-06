@@ -1,4 +1,3 @@
-import asyncio
 import os
 
 from dotenv import load_dotenv
@@ -9,8 +8,12 @@ from src.pinecone import INDEX_NAME, pc
 
 load_dotenv()
 
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+if not MISTRAL_API_KEY:
+    raise ValueError("MISTRAL_API_KEY is not set")
 
-async def search_query(query: str, company_slug: str, top_k: int = 3):
+
+async def search_query(query: str, company_slug: str, top_k: int = 5):
     index = pc.Index(INDEX_NAME)
     search_results = index.search(
         namespace=company_slug,
@@ -72,13 +75,14 @@ async def get_answer(question: str, company_slug: str) -> str:
     # Extract the relevant chunks from the search results with metadata
     formatted_chunks = []
     for match in search_results["result"]["hits"]:
-        chunk = f"""Source: {match["fields"]["document_type"]}
-URL: {match["fields"]["url"]}
+        chunk = f"""Document type: {match["fields"]["document_type"]}
+Document URL: {match["fields"]["url"]}
 {match["fields"]["chunk_text"]}"""
         formatted_chunks.append(chunk)
 
     context = "\n\n---\n\n".join(formatted_chunks)
     logger.debug(context)
+
     # Create the messages for the chat
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -86,13 +90,11 @@ URL: {match["fields"]["url"]}
     ]
 
     try:
-        # Get the answer using LiteLLM
         response = completion(
-            model="mistral/mistral-large-latest",
+            model="mistral/mistral-small-latest",
             messages=messages,
-            temperature=0.7,
-            max_tokens=1000,
-            api_key=os.getenv("MISTRAL_API_KEY"),
+            temperature=0.1,
+            api_key=MISTRAL_API_KEY,
         )
 
         return response.choices[0].message.content
@@ -100,8 +102,3 @@ URL: {match["fields"]["url"]}
     except Exception as e:
         logger.error(f"Error getting completion from LiteLLM: {str(e)}")
         return "I apologize, but I encountered an error while trying to generate an answer."
-
-
-if __name__ == "__main__":
-    answer = asyncio.run(get_answer("what' information is stored about me'?", "tiktok"))
-    logger.debug(answer)

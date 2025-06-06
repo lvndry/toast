@@ -1,6 +1,8 @@
 import os
 
 from pinecone import Pinecone, ServerlessSpec  # type: ignore
+from loguru import logger
+
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 if not PINECONE_API_KEY:
@@ -27,9 +29,6 @@ def init_pinecone_index(dimension: int, index_name: str = INDEX_NAME) -> None:
             metric="dotproduct",
             spec=ServerlessSpec(cloud="aws", region="us-east-1"),
         )
-        print(f"Index '{index_name}' created with dimension {dimension}")
+        logger.info(f"Index '{index_name}' created with dimension {dimension}")
     else:
-        print(f"Index '{index_name}' already exists")
-
-
-# Initialize with default dimension (voyage-law-2 model)
+        logger.info(f"Index '{index_name}' already exists")

@@ -24,7 +24,8 @@ async def summarize_company_documents(company_slug: str) -> str:
 
 
 async def summarize_document(document: Document) -> DocumentAnalysis:
-    prompt = f"""You are a privacy-focused document summarizer. Your task is to read and analyze this legal document and produce a comprehensive yet easy-to-understand summary, specifically for readers who care about how their data is handled.
+    prompt = f"""You are a privacy-focused document summarizer.
+Your task is to read and analyze this legal document and produce a comprehensive yet easy-to-understand summary, specifically for readers who care about how their data is handled.
 
 Document content:
 {document.text}
@@ -60,7 +61,10 @@ Return your output as a JSON object with the following structure:
 """
 
     system_prompt = """
-You are a privacy-focused document summarizer that makes legal documents accessible to non-legal audiences. Always refer to the company directly by name or as 'the company' - never use 'they' or 'their'.
+You are a privacy-focused document summarizer that makes legal documents accessible to non-legal audiences.
+
+Use plain, precise language. Avoid legal jargon. Assume the reader is privacy-conscious but not a legal expert.
+Always refer to the organization by name or as “the company.” Never use "they" or "their" to avoid ambiguity.
 """
 
     try:

@@ -47,12 +47,13 @@ async def embed_company_documents(company_slug: str):
                 "id": shortuuid.uuid(),
                 "values": embedding,
                 "metadata": {
+                    "title": doc.title,
                     "company_slug": company_slug,
                     "document_type": doc.doc_type,
                     "url": doc.url,
-                    "created_at": doc.created_at.isoformat(),
                     "locale": doc.locale,
                     "chunk_text": chunk,  # Store the actual chunk text for reference
+                    "created_at": doc.created_at.isoformat(),
                 },
             }
             all_vectors.append(vector)

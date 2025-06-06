@@ -49,7 +49,6 @@ async def get_all_companies() -> list[Company]:
     companies = await mongo.db.companies.find().to_list(length=None)
     return [Company(**company) for company in companies]
 
-
 ###########
 
 
@@ -79,6 +78,5 @@ async def update_document(document: Document):
         {"id": document.id},
         {"$set": document.model_dump(mode="json")},
     )
-
 
 ###########
