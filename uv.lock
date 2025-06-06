@@ -91,15 +91,6 @@ wheels = [
 ]
 
 [[package]]
-name = "aiolimiter"
-version = "1.2.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f1/23/b52debf471f7a1e42e362d959a3982bdcb4fe13a5d46e63d28868807a79c/aiolimiter-1.2.1.tar.gz", hash = "sha256:e02a37ea1a855d9e832252a105420ad4d15011505512a1a1d814647451b5cca9", size = 7185, upload-time = "2024-12-08T15:31:51.496Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f3/ba/df6e8e1045aebc4778d19b8a3a9bc1808adb1619ba94ca354d9ba17d86c3/aiolimiter-1.2.1-py3-none-any.whl", hash = "sha256:d3f249e9059a20badcb56b61601a83556133655c11d1eb3dd3e04ff069e5f3c7", size = 6711, upload-time = "2024-12-08T15:31:49.874Z" },
-]
-
-[[package]]
 name = "aiosignal"
 version = "1.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2731,7 +2722,6 @@ dependencies = [
     { name = "streamlit" },
     { name = "supabase" },
     { name = "tenacity" },
-    { name = "voyageai" },
 ]
 
 [package.metadata]
@@ -2757,7 +2747,6 @@ requires-dist = [
     { name = "streamlit", specifier = ">=1.43.2" },
     { name = "supabase", specifier = ">=2.13.0" },
     { name = "tenacity", specifier = ">=9.1.2" },
-    { name = "voyageai", specifier = ">=0.3.2" },
 ]
 
 [[package]]
@@ -2927,25 +2916,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d2/19/f5b78616566ea68edd42aacaf645adbf71fbd83fc52281fba555dc27e3f1/uvloop-0.21.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f3df876acd7ec037a3d005b3ab85a7e4110422e4d9c1571d4fc89b0fc41b6816", size = 4701068, upload-time = "2024-10-14T23:38:06.385Z" },
     { url = "https://files.pythonhosted.org/packages/47/57/66f061ee118f413cd22a656de622925097170b9380b30091b78ea0c6ea75/uvloop-0.21.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:bd53ecc9a0f3d87ab847503c2e1552b690362e005ab54e8a48ba97da3924c0dc", size = 4454428, upload-time = "2024-10-14T23:38:08.416Z" },
     { url = "https://files.pythonhosted.org/packages/63/9a/0962b05b308494e3202d3f794a6e85abe471fe3cafdbcf95c2e8c713aabd/uvloop-0.21.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:a5c39f217ab3c663dc699c04cbd50c13813e31d917642d459fdcec07555cc553", size = 4660018, upload-time = "2024-10-14T23:38:10.888Z" },
-]
-
-[[package]]
-name = "voyageai"
-version = "0.3.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "aiolimiter" },
-    { name = "numpy" },
-    { name = "pillow" },
-    { name = "pydantic" },
-    { name = "requests" },
-    { name = "tenacity" },
-    { name = "tokenizers" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c7/b7/c9f633149f1bdea95b43d38aa50404df2bdf769f0ccc0b402ca922d454e3/voyageai-0.3.2.tar.gz", hash = "sha256:bd1b52d26179d91853cbd2a0e52dc95cb0d526760c6c830959e01eb5ff9eaa12", size = 18979, upload-time = "2024-12-03T00:33:53.471Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/86/e1/0b2defa3a83aabe67db05d5f494d617dd4764b2a043d83ddc26be5e6e0db/voyageai-0.3.2-py3-none-any.whl", hash = "sha256:1398d6c6bfb1dd3b484f400713e538f00ce8a335250442b0902c21116d9705a8", size = 25518, upload-time = "2024-12-03T00:33:51.927Z" },
 ]
 
 [[package]]

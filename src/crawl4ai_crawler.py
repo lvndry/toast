@@ -608,7 +608,6 @@ async def process_company(company: Company) -> list[Document]:
 
 
 async def main():
-    # Get all companies
     companies = await get_all_companies()
     all_documents = []
 

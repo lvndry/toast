@@ -1,7 +1,8 @@
+import asyncio
 import os
 
 from dotenv import load_dotenv
-from litellm import completion
+from litellm import completion, embedding
 from loguru import logger
 
 from src.pinecone import INDEX_NAME, pc
@@ -12,17 +13,45 @@ MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 if not MISTRAL_API_KEY:
     raise ValueError("MISTRAL_API_KEY is not set")
 
+VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
+if not VOYAGE_API_KEY:
+    raise ValueError("VOYAGE_API_KEY is not set")
+
+
+async def embed_query(query: str) -> list[float]:
+    """
+    Convert a text query into vector embeddings.
+
+    Args:
+        query: The text query to embed
+
+    Returns:
+        list[float]: The vector embedding of the query
+    """
+    try:
+        response = embedding(
+            model="voyage/voyage-law-2",
+            input=[query],
+            input_type="query",
+            api_key=VOYAGE_API_KEY,
+        )
+
+        return response.data[0]["embedding"]
+    except Exception as e:
+        logger.error(f"Error getting embeddings: {str(e)}")
+        raise
+
 
 async def search_query(query: str, company_slug: str, top_k: int = 5):
+    # Convert text query to vector embedding
+    query_vector = await embed_query(query)
     index = pc.Index(INDEX_NAME)
-    search_results = index.search(
+    search_results = index.query(
         namespace=company_slug,
-        query={
-            "inputs": {
-                "text": query,
-            },
-            "top_k": top_k,
-        },
+        top_k=top_k,
+        vector=query_vector,
+        include_metadata=True,
+        include_values=False,
     )
     return search_results
 
@@ -38,8 +67,8 @@ Tone: Your responses should be clear, warm, and professional. Use a calm and rea
 When referencing information, you may mention the type of source document (e.g., "privacy policy", "terms of service") and its URL, if available (e.g. [privacy policy](https://www.google.com/privacy)).
 
 Important language and style rules:
-- Never use ambiguous pronouns like “they”, “them”, “their”, “we”, “us”, or “our”.
-- Always refer to the organization by its full name (e.g., “Acme Corp”) or as “the company”.
+- Never use ambiguous pronouns like "they", "them", "their", "we", "us", or "our".
+- Always refer to the organization by its full name (e.g., "Acme Corp") or as "the company".
 - Use plain, accessible language suited for non-experts.
 - Avoid legal jargon unless it is clearly explained.
 - Keep answers user-focused, emphasizing how the document content may affect the individual's data, rights, and experience.
@@ -68,20 +97,21 @@ async def get_answer(question: str, company_slug: str) -> str:
     """
     # Search for relevant documents in Pinecone
     search_results = await search_query(question, company_slug)
+    logger.debug(search_results)
 
-    if not search_results["result"]["hits"][0]["fields"]["chunk_text"]:
+    if len(search_results["matches"]) == 0:
         return "I couldn't find any relevant information to answer your question."
 
     # Extract the relevant chunks from the search results with metadata
     formatted_chunks = []
-    for match in search_results["result"]["hits"]:
-        chunk = f"""Document type: {match["fields"]["document_type"]}
-Document URL: {match["fields"]["url"]}
-{match["fields"]["chunk_text"]}"""
+    for match in search_results["matches"]:
+        chunk = f"""Document type: {match["metadata"]["document_type"]}
+Document URL: {match["metadata"]["url"]}
+{match["metadata"]["chunk_text"]}"""
         formatted_chunks.append(chunk)
 
     context = "\n\n---\n\n".join(formatted_chunks)
-    logger.debug(context)
+    logger.debug(f"Context: {context}")
 
     # Create the messages for the chat
     messages = [
@@ -102,3 +132,8 @@ Document URL: {match["fields"]["url"]}
     except Exception as e:
         logger.error(f"Error getting completion from LiteLLM: {str(e)}")
         return "I apologize, but I encountered an error while trying to generate an answer."
+
+
+if __name__ == "__main__":
+    answer = asyncio.run(get_answer("what personal information notion stores about me?", "notion"))
+    logger.debug(answer)

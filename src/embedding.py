@@ -1,6 +1,6 @@
 import nltk  # type: ignore
 import shortuuid
-import voyageai  # type: ignore
+from litellm import embedding
 from dotenv import load_dotenv
 from langchain.text_splitter import NLTKTextSplitter
 from loguru import logger
@@ -11,8 +11,6 @@ from src.pinecone import INDEX_NAME, init_pinecone_index, pc
 load_dotenv()
 
 nltk.download("punkt")
-
-voyageai_client = voyageai.Client()
 
 VOYAGE_LAW_2_DIMENSION = 1024
 init_pinecone_index(VOYAGE_LAW_2_DIMENSION)
@@ -35,17 +33,17 @@ async def embed_company_documents(company_slug: str):
         chunks = splitter.split_text(doc.text)
         logger.debug(f"spliited into {len(chunks)} chunks")
 
-        chunk_embeddings = voyageai_client.embed(
-            chunks, model="voyage-law-2", input_type="document"
+        chunk_embeddings = embedding(
+            model="voyage-law-2", input=chunks
         )
 
-        logger.info(f"Embedding tokens: {chunk_embeddings.total_tokens}")
+        logger.info(f"Embedding tokens: {chunk_embeddings.usage.total_tokens}")
 
         # Create vectors for each chunk
-        for chunk, embedding in zip(chunks, chunk_embeddings.embeddings):
+        for chunk, embedding_data in zip(chunks, chunk_embeddings.data):
             vector = {
                 "id": shortuuid.uuid(),
-                "values": embedding,
+                "values": embedding_data["embedding"],
                 "metadata": {
                     "title": doc.title,
                     "company_slug": company_slug,
