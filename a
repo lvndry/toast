@@ -1,0 +1,91 @@
+[1mdiff --git a/pyproject.toml b/pyproject.toml[m
+[1mindex 9b57f73..3884433 100644[m
+[1m--- a/pyproject.toml[m
+[1m+++ b/pyproject.toml[m
+[36m@@ -6,7 +6,6 @@[m [mreadme = "README.md"[m
+ requires-python = ">=3.11"[m
+ [m
+ dependencies = [[m
+[31m-    "bs4>=0.0.2",[m
+     "crawl4ai>=0.6.2",[m
+     "fastapi[standard]>=0.115.11",[m
+     "langchain>=0.3.25",[m
+[1mdiff --git a/src/utils/md.py b/src/utils/md.py[m
+[1mindex ee82195..eaca91a 100644[m
+[1m--- a/src/utils/md.py[m
+[1m+++ b/src/utils/md.py[m
+[36m@@ -1,8 +1,29 @@[m
+[31m-from bs4 import BeautifulSoup[m
+[31m-from markdown import markdown[m
+[31m-[m
+[32m+[m[32mimport re[m
+ [m
+ def markdown_to_text(md: str) -> str:[m
+[31m-    html = markdown(md)[m
+[31m-    soup = BeautifulSoup(html, features="html.parser")[m
+[31m-    return soup.get_text()[m
+[32m+[m[32m    """Convert markdown to clean text while preserving some structure."""[m
+[32m+[m[32m    # Remove code blocks[m
+[32m+[m[32m    text = re.sub(r'```.*?```', '', md, flags=re.DOTALL)[m
+[32m+[m[32m    text = re.sub(r'`[^`]*`', '', text)[m
+[32m+[m
+[32m+[m[32m    # Convert headers to plain text with extra spacing[m
+[32m+[m[32m    text = re.sub(r'^#{1,6}\s*(.+)$', r'\1\n', text, flags=re.MULTILINE)[m
+[32m+[m
+[32m+[m[32m    # Remove markdown formatting but preserve emphasis with spacing[m
+[32m+[m[32m    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Bold[m
+[32m+[m[32m    text = re.sub(r'\*([^*]+)\*', r'\1', text)      # Italic[m
+[32m+[m[32m    text = re.sub(r'__([^_]+)__', r'\1', text)      # Bold[m
+[32m+[m[32m    text = re.sub(r'_([^_]+)_', r'\1', text)        # Italic[m
+[32m+[m
+[32m+[m[32m    # Handle links - keep the text, optionally keep URL[m
+[32m+[m[32m    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)[m
+[32m+[m
+[32m+[m[32m    # Clean up lists[m
+[32m+[m[32m    text = re.sub(r'^\s*[-*+]\s+', '', text, flags=re.MULTILINE)[m
+[32m+[m[32m    text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)[m
+[32m+[m
+[32m+[m[32m    # Clean up extra whitespace[m
+[32m+[m[32m    text = re.sub(r'\n\s*\n', '\n\n', text)[m
+[32m+[m[32m    text = text.strip()[m
+[32m+[m
+[32m+[m[32m    return text[m
+[1mdiff --git a/uv.lock b/uv.lock[m
+[1mindex 742e612..5134eb3 100644[m
+[1m--- a/uv.lock[m
+[1m+++ b/uv.lock[m
+[36m@@ -238,18 +238,6 @@[m [mwheels = [[m
+     { url = "https://files.pythonhosted.org/packages/7e/c1/ec214e9c94000d1c1974ec67ced1c970c148aa6b8d8373066123fc3dbf06/Brotli-1.1.0-cp313-cp313-win_amd64.whl", hash = "sha256:9011560a466d2eb3f5a6e4929cf4a09be405c64154e12df0dd72713f6500e32b", size = 358517, upload-time = "2024-10-18T12:32:54.066Z" },[m
+ ][m
+ [m
+[31m-[[package]][m
+[31m-name = "bs4"[m
+[31m-version = "0.0.2"[m
+[31m-source = { registry = "https://pypi.org/simple" }[m
+[31m-dependencies = [[m
+[31m-    { name = "beautifulsoup4" },[m
+[31m-][m
+[31m-sdist = { url = "https://files.pythonhosted.org/packages/c9/aa/4acaf814ff901145da37332e05bb510452ebed97bc9602695059dd46ef39/bs4-0.0.2.tar.gz", hash = "sha256:a48685c58f50fe127722417bae83fe6badf500d54b55f7e39ffe43b798653925", size = 698, upload-time = "2024-01-17T18:15:47.371Z" }[m
+[31m-wheels = [[m
+[31m-    { url = "https://files.pythonhosted.org/packages/51/bb/bf7aab772a159614954d84aa832c129624ba6c32faa559dfb200a534e50b/bs4-0.0.2-py2.py3-none-any.whl", hash = "sha256:abf8742c0805ef7f662dce4b51cca104cffe52b835238afc169142ab9b3fbccc", size = 1189, upload-time = "2024-01-17T18:15:48.613Z" },[m
+[31m-][m
+[31m-[m
+ [[package]][m
+ name = "cachetools"[m
+ version = "5.5.2"[m
+[36m@@ -2663,7 +2651,6 @@[m [mname = "toast"[m
+ version = "0.1.0"[m
+ source = { virtual = "." }[m
+ dependencies = [[m
+[31m-    { name = "bs4" },[m
+     { name = "crawl4ai" },[m
+     { name = "fastapi", extra = ["standard"] },[m
+     { name = "langchain" },[m
+[36m@@ -2686,7 +2673,6 @@[m [mdependencies = [[m
+ [m
+ [package.metadata][m
+ requires-dist = [[m
+[31m-    { name = "bs4", specifier = ">=0.0.2" },[m
+     { name = "crawl4ai", specifier = ">=0.6.2" },[m
+     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.11" },[m
+     { name = "langchain", specifier = ">=0.3.25" },[m

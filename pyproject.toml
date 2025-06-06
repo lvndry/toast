@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.11"
 
 dependencies = [
-    "bs4>=0.0.2",
     "crawl4ai>=0.6.2",
     "fastapi[standard]>=0.115.11",
     "langchain>=0.3.25",
