@@ -594,41 +594,12 @@ standard = [
 ]
 
 [[package]]
-name = "fetchfox-sdk"
-version = "0.7.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f0/8c/7228e6086bf91f11591b71de5b87eae3e46e8354ee6ecacad140ae866c48/fetchfox_sdk-0.7.0.tar.gz", hash = "sha256:87b5ee12a236d38d2f2c3cce36eca5b218e9942b4620d8db1b1d2c6c573a01d1", size = 20818, upload-time = "2025-05-06T20:07:00.526Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/40/d1d194152da16745985dd1c5d2f64b13d8772cd352670c22e97050fa8fb6/fetchfox_sdk-0.7.0-py3-none-any.whl", hash = "sha256:506fc5d1b72c0a07683c2f9241677168b8ca25021a23594cb6494339153ea5a0", size = 16150, upload-time = "2025-05-06T20:06:58.87Z" },
-]
-
-[[package]]
 name = "filelock"
 version = "3.18.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0a/10/c23352565a6544bdc5353e0b15fc1c563352101f30e24bf500207a54df9a/filelock-3.18.0.tar.gz", hash = "sha256:adbc88eabb99d2fec8c9c1b229b171f18afa655400173ddc653d5d01501fb9f2", size = 18075, upload-time = "2025-03-14T07:11:40.47Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/36/2a115987e2d8c300a974597416d9de88f2444426de9571f4b59b2cca3acc/filelock-3.18.0-py3-none-any.whl", hash = "sha256:c401f4f8377c4464e6db25fff06205fd89bdd83b65eb0488ed1b160f780e21de", size = 16215, upload-time = "2025-03-14T07:11:39.145Z" },
-]
-
-[[package]]
-name = "firecrawl-py"
-version = "2.6.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "nest-asyncio" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "requests" },
-    { name = "websockets" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/04/d6/8aafd1ad3b25b59f7b5227af9952d238d6cf752429aa9ec24057c4f7d36c/firecrawl_py-2.6.0.tar.gz", hash = "sha256:e0186f1b7695cb2b7248e1dbf89870a31494fd017554eb41332bad085afc8b3e", size = 37836, upload-time = "2025-05-16T19:28:14.454Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d4/35/2850f05f5c2d0b654527e151786385d481eb232a9c6c5d751466adb34adf/firecrawl_py-2.6.0-py3-none-any.whl", hash = "sha256:c21defc268afdb5e619ed71a024db51336e5b488b6e8be1869576483263025c0", size = 275043, upload-time = "2025-05-16T19:28:12.664Z" },
 ]
 
 [[package]]
@@ -1478,15 +1449,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/56/e6/66682dd5ffe656358e07194fa9551b1d41e33952831a40553e791dd98dfc/narwhals-1.39.1.tar.gz", hash = "sha256:cf15389e6f8c5321e8cd0ca8b5bace3b1aea5f5622fa59dfd64821998741d836", size = 484444, upload-time = "2025-05-15T17:45:10.967Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/70/c4/b83520ecc27840a4d58bd585ae0ec0f8a4f2b0c5a965b66749254a54de0e/narwhals-1.39.1-py3-none-any.whl", hash = "sha256:68d0f29c760f1a9419ada537f35f21ff202b0be1419e6d22135a0352c6d96deb", size = 355009, upload-time = "2025-05-15T17:45:07.954Z" },
-]
-
-[[package]]
-name = "nest-asyncio"
-version = "1.6.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/83/f8/51569ac65d696c8ecbee95938f89d4abf00f47d58d48f6fbabfe8f0baefe/nest_asyncio-1.6.0.tar.gz", hash = "sha256:6f172d5449aca15afd6c646851f4e31e02c598d553a667e38cafa997cfec55fe", size = 7418, upload-time = "2024-01-21T14:25:19.227Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a0/c4/c2971a3ba4c6103a3d10c4b0f24f461ddc027f0f09763220cf35ca1401b3/nest_asyncio-1.6.0-py3-none-any.whl", hash = "sha256:87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c", size = 5195, upload-time = "2024-01-21T14:25:17.223Z" },
 ]
 
 [[package]]
@@ -2704,8 +2666,6 @@ dependencies = [
     { name = "bs4" },
     { name = "crawl4ai" },
     { name = "fastapi", extra = ["standard"] },
-    { name = "fetchfox-sdk" },
-    { name = "firecrawl-py" },
     { name = "langchain" },
     { name = "litellm" },
     { name = "loguru" },
@@ -2729,8 +2689,6 @@ requires-dist = [
     { name = "bs4", specifier = ">=0.0.2" },
     { name = "crawl4ai", specifier = ">=0.6.2" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.11" },
-    { name = "fetchfox-sdk", specifier = ">=0.7.0" },
-    { name = "firecrawl-py", specifier = ">=1.13.5" },
     { name = "langchain", specifier = ">=0.3.25" },
     { name = "litellm", specifier = ">=1.65.1" },
     { name = "loguru", specifier = ">=0.7.3" },
