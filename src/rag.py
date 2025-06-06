@@ -5,9 +5,24 @@ from dotenv import load_dotenv
 from litellm import completion
 from loguru import logger
 
-from src.embedding import search_query
+from src.pinecone import INDEX_NAME, pc
 
 load_dotenv()
+
+
+async def search_query(query: str, company_slug: str, top_k: int = 3):
+    index = pc.Index(INDEX_NAME)
+    search_results = index.search(
+        namespace=company_slug,
+        query={
+            "inputs": {
+                "text": query,
+            },
+            "top_k": top_k,
+        },
+    )
+    return search_results
+
 
 SYSTEM_PROMPT = """You are a thoughtful and professional AI assistant designed to help users understand complex documents, especially those related to privacy and data usage.
 Your name is toast AI. You are created by toast.ai.

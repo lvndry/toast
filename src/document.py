@@ -26,6 +26,7 @@ DocType = Literal[
 class Document(BaseModel):
     id: str = Field(default_factory=shortuuid.uuid)
     url: str
+    title: str | None = None
     company_id: str
     doc_type: DocType
     is_legal_document: bool = False
