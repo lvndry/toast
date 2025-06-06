@@ -424,6 +424,78 @@ Be as specific as possible with the locale (include country code when possible).
         return "en-US"  # Default fallback
 
 
+async def extract_title(
+    markdown: str, metadata: dict[str, Any], url: str, doc_type: str
+) -> str:
+    """
+    Extract the title of a document using LLM analysis.
+
+    Args:
+        markdown: The document markdown content
+        metadata: Document metadata that might contain title information
+        url: Document URL
+        doc_type: Document type classification
+
+    Returns:
+        str: Extracted or generated title
+    """
+
+    prompt = f"""Analyze this document and extract or generate the most appropriate title.
+
+URL: {url}
+Document Type: {doc_type}
+Content sample: {markdown}
+Metadata: {json.dumps(metadata, indent=2) if metadata else "None"}
+
+Return a JSON object with:
+- title: the most appropriate title for this document (max 8 words)
+- confidence: float between 0 and 1 indicating confidence in the title
+
+Look for the actual document title, not section headers. Generate professional titles like "Privacy Policy", "Terms of Service", etc.
+"""
+
+    system_prompt = """
+    You are a document title extractor. Identify the main title of legal documents, ignoring section headers.
+    """
+
+    try:
+        response = await acompletion(
+            model="mistral/mistral-small-latest",
+            api_key=MISTRAL_API_KEY,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.1,
+        )
+
+        result = json.loads(response.choices[0].message.content)
+        extracted_title = result.get("title", "").strip()
+        confidence = result.get("confidence", 0.0)
+
+        logger.info(
+            f"LLM extracted title: {extracted_title} (confidence: {confidence})"
+        )
+        return extracted_title
+
+    except Exception as e:
+        logger.error(f"Error extracting title with LLM: {str(e)}")
+
+    # Fallback to document type-based title
+    type_titles = {
+        "privacy_policy": "Privacy Policy",
+        "terms_of_service": "Terms of Service",
+        "cookie_policy": "Cookie Policy",
+        "terms_and_conditions": "Terms and Conditions",
+        "data_processing_agreement": "Data Processing Agreement",
+        "gdpr_policy": "GDPR Policy",
+        "copyright_policy": "Copyright Policy",
+    }
+
+    return type_titles.get(doc_type, "Legal Document")
+
+
 async def store_documents(documents: list[Document]):
     """Store documents with deduplication and update logic."""
     for document in documents:
@@ -487,19 +559,29 @@ async def process_company(company: Company) -> list[Document]:
 
         text_content = markdown_to_text(result.markdown)
 
+        # Detect locale for the document
+        detected_locale = await detect_locale(text_content, result.metadata)
+        logger.info(f"URL: {result.url} - Detected locale: {detected_locale}")
+
         # Classify the document
         classification = await classifier.classify(
             result.url, text_content, result.metadata
         )
         logger.info(f"URL: {result.url} - Classification: {classification}")
 
-        # Detect locale for the document
-        detected_locale = await detect_locale(text_content, result.metadata)
-        logger.info(f"URL: {result.url} - Detected locale: {detected_locale}")
+        # Extract title for the document
+        extracted_title = await extract_title(
+            result.markdown,
+            result.metadata,
+            result.url,
+            classification["classification"]
+        )
+        logger.info(f"URL: {result.url} - Extracted title: {extracted_title}")
 
         legal_documents.append(
             Document(
                 url=result.url,
+                title=extracted_title,
                 company_id=company.id,
                 markdown=result.markdown,
                 text=text_content,
