@@ -47,7 +47,7 @@ async def create_company_isolated(company: Company) -> bool:
     """Create a new company with a fresh database connection"""
     client, db = await get_mongo_client()
     try:
-        result = await db.companies.insert_one(company.to_db())
+        result = await db.companies.insert_one(company.model_dump())
         return result.inserted_id is not None
     finally:
         client.close()
@@ -89,7 +89,7 @@ async def get_company_documents_isolated(company_slug: str) -> list[Document]:
         documents = await db.documents.find({"company_id": company["id"]}).to_list(
             length=None
         )
-        return [Document.from_db(**document) for document in documents]
+        return [Document(**document) for document in documents]
     finally:
         client.close()
 
@@ -99,6 +99,6 @@ async def get_all_documents_isolated() -> list[Document]:
     client, db = await get_mongo_client()
     try:
         documents = await db.documents.find().to_list(length=None)
-        return [Document.from_db(**document) for document in documents]
+        return [Document(**document) for document in documents]
     finally:
         client.close()

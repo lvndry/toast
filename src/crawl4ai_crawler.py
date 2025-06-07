@@ -451,8 +451,10 @@ async def detect_regions(
     Returns:
         dict: Contains region detection results with keys:
             - is_global: boolean indicating if document applies globally
-            - specific_regions: list of specific regions/countries if not global
+            - regions: list of mapped region codes for Document (e.g., ["US", "EU", "global"])
             - confidence: float between 0 and 1 indicating confidence
+            - justification: string explaining the reasoning behind the determination
+            - regional_indicators: list of text snippets that indicate regional scope
 
     """
     # Get a reasonable sample of text for analysis (first 3000 characters)
@@ -507,14 +509,44 @@ Return a JSON object with:
         justification = result.get("justification", "")
         regional_indicators = result.get("regional_indicators", [])
 
+        # Convert region detection results to Document regions format
+        regions = []
+        if is_global:
+            regions = ["global"]
+        else:
+            # Map specific regions to Document Region literals
+            region_mapping = {
+                "united states": "US",
+                "usa": "US",
+                "us": "US",
+                "america": "US",
+                "european union": "EU",
+                "eu": "EU",
+                "europe": "EU",
+                "united kingdom": "UK",
+                "uk": "UK",
+                "britain": "UK",
+                "asia": "Asia",
+                "australia": "Australia",
+            }
+
+            for specific_region in specific_regions:
+                mapped_region = region_mapping.get(specific_region.lower(), "Other")
+                if mapped_region not in regions:
+                    regions.append(mapped_region)
+
+            # If no specific regions were mapped, default to global
+            if not regions:
+                regions = ["global"]
+
         logger.info(
-            f"Region detection for {url}: {'Global' if is_global else f'Specific regions: {specific_regions}'} "
+            f"Region detection for {url}: {'Global' if is_global else f'Regions: {regions}'} "
             f"(confidence: {confidence})"
         )
 
         return {
             "is_global": is_global,
-            "specific_regions": specific_regions,
+            "regions": regions,
             "confidence": confidence,
             "justification": justification,
             "regional_indicators": regional_indicators,
@@ -524,7 +556,7 @@ Return a JSON object with:
         logger.error(f"Error detecting regions with LLM: {str(e)}")
         return {
             "is_global": True,  # Default to global if detection fails
-            "specific_regions": [],
+            "regions": ["global"],
             "confidence": 0.0,
             "justification": f"Error during detection: {str(e)}",
             "regional_indicators": [],
@@ -621,14 +653,14 @@ async def store_documents(documents: list[Document]):
                 logger.info(f"Updating document with URL: {document.url}")
                 document.id = existing_doc.id  # Preserve the original ID
                 await mongo.db.documents.update_one(
-                    {"url": document.url}, {"$set": document.to_db()}
+                    {"url": document.url}, {"$set": document.model_dump()}
                 )
             else:
                 logger.info(f"Skipping document with URL: {document.url} (no changes)")
         else:
             # Create new document if URL doesn't exist
             logger.info(f"Creating new document with URL: {document.url}")
-            await mongo.db.documents.insert_one(document.to_db())
+            await mongo.db.documents.insert_one(document.model_dump())
 
 
 async def process_company(company: Company) -> list[Document]:
@@ -670,17 +702,22 @@ async def process_company(company: Company) -> list[Document]:
         detected_locale = await detect_locale(text_content, result.metadata)
         logger.info(f"URL: {result.url} - Detected locale: {detected_locale}")
 
-        # Detect regions for the document
-        region_detection = await detect_regions(
-            text_content, result.metadata, result.url
-        )
-        logger.info(f"URL: {result.url} - Region detection: {region_detection}")
-
         # Classify the document
         classification = await classifier.classify(
             result.url, text_content, result.metadata
         )
         logger.info(f"URL: {result.url} - Classification: {classification}")
+
+        # Skip if not a legal document
+        if not classification["is_legal_document"]:
+            logger.info(f"Skipping {result.url} - Not classified as a legal document")
+            continue
+
+        # Detect regions for the document
+        region_detection = await detect_regions(
+            text_content, result.metadata, result.url
+        )
+        logger.info(f"URL: {result.url} - Region detection: {region_detection}")
 
         # Extract title for the document
         extracted_title = await extract_title(
@@ -691,40 +728,10 @@ async def process_company(company: Company) -> list[Document]:
         )
         logger.info(f"URL: {result.url} - Extracted title: {extracted_title}")
 
-        # Convert region detection results to Document regions format
-        regions = []
-        if region_detection["is_global"]:
-            regions = ["global"]
-        else:
-            # Map specific regions to Document Region literals
-            region_mapping = {
-                "united states": "US",
-                "usa": "US",
-                "us": "US",
-                "america": "US",
-                "european union": "EU",
-                "eu": "EU",
-                "europe": "EU",
-                "united kingdom": "UK",
-                "uk": "UK",
-                "britain": "UK",
-                "asia": "Asia",
-                "australia": "Australia",
-            }
-
-            for specific_region in region_detection["specific_regions"]:
-                mapped_region = region_mapping.get(specific_region.lower(), "Other")
-                if mapped_region not in regions:
-                    regions.append(mapped_region)
-
-            # If no specific regions were mapped, default to global
-            if not regions:
-                regions = ["global"]
-
         legal_documents.append(
             Document(
-                url=result.url,
                 title=extracted_title,
+                url=result.url,
                 company_id=company.id,
                 markdown=result.markdown,
                 text=text_content,
@@ -732,16 +739,9 @@ async def process_company(company: Company) -> list[Document]:
                 doc_type=classification["classification"],
                 is_legal_document=classification["is_legal_document"],
                 locale=detected_locale,
-                regions=regions,
+                regions=region_detection["regions"],
             )
         )
-
-    # Filter to keep only legal documents
-    legal_documents = [
-        doc
-        for doc in legal_documents
-        if doc.is_legal_document and "en" in doc.locale.lower()
-    ]
 
     # Store legal documents
     if legal_documents:

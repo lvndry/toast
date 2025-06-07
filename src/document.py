@@ -55,7 +55,6 @@ class Document(BaseModel):
     title: str | None = None
     company_id: str
     doc_type: DocType
-    is_legal_document: bool = False
     markdown: str
     text: str
     metadata: dict
@@ -64,16 +63,3 @@ class Document(BaseModel):
     locale: str | None = None
     regions: list[Region] = []
     created_at: datetime = Field(default_factory=datetime.now)
-
-    def to_db(self) -> dict:
-        """Convert Document to dictionary for database storage, excluding computed fields."""
-        data = self.model_dump()
-        # Remove is_legal_document as it's a computed field
-        data.pop("is_legal_document", None)
-        return data
-
-    @classmethod
-    def from_db(cls, data: dict) -> "Document":
-        """Create Document instance from database data, adding computed fields."""
-        data["is_legal_document"] = True
-        return cls(**data)
