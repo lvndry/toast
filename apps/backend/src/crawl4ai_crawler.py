@@ -195,12 +195,12 @@ class LegalDocumentCrawler:
         """Create the crawler configuration."""
         return CrawlerRunConfig(
             deep_crawl_strategy=self.strategy,
+            scraping_strategy=LXMLWebScrapingStrategy(),
+            stream=self.stream,
             exclude_external_links=not self.include_external,
             remove_overlay_elements=True,
             process_iframes=False,
-            scraping_strategy=LXMLWebScrapingStrategy(),
             verbose=self.verbose,
-            stream=self.stream,
             page_timeout=self.page_timeout,
             locale="en-US",  # TODO: make this configurable
             check_robots_txt=True,
@@ -297,25 +297,32 @@ class DocumentClassifier:
             "data_processing_agreement",
             "gdpr_policy",
             "copyright_policy",
+            "safety_policy",
             "other",
         ]
 
     def _create_prompt(self, url: str, text: str, metadata: dict[str, Any]) -> str:
         """Create the classification prompt."""
         categories_list = "\n".join(f"- {cat}" for cat in self.categories)
-        return f"""Analyze the url and content and metadata of the document and classify it into one of these categories:
-        {categories_list}
+        return f"""You are analyzing the content of a crawled webpage. Your task is to determine whether the content is meaningful and classifiable or if it consists primarily of superficial webpage elements (e.g., cookie banners, app download prompts, unsupported browser messages).
 
-        URL: {url}
-        Content: {text[: self.max_content_length]}
-        Metadata: {json.dumps(metadata, indent=2)}
+Use the following predefined list of content categories:
+    {categories_list}
 
-        Return a JSON object with:
-        - classification: the category
-        - classification_justification: brief explanation of the classification
-        - is_legal_document: boolean. If the URL has no mention of legal terms/keywords and that the content is short it's unlikely to be a legal document.
-        - is_legal_document_justification: brief explanation of why the document is or is not a legal document.
-        """
+Consider the following inputs:
+- URL: {url}
+- Content: {text[: self.max_content_length]}
+- Metadata: {json.dumps(metadata, indent=2)}
+
+Please return a JSON object with the following fields:
+
+- classification: the most appropriate category from the list above. If the content is mostly superficial (e.g., cookie banners, unsupported browser messages, etc.) or lacks meaningful information, return "other".
+- classification_justification: a brief explanation of why this category was selected, including any signals in the content or metadata that supported this choice.
+- is_legal_document: a boolean. This should be True only if the page contains substantive legal text (e.g., terms of service, privacy policy, data protection policy, etc.). Short, generic cookie banners or links to external legal documents do not count.
+- is_legal_document_justification: a short rationale for your legal classification decision, including whether any legal language, structure, or keywords were present.
+
+Use caution: Web crawlers often pick up limited or partial page content. If the content appears incomplete, vague, or primarily navigational or promotional, treat it with skepticism and prefer "other" unless clear evidence suggests a more specific classification.
+"""
 
     async def classify(
         self, url: str, text: str, metadata: dict[str, Any]
@@ -468,33 +475,58 @@ async def detect_regions(
     # Get a reasonable sample of text for analysis (first 3000 characters)
     text_sample = text[:3000] if len(text) > 3000 else text
 
-    prompt = f"""Analyze this legal document and determine if it applies globally to all users or only to specific regions/countries.
+    prompt = f"""Analyze this legal document excerpt to determine whether it applies globally to all users or only to specific regions or countries.
 
-URL: {url}
-Text sample: {text_sample}
-Metadata: {json.dumps(metadata, indent=2) if metadata else "None"}
+You are given:
+- URL: {url}
+- Text sample (excerpt, not full document): {text_sample}
+- Metadata (e.g., page title, language, headers): {json.dumps(metadata, indent=2) if metadata else "None"}
 
-Look for indicators such as:
-- Geographic limitations ("This policy applies to users in...")
-- Country-specific legal references (GDPR for EU, CCPA for California, etc.)
-- Regional service availability mentions
-- Jurisdiction clauses
-- Regional contact information or addresses
-- URL patterns indicating region (e.g., /eu/, /us/, country domains)
+Your task:
+1. Determine whether the legal document has **global applicability** or is **region-specific**.
+2. Look for regional indicators, such as:
+   - Geographic limitations (e.g., "This policy applies to users in...")
+   - Legal frameworks (e.g., GDPR for EU, CCPA for California)
+   - Jurisdiction clauses (e.g., "governed by the laws of...")
+   - Region-specific service availability or contact info
+   - Regional domains or paths in the URL (e.g., /eu/, /us/, country TLDs)
 
-Return a JSON object with:
-- is_global: boolean - true if document applies to all users globally, false if region-specific
-- specific_regions: array of strings - list of specific regions/countries if not global (e.g., ["United States", "Canada", "European Union"])
-- confidence: float between 0 and 1 indicating confidence in the determination
-- justification: string explaining the reasoning behind the determination
-- regional_indicators: array of strings - specific text snippets that indicate regional scope
+Return a JSON object with the following fields:
+
+{{
+    "is_global": boolean, // true if it applies worldwide, false if region-specific
+    "specific_regions": string[], // e.g. ["United States", "European Union"] if not global
+    "confidence": float, // between 0 and 1, based on the number and clarity of indicators
+    "justification": string, // reasoning with reference to document content and metadata
+    "regional_indicators": string[] // exact phrases or snippets suggesting regional scope
+}}
+
+Notes:
+
+- Confidence should reflect both presence and clarity of geographic indicators.
+- If global applicability is claimed but regional laws are mentioned, consider whether those are additive or limiting.
+- Consider metadata and URL patterns as supporting evidence of scope.
 """
 
-    system_prompt = """
-    You are a legal document analyst specialized in determining geographic scope of policies and terms.
-    Analyze documents to determine if they apply globally or to specific regions only.
-    Be thorough in identifying regional limitations and geographic scope indicators.
-    """
+    system_prompt = """You are a legal document analyst specializing in determining the geographic scope of policies, terms, and privacy notices.
+
+Your task is to assess whether a given document applies globally or only to specific regions or jurisdictions.
+
+Focus on identifying explicit and implicit regional limitations.
+Look for:
+- Geographic qualifiers (e.g., "users in the United States")
+- Region-specific legal references (e.g., GDPR, CCPA)
+- Jurisdiction and governing law clauses
+- Regional contact details or service disclaimers
+- URL paths or domains suggesting regional segmentation (e.g., /eu/, /ca/)
+
+Be rigorous and careful:
+- Distinguish between global applicability with regional clauses vs. region-limited applicability.
+- Consider metadata (titles, headers, domain patterns) alongside content.
+- Resolve conflicts thoughtfully and assign a confidence score based on signal clarity and coverage.
+
+Your response will help determine legal applicability across jurisdictions, so precision is essential.
+"""
 
     try:
         response = await acompletion(
@@ -587,23 +619,37 @@ async def extract_title(
         str: Extracted or generated title
     """
 
-    prompt = f"""Analyze this document and extract or generate the most appropriate title.
+    prompt = f"""Analyze this document and extract the most accurate and specific title.
 
 URL: {url}
 Document Type: {doc_type}
 Content sample: {markdown}
 Metadata: {json.dumps(metadata, indent=2) if metadata else "None"}
 
-Return a JSON object with:
-- title: the most appropriate title for this document (max 8 words)
-- confidence: float between 0 and 1 indicating confidence in the title
+Instructions:
+    - Extract the actual document title, not a section header or a heading from within the body.
+    - Do not generate or paraphrase the title — extract it verbatim from the content or metadata.
+    - Prefer titles that explicitly reference the product or service discussed in the document.
+    - If multiple candidates are available (e.g. metadata title, visible title at top), choose the one most relevant to both the document's legal role and the product it refers to.
+    - Avoid overly generic titles (e.g. “Terms of Service”) unless they include product or company identifiers.
+    - Ignore navigation labels or internal anchors unless clearly functioning as the title.
 
-Look for the actual document title, not section headers. Generate professional titles like "Privacy Policy", "Terms of Service", etc.
+Return a JSON object with:
+    - title: the best extracted document title (max 12 words)
+    - confidence: a float between 0 and 1 indicating how confident you are in this extraction
 """
 
-    system_prompt = """
-    You are a document title extractor. Identify the main title of legal documents, ignoring section headers.
-    """
+    system_prompt = """You are a document title extractor specializing in legal, policy, and compliance documents.
+Your task is to extract the main title of the document, not section headers or internal headings.
+
+Be precise:
+- Focus on titles that refer to the entire document.
+- Ignore headings that belong to sections within the document.
+- Prioritize titles that mention the relevant product, service, or company.
+- If multiple candidates are present, select the one that best captures the scope and subject of the document.
+
+Do not generate or rewrite — extract only what is present in the text or metadata.
+"""
 
     try:
         response = await acompletion(

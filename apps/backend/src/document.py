@@ -30,6 +30,7 @@ DocType = Literal[
     "data_processing_agreement",
     "gdpr_policy",
     "copyright_policy",
+    "safety_policy",
     "other",
 ]
 
