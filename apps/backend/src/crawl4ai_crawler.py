@@ -2,6 +2,8 @@ import asyncio
 import hashlib
 import json
 import os
+import time
+import tracemalloc
 from typing import Any
 
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig  # type: ignore
@@ -23,6 +25,7 @@ from typing_extensions import deprecated
 from src.company import Company
 from src.db import get_all_companies, get_document_by_url, mongo
 from src.document import DocType, Document
+from src.perf_utils import log_memory_usage, memory_monitor_task
 from src.utils.markdown import markdown_to_text
 
 load_dotenv()
@@ -103,6 +106,8 @@ class LegalDocumentCrawler:
             "disclaimer",
             "legal",
             "rules",
+            "consent",
+            "rights",
             # security
             "security",
             # privacy
@@ -114,7 +119,9 @@ class LegalDocumentCrawler:
             "cookie-policy",
             # data
             "data",
+            "processor",
             "subprocessor",
+            "partners",
             # policy
             "policy",
             "policies",
@@ -163,6 +170,7 @@ class LegalDocumentCrawler:
             query=legal_keywords_query, threshold=threshold_score
         )
 
+    @deprecated("This filter is no longer used")
     def _create_filter_chain(self) -> FilterChain:
         """Create the filter chain."""
         return FilterChain(
@@ -673,6 +681,9 @@ async def process_company(company: Company) -> list[Document]:
     Returns:
         List of processed documents
     """
+    company_start_time = time.time()
+    log_memory_usage(f"Starting {company.name}")
+
     if not company.crawl_base_urls:
         logger.warning(f"No crawl base URLs for {company.name}")
         return []
@@ -691,6 +702,7 @@ async def process_company(company: Company) -> list[Document]:
 
     # Crawl documents
     results = await crawler.crawl(company.crawl_base_urls)
+    log_memory_usage(f"After crawling {company.name}")
     legal_documents: list[Document] = []
 
     for result in results:
@@ -748,10 +760,27 @@ async def process_company(company: Company) -> list[Document]:
         await store_documents(legal_documents)
         logger.info(f"Stored {len(legal_documents)} documents for {company.name}")
 
+    company_end_time = time.time()
+    company_duration = company_end_time - company_start_time
+    log_memory_usage(f"Completed {company.name}")
+    logger.success(
+        f"✅ Completed processing {company.name} in {company_duration:.2f} seconds"
+    )
+
     return legal_documents
 
 
 async def main():
+    # Start memory tracking
+    tracemalloc.start()
+    main_start_time = time.time()
+
+    logger.info("🚀 Starting document crawling process...")
+    log_memory_usage("Initial")
+
+    # Start background memory monitoring (optional - logs every 30 seconds)
+    memory_task = asyncio.create_task(memory_monitor_task(30))
+
     companies = await get_all_companies()
     all_documents = []
 
@@ -760,9 +789,27 @@ async def main():
         logger.info(f"Processing company {i}/{len(companies)}: {company.name}")
         documents = await process_company(company)
         all_documents.extend(documents)
-        logger.info(f"Completed processing {company.name}")
 
-    logger.info(f"Total documents processed: {len(all_documents)}")
+        # Cancel the background memory monitoring task
+    memory_task.cancel()
+
+    main_end_time = time.time()
+    total_duration = main_end_time - main_start_time
+
+    # Log final memory usage and tracemalloc stats
+    log_memory_usage("Final")
+
+    current, peak = tracemalloc.get_traced_memory()
+    logger.info(
+        f"📊 Memory trace: Current={current / 1024 / 1024:.1f}MB, "
+        f"Peak={peak / 1024 / 1024:.1f}MB"
+    )
+    tracemalloc.stop()
+
+    logger.success(f"🎉 Total documents processed: {len(all_documents)}")
+    logger.success(
+        f"⏱️  Total runtime: {total_duration:.2f} seconds ({total_duration / 60:.2f} minutes)"
+    )
 
 
 if __name__ == "__main__":
