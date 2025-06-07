@@ -33,6 +33,21 @@ DocType = Literal[
     "other",
 ]
 
+Region = Literal[
+    "global",
+    "US",
+    "EU",
+    "EFTA",
+    "UK",
+    "Asia",
+    "Australia",
+    "Canada",
+    "Brazil",
+    "South Korea",
+    "Israel",
+    "Other",
+]
+
 
 class Document(BaseModel):
     id: str = Field(default_factory=shortuuid.uuid)
@@ -47,6 +62,7 @@ class Document(BaseModel):
     versions: list[dict] = []
     analysis: DocumentAnalysis | None = None
     locale: str | None = None
+    regions: list[Region] = []
     created_at: datetime = Field(default_factory=datetime.now)
 
     def to_db(self) -> dict:

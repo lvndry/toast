@@ -18,6 +18,7 @@ from crawl4ai.deep_crawling.scorers import KeywordRelevanceScorer  # type: ignor
 from dotenv import load_dotenv
 from litellm import acompletion
 from loguru import logger
+from typing_extensions import deprecated
 
 from src.company import Company
 from src.db import get_all_companies, get_document_by_url, mongo
@@ -37,9 +38,10 @@ class LegalDocumentCrawler:
 
     def __init__(
         self,
-        stream: bool = False,
         max_depth: int = 3,
-        max_pages: int = 200,
+        max_pages: int = 500,
+        stream: bool = False,
+        user_agent: str | None = None,
         allowed_domains: list[str] | None = None,
         verbose: bool = False,
         page_timeout: int = 60000,  # ms
@@ -48,13 +50,18 @@ class LegalDocumentCrawler:
         Initialize the legal document crawler.
 
         Args:
-            stream: Whether to stream the output
             max_depth: Maximum crawl depth
             max_pages: Maximum number of pages to crawl
+            stream: Whether to stream the output
+            user_agent: User agent to use for the crawler
             allowed_domains: List of allowed domains
             verbose: Whether to print verbose output
             page_timeout: Timeout for each page in milliseconds
         """
+        default_user_agent = (
+            "ToastAICrawler/1.0 (dev mode; site coming soon; contact: lvndry@proton.me)"
+        )
+
         self.stream = stream
         self.max_depth = max_depth
         self.max_pages = max_pages
@@ -62,6 +69,7 @@ class LegalDocumentCrawler:
         self.include_external = False
         self.verbose = verbose
         self.page_timeout = page_timeout
+        self.user_agent = user_agent or default_user_agent
 
         # Initialize the crawler components
         self.browser_config = self._create_browser_config()
@@ -77,9 +85,9 @@ class LegalDocumentCrawler:
 
     def _create_browser_config(self) -> BrowserConfig:
         """Create the browser configuration."""
-        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
         return BrowserConfig(
-            user_agent=user_agent, text_mode=True, verbose=self.verbose
+            user_agent=self.user_agent, text_mode=True, verbose=self.verbose
         )
 
     def _create_keyword_relevance_scorer(self) -> KeywordRelevanceScorer:
@@ -94,6 +102,7 @@ class LegalDocumentCrawler:
             "license",
             "disclaimer",
             "legal",
+            "rules",
             # security
             "security",
             # privacy
@@ -131,14 +140,17 @@ class LegalDocumentCrawler:
             weight=len(keywords),
         )
 
+    @deprecated("This filter is no longer used")
     def _create_domain_filter(self) -> DomainFilter:
         """Create the domain filter."""
         return DomainFilter(allowed_domains=self.allowed_domains)
 
+    @deprecated("This filter is no longer used")
     def _create_url_pattern_filter(self) -> URLPatternFilter:
         """Create the URL pattern filter."""
         return URLPatternFilter(patterns=["*?*", "*#*", "*&*"], reverse=True)
 
+    @deprecated("This filter is no longer used")
     def _create_content_relevance_filter(self) -> ContentRelevanceFilter:
         """Create the content relevance filter."""
         legal_keywords_query = (
@@ -155,9 +167,9 @@ class LegalDocumentCrawler:
         """Create the filter chain."""
         return FilterChain(
             [
-                # self.domain_filter,
-                # self.url_pattern_filter,
-                # self.content_relevance_filter,
+                self.domain_filter,
+                self.url_pattern_filter,
+                self.content_relevance_filter,
             ]
         )
 
@@ -183,6 +195,7 @@ class LegalDocumentCrawler:
             stream=self.stream,
             page_timeout=self.page_timeout,
             locale="en-US",  # TODO: make this configurable
+            check_robots_txt=True,
         )
 
     def clean_url(self, url: str) -> str:
@@ -424,6 +437,100 @@ Be as specific as possible with the locale (include country code when possible).
         return "en-US"  # Default fallback
 
 
+async def detect_regions(
+    text: str, metadata: dict[str, Any], url: str
+) -> dict[str, Any]:
+    """
+    Detect if a document applies globally or to specific regions only.
+
+    Args:
+        text: The document content in text format
+        metadata: Document metadata that might contain regional information
+        url: Document URL which might contain regional indicators
+
+    Returns:
+        dict: Contains region detection results with keys:
+            - is_global: boolean indicating if document applies globally
+            - specific_regions: list of specific regions/countries if not global
+            - confidence: float between 0 and 1 indicating confidence
+
+    """
+    # Get a reasonable sample of text for analysis (first 3000 characters)
+    text_sample = text[:3000] if len(text) > 3000 else text
+
+    prompt = f"""Analyze this legal document and determine if it applies globally to all users or only to specific regions/countries.
+
+URL: {url}
+Text sample: {text_sample}
+Metadata: {json.dumps(metadata, indent=2) if metadata else "None"}
+
+Look for indicators such as:
+- Geographic limitations ("This policy applies to users in...")
+- Country-specific legal references (GDPR for EU, CCPA for California, etc.)
+- Regional service availability mentions
+- Jurisdiction clauses
+- Regional contact information or addresses
+- URL patterns indicating region (e.g., /eu/, /us/, country domains)
+
+Return a JSON object with:
+- is_global: boolean - true if document applies to all users globally, false if region-specific
+- specific_regions: array of strings - list of specific regions/countries if not global (e.g., ["United States", "Canada", "European Union"])
+- confidence: float between 0 and 1 indicating confidence in the determination
+- justification: string explaining the reasoning behind the determination
+- regional_indicators: array of strings - specific text snippets that indicate regional scope
+"""
+
+    system_prompt = """
+    You are a legal document analyst specialized in determining geographic scope of policies and terms.
+    Analyze documents to determine if they apply globally or to specific regions only.
+    Be thorough in identifying regional limitations and geographic scope indicators.
+    """
+
+    try:
+        response = await acompletion(
+            model="mistral/mistral-small-latest",
+            api_key=MISTRAL_API_KEY,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.1,
+        )
+
+        result = json.loads(response.choices[0].message.content)
+
+        # Validate and set defaults
+        is_global = result.get("is_global", True)
+        specific_regions = result.get("specific_regions", [])
+        confidence = result.get("confidence", 0.0)
+        justification = result.get("justification", "")
+        regional_indicators = result.get("regional_indicators", [])
+
+        logger.info(
+            f"Region detection for {url}: {'Global' if is_global else f'Specific regions: {specific_regions}'} "
+            f"(confidence: {confidence})"
+        )
+
+        return {
+            "is_global": is_global,
+            "specific_regions": specific_regions,
+            "confidence": confidence,
+            "justification": justification,
+            "regional_indicators": regional_indicators,
+        }
+
+    except Exception as e:
+        logger.error(f"Error detecting regions with LLM: {str(e)}")
+        return {
+            "is_global": True,  # Default to global if detection fails
+            "specific_regions": [],
+            "confidence": 0.0,
+            "justification": f"Error during detection: {str(e)}",
+            "regional_indicators": [],
+        }
+
+
 async def extract_title(
     markdown: str, metadata: dict[str, Any], url: str, doc_type: str
 ) -> str:
@@ -563,6 +670,12 @@ async def process_company(company: Company) -> list[Document]:
         detected_locale = await detect_locale(text_content, result.metadata)
         logger.info(f"URL: {result.url} - Detected locale: {detected_locale}")
 
+        # Detect regions for the document
+        region_detection = await detect_regions(
+            text_content, result.metadata, result.url
+        )
+        logger.info(f"URL: {result.url} - Region detection: {region_detection}")
+
         # Classify the document
         classification = await classifier.classify(
             result.url, text_content, result.metadata
@@ -578,6 +691,36 @@ async def process_company(company: Company) -> list[Document]:
         )
         logger.info(f"URL: {result.url} - Extracted title: {extracted_title}")
 
+        # Convert region detection results to Document regions format
+        regions = []
+        if region_detection["is_global"]:
+            regions = ["global"]
+        else:
+            # Map specific regions to Document Region literals
+            region_mapping = {
+                "united states": "US",
+                "usa": "US",
+                "us": "US",
+                "america": "US",
+                "european union": "EU",
+                "eu": "EU",
+                "europe": "EU",
+                "united kingdom": "UK",
+                "uk": "UK",
+                "britain": "UK",
+                "asia": "Asia",
+                "australia": "Australia",
+            }
+
+            for specific_region in region_detection["specific_regions"]:
+                mapped_region = region_mapping.get(specific_region.lower(), "Other")
+                if mapped_region not in regions:
+                    regions.append(mapped_region)
+
+            # If no specific regions were mapped, default to global
+            if not regions:
+                regions = ["global"]
+
         legal_documents.append(
             Document(
                 url=result.url,
@@ -589,6 +732,7 @@ async def process_company(company: Company) -> list[Document]:
                 doc_type=classification["classification"],
                 is_legal_document=classification["is_legal_document"],
                 locale=detected_locale,
+                regions=regions,
             )
         )
 
