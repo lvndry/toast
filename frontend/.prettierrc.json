@@ -1,0 +1,28 @@
+{
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "htmlWhitespaceSensitivity": "css",
+  "insertPragma": false,
+  "bracketSameLine": true,
+  "printWidth": 120,
+  "proseWrap": "preserve",
+  "quoteProps": "as-needed",
+  "requirePragma": false,
+  "semi": true,
+  "tabWidth": 2,
+  "trailingComma": "always",
+  "useTabs": false,
+  "endOfLine": "auto",
+  "plugins": [
+    "@trivago/prettier-plugin-sort-imports"
+  ],
+  "importOrder": [
+    "^react$",
+    "^next(/.*)?$",
+    "next-themes",
+    "@/*",
+    "<THIRD_PARTY_MODULES>"
+  ],
+  "importOrderSeparation": true,
+  "importOrderSortSpecifiers": true
+}
