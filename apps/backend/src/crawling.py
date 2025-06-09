@@ -58,7 +58,7 @@ from pydantic import BaseModel
 from src.company import Company
 from src.db import get_all_companies, get_document_by_url, mongo
 from src.document import Document, Region
-from src.perf_utils import log_memory_usage, memory_monitor_task
+from apps.backend.src.utils.perf import log_memory_usage, memory_monitor_task
 from src.toast_crawler import CrawlResult, ToastCrawler
 from src.utils.markdown import markdown_to_text
 
