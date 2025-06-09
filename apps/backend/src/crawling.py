@@ -738,7 +738,7 @@ class LegalDocumentPipeline:
             self.stats.failed_company_slugs.append(company.slug)
             return []
 
-    async def run(self) -> ProcessingStats:
+    async def run(self, companies: List[Company] = None) -> ProcessingStats:
         """
         Execute the complete legal document crawling pipeline.
 
@@ -757,8 +757,7 @@ class LegalDocumentPipeline:
 
         try:
             # Get all companies
-            companies = await get_all_companies()
-            companies = companies[:1]  # TODO: Remove this
+            companies = companies or await get_all_companies()
             logger.info(f"📊 Processing {len(companies)} companies")
 
             # Process companies sequentially for memory efficiency and rate limiting

@@ -5,7 +5,7 @@ from src.dashboard.components.company_view import show_company_view
 from src.dashboard.components.crawling import show_crawling
 from src.dashboard.components.embedding import show_embedding
 
-st.set_page_config(page_title="Toast Dashboard", page_icon="��", layout="wide")
+st.set_page_config(page_title="Toast Dashboard", page_icon="🍞", layout="wide")
 
 
 def main():

@@ -4,20 +4,30 @@ import concurrent.futures
 import streamlit as st
 
 from src.company import Company
-from src.crawl4ai_crawler import process_company
+from src.crawling import LegalDocumentPipeline
 from src.dashboard.db_utils import get_all_companies_isolated
 from src.dashboard.utils import run_async
 
 
 def run_crawl_async(company: Company):
-    """Run crawling in a completely isolated thread with its own event loop"""
+    """Run crawling using LegalDocumentPipeline in a completely isolated thread with its own event loop"""
 
     def run_in_thread():
         # Create a completely fresh event loop in this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            return loop.run_until_complete(process_company(company))
+            # Create pipeline instance for single company processing
+            pipeline = LegalDocumentPipeline(
+                max_depth=4,
+                max_pages=500,
+                crawler_strategy="bfs",
+                concurrent_limit=5,  # Reduced for single company
+                delay_between_requests=1.0,
+            )
+            
+            # Process single company and return documents
+            return loop.run_until_complete(pipeline.run([company]))
         finally:
             # Cancel all pending tasks before closing the loop
             pending_tasks = asyncio.all_tasks(loop)
