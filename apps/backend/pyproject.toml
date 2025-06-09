@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 
 dependencies = [
+    "aiohttp>=3.11.18",
     "bs4>=0.0.2",
     "crawl4ai>=0.6.3",
     "fastapi[standard]>=0.115.11",

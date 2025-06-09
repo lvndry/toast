@@ -2676,6 +2676,7 @@ name = "toast"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "aiohttp" },
     { name = "bs4" },
     { name = "crawl4ai" },
     { name = "fastapi", extra = ["standard"] },
@@ -2701,6 +2702,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiohttp", specifier = ">=3.11.18" },
     { name = "bs4", specifier = ">=0.0.2" },
     { name = "crawl4ai", specifier = ">=0.6.3" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.11" },

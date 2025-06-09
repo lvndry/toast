@@ -51,7 +51,7 @@ class URLScorer:
     def __init__(self):
         self.legal_keywords = {
             # Generic legal terms
-            "legal": 3.0,
+            "legal": 3.5,
             "terms": 4.0,
             "privacy": 5.0,
             "policy": 4.0,
@@ -91,13 +91,12 @@ class URLScorer:
             "pipeda": 4.0,
             # Security and safety
             "security": 3.0,
-            "safety": 2.5,
+            "safety": 3.0,
             "copyright": 3.0,
             "dmca": 3.5,
             # Additional legal terms
             "vendor": 2.5,
             "suppliers": 2.5,
-            "business": 2.0,
             "associate": 2.0,
             "transparency": 3.0,
             "report": 2.0,
@@ -114,6 +113,7 @@ class URLScorer:
         self.path_patterns = {
             r"/legal/?": 4.0,
             r"/terms/?": 4.5,
+            r"/tos/?": 4.5,
             r"/privacy/?": 5.0,
             r"/policy/?": 4.0,
             r"/policies/?": 4.0,
@@ -139,10 +139,10 @@ class URLScorer:
 
         # High-value legal document patterns that should get maximum score
         self.high_value_patterns = {
-            r"data-processing-addendum": 8.0,
             r"privacy-policy": 8.0,
             r"terms-of-service": 8.0,
             r"cookie-policy": 7.0,
+            r"data-processing-addendum": 8.0,
             r"subprocessors": 6.0,
             r"gdpr": 6.0,
             r"ccpa": 6.0,
@@ -165,7 +165,7 @@ class URLScorer:
             if re.search(pattern, path):
                 score += weight
 
-        # Score based on keywords in URL
+        # Score based on keyURLwords in 
         url_text = (
             f"{path} {parsed.query} {parsed.fragment}".replace("/", " ")
             .replace("-", " ")
@@ -291,28 +291,48 @@ class ContentAnalyzer:
         title_lower = title.lower() if title else ""
 
         matched_indicators = []
-        score = 0.0
+        raw_score = 0.0
+        
+        # Calculate content metrics
+        word_count = len(content.split())
+        char_count = len(content)
+        
+        # Minimum content thresholds to avoid tiny snippets
+        if word_count < 50 or char_count < 300:
+            return False, 0.0, ["content_too_short"]
+
+        # Track matched content for density calculation
+        matched_content_chars = 0
 
         # Check for legal indicators in content
         for indicator in self.legal_indicators:
             if indicator in content_lower:
                 matched_indicators.append(indicator)
-                score += 1.0
+                raw_score += 1.0
+                # Add to matched content length
+                matched_content_chars += len(indicator) * content_lower.count(indicator)
 
         # Check for legal phrases using regex
         for phrase_pattern in self.legal_phrases:
-            if re.search(phrase_pattern, content_lower):
+            matches = re.finditer(phrase_pattern, content_lower)
+            for match in matches:
                 matched_indicators.append(phrase_pattern)
-                score += 2.0
+                raw_score += 2.0
+                matched_content_chars += len(match.group())
 
-        # Bonus for legal terms in title
-        title_keywords = ["terms", "privacy", "policy", "cookie", "legal", "agreement"]
+        # Calculate legal content density
+        legal_density = matched_content_chars / char_count
+        
+        # Bonus for legal terms in title (more important)
+        title_keywords = ["terms", "privacy", "policy", "cookie", "legal", "agreement", "data", "gdpr"]
+        title_bonus = 0.0
         for keyword in title_keywords:
             if keyword in title_lower:
-                score += 3.0
+                title_bonus += 3.0
                 matched_indicators.append(f"title:{keyword}")
 
         # Check metadata
+        metadata_bonus = 0.0
         if metadata:
             meta_title = metadata.get("title", "").lower()
             meta_description = metadata.get("description", "").lower()
@@ -320,11 +340,31 @@ class ContentAnalyzer:
             for text in [meta_title, meta_description]:
                 for keyword in title_keywords:
                     if keyword in text:
-                        score += 1.0
+                        metadata_bonus += 1.0
 
-        # Normalize score (0-10 scale)
-        normalized_score = min(10.0, score)
-        is_legal = normalized_score >= 3.0
+        # Combined scoring with density weighting
+        base_score = raw_score * legal_density * 100  # Scale density
+        final_score = base_score + title_bonus + metadata_bonus
+        
+        # Normalize to 0-10 scale
+        normalized_score = min(10.0, final_score)
+        
+        # More sophisticated thresholds
+        min_density_threshold = 0.05  # At least 5% of content should be legal-related
+        min_score_threshold = 2.0
+        
+        # Document is legal if:
+        # 1. Has sufficient legal density (5%+)
+        # 2. Meets minimum score threshold
+        # 3. OR has strong title indicators (overrides density for short legal docs)
+        is_legal = (
+            (legal_density >= min_density_threshold and normalized_score >= min_score_threshold) or
+            title_bonus >= 6.0  # Strong title indicators
+        )
+        
+        # Add density information to indicators for debugging
+        matched_indicators.append(f"density:{legal_density:.3f}")
+        matched_indicators.append(f"word_count:{word_count}")
 
         return is_legal, normalized_score, matched_indicators
 
@@ -562,16 +602,8 @@ class ToastCrawler:
 
     def is_same_domain(self, url1: str, url2: str) -> bool:
         """Check if two URLs are from the same domain."""
-        domain1 = urlparse(url1).netloc.lower()
-        domain2 = urlparse(url2).netloc.lower()
-
-        # Remove www prefix
-        for i, domain in enumerate([domain1, domain2]):
-            if domain.startswith("www."):
-                if i == 0:
-                    domain1 = domain[4:]
-                else:
-                    domain2 = domain[4:]
+        domain1 = urlparse(url1).netloc.lower().removeprefix("www.")
+        domain2 = urlparse(url2).netloc.lower().removeprefix("www.")
 
         return domain1 == domain2
 
@@ -1108,7 +1140,7 @@ async def main():
     if moderate_docs:
         print(f"\n📋 Found {len(moderate_docs)} pages with moderate legal scores:")
         for result in moderate_docs[:10]:  # Top 10 moderate scoring
-            print(f"�� {result.title or 'Untitled'}")
+            print(f"📄 {result.title or 'Untitled'}")
             print(f"   URL: {result.url}")
             print(f"   Legal Score: {result.legal_score:.1f}")
             print()
