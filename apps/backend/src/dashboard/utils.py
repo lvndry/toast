@@ -14,13 +14,24 @@ def run_async(coro):
         try:
             return loop.run_until_complete(coro)
         finally:
+            # Cancel all pending tasks before closing the loop
+            pending_tasks = asyncio.all_tasks(loop)
+            for task in pending_tasks:
+                task.cancel()
+
+            # Wait for all tasks to be cancelled
+            if pending_tasks:
+                loop.run_until_complete(
+                    asyncio.gather(*pending_tasks, return_exceptions=True)
+                )
+
             loop.close()
 
     # Run in a separate thread to avoid any event loop conflicts
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(run_in_thread)
         try:
-            return future.result(timeout=10)  # 10 second timeout
+            return future.result()
         except concurrent.futures.TimeoutError:
             st.error("Database operation timed out")
             return None

@@ -9,7 +9,11 @@ from typing import Any
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig  # type: ignore
 from crawl4ai.async_configs import BrowserConfig  # type: ignore
 from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy  # type: ignore
-from crawl4ai.deep_crawling import BestFirstCrawlingStrategy  # type: ignore
+from crawl4ai.deep_crawling import (  # type: ignore
+    BestFirstCrawlingStrategy,
+    BFSDeepCrawlStrategy,
+    DFSDeepCrawlStrategy,
+)
 from crawl4ai.deep_crawling.filters import (  # type: ignore
     ContentRelevanceFilter,
     DomainFilter,
@@ -45,6 +49,7 @@ class LegalDocumentCrawler:
         max_pages: int = 500,
         stream: bool = False,
         user_agent: str | None = None,
+        locale: str = "en-US",
         allowed_domains: list[str] | None = None,
         verbose: bool = False,
         page_timeout: int = 60000,  # ms
@@ -61,9 +66,7 @@ class LegalDocumentCrawler:
             verbose: Whether to print verbose output
             page_timeout: Timeout for each page in milliseconds
         """
-        default_user_agent = (
-            "ToastAICrawler/1.0 (dev mode; site coming soon; contact: lvndry@proton.me)"
-        )
+        default_user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0 (en-US)"
 
         self.stream = stream
         self.max_depth = max_depth
@@ -73,6 +76,7 @@ class LegalDocumentCrawler:
         self.verbose = verbose
         self.page_timeout = page_timeout
         self.user_agent = user_agent or default_user_agent
+        self.locale = locale
 
         # Initialize the crawler components
         self.browser_config = self._create_browser_config()
@@ -83,7 +87,9 @@ class LegalDocumentCrawler:
         self.url_pattern_filter = self._create_url_pattern_filter()
         self.filter_chain = self._create_filter_chain()
 
-        self.strategy = self._create_strategy()
+        self.best_strategy = self._create_best_strategy()
+        self.bfs_strategy = self._create_bfs_strategy()
+        self.dfs_strategy = self._create_dfs_strategy()
         self.crawler_config = self._create_crawler_config()
 
     def _create_browser_config(self) -> BrowserConfig:
@@ -115,7 +121,6 @@ class LegalDocumentCrawler:
             "privacy",
             # cookies
             "cookie",
-            "cookies",
             "cookie-policy",
             # data
             "data",
@@ -125,7 +130,6 @@ class LegalDocumentCrawler:
             # policy
             "policy",
             "policies",
-            "use-policy",
             # terms
             "terms",
             "terms-of-service",
@@ -144,7 +148,7 @@ class LegalDocumentCrawler:
 
         return KeywordRelevanceScorer(
             keywords=keywords,
-            weight=len(keywords),
+            weight=0,
         )
 
     @deprecated("This filter is no longer used")
@@ -155,16 +159,22 @@ class LegalDocumentCrawler:
     @deprecated("This filter is no longer used")
     def _create_url_pattern_filter(self) -> URLPatternFilter:
         """Create the URL pattern filter."""
-        return URLPatternFilter(patterns=["*?*", "*#*", "*&*"], reverse=True)
+        patterns = [
+            "*?*",
+            "*#*",
+            "*&*",
+        ]
+
+        return URLPatternFilter(
+            patterns=patterns,
+            reverse=True,
+        )
 
     @deprecated("This filter is no longer used")
     def _create_content_relevance_filter(self) -> ContentRelevanceFilter:
         """Create the content relevance filter."""
-        legal_keywords_query = (
-            "privacy policy, terms of service, cookie policy, GDPR, "
-            "terms and conditions, legal disclaimer, data protection"
-        )
-        threshold_score = 0.7
+        legal_keywords_query = "privacy policy, terms of service, cookie policy, GDPR, terms and conditions, legal disclaimer, data protection, privacy, privacy policy, cookie, cookies, cookie policy, data, processor, subprocessor, partners, policy, policies, use policy, terms, terms of service, terms and conditions, terms of use, coppa, safety, copyright, dmca, gdpr, hipaa"
+        threshold_score = 0
 
         return ContentRelevanceFilter(
             query=legal_keywords_query, threshold=threshold_score
@@ -173,28 +183,39 @@ class LegalDocumentCrawler:
     @deprecated("This filter is no longer used")
     def _create_filter_chain(self) -> FilterChain:
         """Create the filter chain."""
-        return FilterChain(
-            [
-                self.domain_filter,
-                self.url_pattern_filter,
-                self.content_relevance_filter,
-            ]
-        )
+        return FilterChain([self.content_relevance_filter])
 
-    def _create_strategy(self) -> BestFirstCrawlingStrategy:
+    def _create_best_strategy(self) -> BestFirstCrawlingStrategy:
         """Create the crawling strategy."""
         return BestFirstCrawlingStrategy(
             max_depth=self.max_depth,
             max_pages=self.max_pages,
             include_external=self.include_external,
             url_scorer=self.keyword_relevance_scorer,
-            # filter_chain=self.filter_chain,
+        )
+
+    def _create_bfs_strategy(self) -> BFSDeepCrawlStrategy:
+        """Create the BFS (Breadth-First Search) crawling strategy."""
+        return BFSDeepCrawlStrategy(
+            max_depth=self.max_depth,
+            max_pages=self.max_pages,
+            include_external=self.include_external,
+            url_scorer=self.keyword_relevance_scorer,
+        )
+
+    def _create_dfs_strategy(self) -> DFSDeepCrawlStrategy:
+        """Create the DFS (Depth-First Search) crawling strategy."""
+        return DFSDeepCrawlStrategy(
+            max_depth=self.max_depth,
+            max_pages=self.max_pages,
+            include_external=self.include_external,
+            url_scorer=self.keyword_relevance_scorer,
         )
 
     def _create_crawler_config(self) -> CrawlerRunConfig:
         """Create the crawler configuration."""
         return CrawlerRunConfig(
-            deep_crawl_strategy=self.strategy,
+            deep_crawl_strategy=self.best_strategy,
             scraping_strategy=LXMLWebScrapingStrategy(),
             stream=self.stream,
             exclude_external_links=not self.include_external,
@@ -202,8 +223,8 @@ class LegalDocumentCrawler:
             process_iframes=False,
             verbose=self.verbose,
             page_timeout=self.page_timeout,
-            locale="en-US",  # TODO: make this configurable
-            check_robots_txt=True,
+            locale=self.locale,
+            # check_robots_txt=True,
         )
 
     def clean_url(self, url: str) -> str:
@@ -258,8 +279,9 @@ class LegalDocumentCrawler:
                         else:
                             logger.info(f"Skipping duplicate base URL: {base_url}")
                     else:
-                        logger.warning(f"Crawl failed: {result.error_message}")
-                        logger.warning(f"Status code: {result.status_code}")
+                        logger.warning(
+                            f"Crawl failed: {result.error_message} for {url} with status code {result.status_code}"
+                        )
 
                 logger.info(f"Crawled {len(results)} from {url}")
                 all_results.extend(results)
@@ -304,7 +326,7 @@ class DocumentClassifier:
     def _create_prompt(self, url: str, text: str, metadata: dict[str, Any]) -> str:
         """Create the classification prompt."""
         categories_list = "\n".join(f"- {cat}" for cat in self.categories)
-        return f"""You are analyzing the content of a crawled webpage. Your task is to determine whether the content is meaningful and classifiable or if it consists primarily of superficial webpage elements (e.g., cookie banners, app download prompts, unsupported browser messages).
+        return f"""You are analyzing the content of a crawled webpage (text only not html). Your task is to determine whether the content is meaningful and classifiable or if it consists primarily of superficial webpage elements (e.g., cookie banners, app download prompts, unsupported browser messages).
 
 Use the following predefined list of content categories:
     {categories_list}
@@ -395,7 +417,11 @@ async def detect_locale(text: str, metadata: dict[str, Any]) -> str:
             if key in metadata and metadata[key]:
                 locale = metadata[key]
                 logger.success(f"Found locale in metadata ({key}): {locale}")
-                return locale
+                return {
+                    "locale": locale,
+                    "confidence": 1.0,
+                    "language_name": locale,
+                }
 
     # If not found in metadata, use LLM to detect locale
     logger.info("Locale not found in metadata, using LLM to detect from text")
@@ -439,17 +465,16 @@ Be as specific as possible with the locale (include country code when possible).
         )
 
         result = json.loads(response.choices[0].message.content)
-        detected_locale = result.get("locale", "en-US")
-        confidence = result.get("confidence", 0.0)
 
-        logger.info(
-            f"LLM detected locale: {detected_locale} (confidence: {confidence})"
-        )
-        return detected_locale
+        return result
 
     except Exception as e:
         logger.error(f"Error detecting locale with LLM: {str(e)}")
-        return "en-US"  # Default fallback
+        return {
+            "locale": "en-US",
+            "confidence": 1.0,
+            "language_name": "English",
+        }
 
 
 async def detect_regions(
@@ -579,11 +604,6 @@ Your response will help determine legal applicability across jurisdictions, so p
             if not regions:
                 regions = ["global"]
 
-        logger.info(
-            f"Region detection for {url}: {'Global' if is_global else f'Regions: {regions}'} "
-            f"(confidence: {confidence})"
-        )
-
         return {
             "is_global": is_global,
             "regions": regions,
@@ -619,7 +639,7 @@ async def extract_title(
         str: Extracted or generated title
     """
 
-    prompt = f"""Analyze this document and extract the most accurate and specific title.
+    prompt = f"""Analyze this webpage and extract the most accurate and specific title.
 
 URL: {url}
 Document Type: {doc_type}
@@ -631,12 +651,12 @@ Instructions:
     - Do not generate or paraphrase the title — extract it verbatim from the content or metadata.
     - Prefer titles that explicitly reference the product or service discussed in the document.
     - If multiple candidates are available (e.g. metadata title, visible title at top), choose the one most relevant to both the document's legal role and the product it refers to.
-    - Avoid overly generic titles (e.g. “Terms of Service”) unless they include product or company identifiers.
+    - Avoid overly generic titles (e.g. "Terms of Service") unless they include product or company identifiers.
     - Ignore navigation labels or internal anchors unless clearly functioning as the title.
 
 Return a JSON object with:
     - title: the best extracted document title (max 12 words)
-    - confidence: a float between 0 and 1 indicating how confident you are in this extraction
+    - alternative_titles: a list of alternative titles that you considered but did not use
 """
 
     system_prompt = """You are a document title extractor specializing in legal, policy, and compliance documents.
@@ -664,13 +684,8 @@ Do not generate or rewrite — extract only what is present in the text or metad
         )
 
         result = json.loads(response.choices[0].message.content)
-        extracted_title = result.get("title", "").strip()
-        confidence = result.get("confidence", 0.0)
 
-        logger.info(
-            f"LLM extracted title: {extracted_title} (confidence: {confidence})"
-        )
-        return extracted_title
+        return result
 
     except Exception as e:
         logger.error(f"Error extracting title with LLM: {str(e)}")
@@ -738,6 +753,8 @@ async def process_company(company: Company) -> list[Document]:
         allowed_domains=company.domains,
         verbose=True,
         stream=True,
+        max_depth=5,
+        user_agent="random",
     )
 
     classifier = DocumentClassifier()
@@ -757,8 +774,17 @@ async def process_company(company: Company) -> list[Document]:
         text_content = markdown_to_text(result.markdown)
 
         # Detect locale for the document
-        detected_locale = await detect_locale(text_content, result.metadata)
-        logger.info(f"URL: {result.url} - Detected locale: {detected_locale}")
+        locale_result = await detect_locale(text_content, result.metadata)
+        detected_locale = locale_result.get("locale", "en-US")
+        locale_confidence = locale_result.get("confidence", 0.0)
+        logger.info(
+            f"URL: {result.url} - Detected locale: {detected_locale} (confidence: {locale_confidence})"
+        )
+
+        # Skip if not in English - TODO: might support other languages later
+        if "en" not in locale_result["language_name"].lower():
+            logger.info(f"Skipping {result.url} - Not in English")
+            continue
 
         # Classify the document
         classification = await classifier.classify(
@@ -778,13 +804,18 @@ async def process_company(company: Company) -> list[Document]:
         logger.info(f"URL: {result.url} - Region detection: {region_detection}")
 
         # Extract title for the document
-        extracted_title = await extract_title(
+        title_result = await extract_title(
             result.markdown,
             result.metadata,
             result.url,
             classification["classification"],
         )
-        logger.info(f"URL: {result.url} - Extracted title: {extracted_title}")
+        extracted_title = title_result.get("title", "").strip()
+        title_confidence = title_result.get("confidence", 0.0)
+
+        logger.info(
+            f"URL: {result.url} - Extracted title: {extracted_title} (confidence: {title_confidence})"
+        )
 
         legal_documents.append(
             Document(

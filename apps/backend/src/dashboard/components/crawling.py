@@ -19,15 +19,26 @@ def run_crawl_async(company: Company):
         try:
             return loop.run_until_complete(process_company(company))
         finally:
+            # Cancel all pending tasks before closing the loop
+            pending_tasks = asyncio.all_tasks(loop)
+            for task in pending_tasks:
+                task.cancel()
+
+            # Wait for all tasks to be cancelled
+            if pending_tasks:
+                loop.run_until_complete(
+                    asyncio.gather(*pending_tasks, return_exceptions=True)
+                )
+
             loop.close()
 
     # Run in a separate thread to avoid any event loop conflicts
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(run_in_thread)
         try:
-            return future.result(timeout=300)  # 5 minute timeout for crawling
+            return future.result()
         except concurrent.futures.TimeoutError:
-            st.error("Crawling operation timed out (5 minutes)")
+            st.error("Crawling operation timed out")
             return None
         except Exception as e:
             st.error(f"Crawling error: {str(e)}")
