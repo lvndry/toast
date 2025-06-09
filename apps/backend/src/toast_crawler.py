@@ -170,7 +170,7 @@ class URLScorer:
             if re.search(pattern, path):
                 score += weight
 
-        # Score based on keyURLwords in 
+        # Score based on keyURLwords in
         url_text = (
             f"{path} {parsed.query} {parsed.fragment}".replace("/", " ")
             .replace("-", " ")
@@ -297,11 +297,11 @@ class ContentAnalyzer:
 
         matched_indicators = []
         raw_score = 0.0
-        
+
         # Calculate content metrics
         word_count = len(content.split())
         char_count = len(content)
-        
+
         # Minimum content thresholds to avoid tiny snippets
         if word_count < 50 or char_count < 300:
             return False, 0.0, ["content_too_short"]
@@ -327,9 +327,18 @@ class ContentAnalyzer:
 
         # Calculate legal content density
         legal_density = matched_content_chars / char_count
-        
+
         # Bonus for legal terms in title (more important)
-        title_keywords = ["terms", "privacy", "policy", "cookie", "legal", "agreement", "data", "gdpr"]
+        title_keywords = [
+            "terms",
+            "privacy",
+            "policy",
+            "cookie",
+            "legal",
+            "agreement",
+            "data",
+            "gdpr",
+        ]
         title_bonus = 0.0
         for keyword in title_keywords:
             if keyword in title_lower:
@@ -350,23 +359,26 @@ class ContentAnalyzer:
         # Combined scoring with density weighting
         base_score = raw_score * legal_density * 100  # Scale density
         final_score = base_score + title_bonus + metadata_bonus
-        
+
         # Normalize to 0-10 scale
         normalized_score = min(10.0, final_score)
-        
+
         # More sophisticated thresholds
         min_density_threshold = 0.05  # At least 5% of content should be legal-related
         min_score_threshold = 2.0
-        
+
         # Document is legal if:
         # 1. Has sufficient legal density (5%+)
         # 2. Meets minimum score threshold
         # 3. OR has strong title indicators (overrides density for short legal docs)
         is_legal = (
-            (legal_density >= min_density_threshold and normalized_score >= min_score_threshold) or
-            title_bonus >= 6.0  # Strong title indicators
+            (
+                legal_density >= min_density_threshold
+                and normalized_score >= min_score_threshold
+            )
+            or title_bonus >= 6.0  # Strong title indicators
         )
-        
+
         # Add density information to indicators for debugging
         matched_indicators.append(f"density:{legal_density:.3f}")
         matched_indicators.append(f"word_count:{word_count}")
@@ -1087,7 +1099,9 @@ async def main():
     import sys
 
     if len(sys.argv) < 2:
-        logger.info("Usage: python toast_crawler.py <base_url> [--test-url specific_url]")
+        logger.info(
+            "Usage: python toast_crawler.py <base_url> [--test-url specific_url]"
+        )
         return
 
     # Check if we're testing a specific URL
@@ -1135,7 +1149,9 @@ async def main():
     moderate_docs = [r for r in results if 1.0 <= r.legal_score < 3.0]
 
     if moderate_docs:
-        logger.info(f"\n📋 Found {len(moderate_docs)} pages with moderate legal scores:")
+        logger.info(
+            f"\n📋 Found {len(moderate_docs)} pages with moderate legal scores:"
+        )
         for result in moderate_docs[:10]:  # Top 10 moderate scoring
             logger.info(f"📄 {result.title or 'Untitled'}")
             logger.info(f"   URL: {result.url}")

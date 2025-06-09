@@ -48,7 +48,7 @@ import hashlib
 import json
 import time
 import tracemalloc
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from dotenv import load_dotenv
 from litellm import acompletion
@@ -399,11 +399,11 @@ Return JSON:
             "israel": "Israel",
         }
 
-        regions = []
+        regions: list[Region] = []
         for region in specific_regions:
             mapped = region_mapping.get(region.lower(), "Other")
             if mapped not in regions:
-                regions.append(mapped)
+                regions.append(cast(Region, mapped))
 
         return regions if regions else ["Other"]
 
@@ -761,7 +761,7 @@ class LegalDocumentPipeline:
             logger.info(f"📊 Processing {len(companies)} companies")
 
             # Process companies sequentially for memory efficiency and rate limiting
-            all_documents = []
+            all_documents: list[Document] = []
             for i, company in enumerate(companies, 1):
                 logger.info(
                     f"🏢 Processing company {i}/{len(companies)}: {company.name}"
@@ -784,7 +784,9 @@ class LegalDocumentPipeline:
             logger.info(f"📊 Companies processed: {self.stats.companies_processed}")
             logger.info(f"❌ Companies failed: {self.stats.companies_failed}")
             if self.stats.failed_company_slugs:
-                logger.info(f"❌ Failed company slugs: {', '.join(self.stats.failed_company_slugs)}")
+                logger.info(
+                    f"❌ Failed company slugs: {', '.join(self.stats.failed_company_slugs)}"
+                )
             logger.info(f"🌐 Total URLs crawled: {self.stats.total_urls_crawled}")
             logger.info(f"📄 Total documents found: {self.stats.total_documents_found}")
             logger.info(
@@ -832,8 +834,14 @@ async def main():
 
         # Exit with appropriate code
         if stats.companies_failed > 0:
-            failed_slugs = ', '.join(stats.failed_company_slugs) if stats.failed_company_slugs else 'unknown'
-            logger.warning(f"Pipeline completed with {stats.companies_failed} failures: {failed_slugs}")
+            failed_slugs = (
+                ", ".join(stats.failed_company_slugs)
+                if stats.failed_company_slugs
+                else "unknown"
+            )
+            logger.warning(
+                f"Pipeline completed with {stats.companies_failed} failures: {failed_slugs}"
+            )
         else:
             logger.success("Pipeline completed successfully")
         exit(0)
