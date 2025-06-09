@@ -1,4 +1,9 @@
+"""
+Legal document crawler for extracting privacy policies, terms of service, and other legal content.
+"""
+
 import asyncio
+import heapq
 import re
 import time
 from collections import deque
@@ -842,9 +847,8 @@ class ToastCrawler:
                     legal_score=legal_score,
                     discovered_urls=discovered_urls,
                 )
-
         except Exception as e:
-            logger.error(f"Error fetching {url}: {e}")
+            logger.error(f"Unexpected error fetching {url}: {e}")
             return CrawlResult(
                 url=url,
                 title="",
@@ -868,9 +872,6 @@ class ToastCrawler:
                 self.url_stack.append((url, depth + 1))
             elif self.strategy == "best_first":
                 score = self.url_scorer.score_url(url)
-                # Use negative score for max-heap behavior with heapq
-                import heapq
-
                 heapq.heappush(self.url_priority_queue, (-score, url, depth + 1))
 
     def get_next_url(self) -> Optional[Tuple[str, int]]:
@@ -880,8 +881,6 @@ class ToastCrawler:
         elif self.strategy == "dfs" and self.url_stack:
             return self.url_stack.pop()
         elif self.strategy == "best_first" and self.url_priority_queue:
-            import heapq
-
             _, url, depth = heapq.heappop(self.url_priority_queue)
             return url, depth
         return None
@@ -911,8 +910,6 @@ class ToastCrawler:
         elif self.strategy == "dfs":
             self.url_stack.append((base_url, 0))
         elif self.strategy == "best_first":
-            import heapq
-
             score = self.url_scorer.score_url(base_url)
             heapq.heappush(self.url_priority_queue, (-score, base_url, 0))
 
@@ -1090,23 +1087,23 @@ async def main():
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python toast_crawler.py <base_url> [--test-url specific_url]")
+        logger.info("Usage: python toast_crawler.py <base_url> [--test-url specific_url]")
         return
 
     # Check if we're testing a specific URL
     if len(sys.argv) >= 4 and sys.argv[2] == "--test-url":
         specific_url = sys.argv[3]
-        print(f"🔍 Testing specific URL: {specific_url}")
+        logger.info(f"🔍 Testing specific URL: {specific_url}")
         result = await test_specific_url(specific_url)
 
-        print("\n🎯 Test Result:")
-        print(f"📄 Title: {result.title or 'Untitled'}")
-        print(f"   URL: {result.url}")
-        print(f"   Success: {result.success}")
-        print(f"   Legal Score: {result.legal_score:.1f}")
-        print(f"   Content Length: {len(result.content)} chars")
+        logger.info("\n🎯 Test Result:")
+        logger.info(f"📄 Title: {result.title or 'Untitled'}")
+        logger.info(f"   URL: {result.url}")
+        logger.info(f"   Success: {result.success}")
+        logger.info(f"   Legal Score: {result.legal_score:.1f}")
+        logger.info(f"   Content Length: {len(result.content)} chars")
         if not result.success:
-            print(f"   Error: {result.error_message}")
+            logger.info(f"   Error: {result.error_message}")
         return
 
     base_url = sys.argv[1]
@@ -1116,34 +1113,34 @@ async def main():
     )
 
     # Display all results with scores
-    print(f"\n📊 All crawled pages ({len(results)} total):")
+    logger.info(f"\n📊 All crawled pages ({len(results)} total):")
     for i, result in enumerate(results, 1):
-        print(f"{i:3d}. {result.title or 'Untitled'[:50]}")
-        print(f"     URL: {result.url}")
-        print(f"     Legal Score: {result.legal_score:.1f}")
-        print()
+        logger.info(f"{i:3d}. {result.title or 'Untitled'[:50]}")
+        logger.info(f"     URL: {result.url}")
+        logger.info(f"     Legal Score: {result.legal_score:.1f}")
+        logger.info("")
 
     # Display legal documents
     legal_docs = [r for r in results if r.legal_score >= 3.0]
 
-    print(f"\n🎯 Found {len(legal_docs)} potential legal documents:")
+    logger.info(f"\n🎯 Found {len(legal_docs)} potential legal documents:")
     for result in legal_docs:
-        print(f"📄 {result.title or 'Untitled'}")
-        print(f"   URL: {result.url}")
-        print(f"   Legal Score: {result.legal_score:.1f}")
-        print(f"   Content Length: {len(result.content)} chars")
-        print()
+        logger.info(f"📄 {result.title or 'Untitled'}")
+        logger.info(f"   URL: {result.url}")
+        logger.info(f"   Legal Score: {result.legal_score:.1f}")
+        logger.info(f"   Content Length: {len(result.content)} chars")
+        logger.info("")
 
     # Display moderate scoring pages that might be legal but scored lower
     moderate_docs = [r for r in results if 1.0 <= r.legal_score < 3.0]
 
     if moderate_docs:
-        print(f"\n📋 Found {len(moderate_docs)} pages with moderate legal scores:")
+        logger.info(f"\n📋 Found {len(moderate_docs)} pages with moderate legal scores:")
         for result in moderate_docs[:10]:  # Top 10 moderate scoring
-            print(f"📄 {result.title or 'Untitled'}")
-            print(f"   URL: {result.url}")
-            print(f"   Legal Score: {result.legal_score:.1f}")
-            print()
+            logger.info(f"📄 {result.title or 'Untitled'}")
+            logger.info(f"   URL: {result.url}")
+            logger.info(f"   Legal Score: {result.legal_score:.1f}")
+            logger.info("")
 
 
 if __name__ == "__main__":
