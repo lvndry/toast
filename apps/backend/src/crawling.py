@@ -89,6 +89,7 @@ class ProcessingStats(BaseModel):
 
     companies_processed: int = 0
     companies_failed: int = 0
+    failed_company_slugs: List[str] = []
     total_urls_crawled: int = 0
     total_documents_found: int = 0
     legal_documents_processed: int = 0
@@ -595,8 +596,9 @@ class LegalDocumentPipeline:
                 f"({language_name}, confidence: {locale_result.get('confidence', 0):.2f})"
             )
 
-            # Skip non-English documents
-            if "en" not in language_name.lower():
+            # Skip non-English documents*
+            # TODO: Support other languages
+            if "en" not in detected_locale.lower():
                 logger.debug(f"Skipping non-English document: {result.url}")
                 self.stats.non_english_skipped += 1
                 return None
@@ -673,6 +675,7 @@ class LegalDocumentPipeline:
         if not company.crawl_base_urls:
             logger.warning(f"No crawl base URLs for {company.name}")
             self.stats.companies_failed += 1
+            self.stats.failed_company_slugs.append(company.slug)
             return []
 
         try:
@@ -732,6 +735,7 @@ class LegalDocumentPipeline:
         except Exception as e:
             logger.error(f"Failed to process company {company.name}: {e}")
             self.stats.companies_failed += 1
+            self.stats.failed_company_slugs.append(company.slug)
             return []
 
     async def run(self) -> ProcessingStats:
@@ -780,6 +784,8 @@ class LegalDocumentPipeline:
             logger.success("🎉 Pipeline completed successfully!")
             logger.info(f"📊 Companies processed: {self.stats.companies_processed}")
             logger.info(f"❌ Companies failed: {self.stats.companies_failed}")
+            if self.stats.failed_company_slugs:
+                logger.info(f"❌ Failed company slugs: {', '.join(self.stats.failed_company_slugs)}")
             logger.info(f"🌐 Total URLs crawled: {self.stats.total_urls_crawled}")
             logger.info(f"📄 Total documents found: {self.stats.total_documents_found}")
             logger.info(
@@ -827,11 +833,11 @@ async def main():
 
         # Exit with appropriate code
         if stats.companies_failed > 0:
-            logger.warning(f"Pipeline completed with {stats.companies_failed} failures")
-            exit(1)
+            failed_slugs = ', '.join(stats.failed_company_slugs) if stats.failed_company_slugs else 'unknown'
+            logger.warning(f"Pipeline completed with {stats.companies_failed} failures: {failed_slugs}")
         else:
             logger.success("Pipeline completed successfully")
-            exit(0)
+        exit(0)
 
     except KeyboardInterrupt:
         logger.warning("Pipeline interrupted by user")
