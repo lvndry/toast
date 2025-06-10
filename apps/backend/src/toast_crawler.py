@@ -392,8 +392,23 @@ class RobotsTxtChecker:
     def __init__(self):
         self.robots_cache: Dict[str, Dict[str, Any]] = {}
         self.user_agent = "ToastCrawler/2.0"
+        # Common user agent patterns that should be treated as wildcards
+        self.user_agent_patterns = [
+            "*",  # Standard wildcard
+            "all",  # Common alias
+            "any",  # Common alias
+            "bot",  # Generic bot identifier
+            "crawler",  # Generic crawler identifier
+            "spider",  # Generic spider identifier
+            "robot",  # Generic robot identifier
+            "crawl",  # Common prefix
+            "spider",  # Common prefix
+            "bot",  # Common suffix
+        ]
 
-    async def can_fetch(self, session: aiohttp.ClientSession, url: str) -> bool:
+    async def can_fetch(
+        self, session: aiohttp.ClientSession, url: str
+    ) -> Tuple[bool, str]:
         """Check if URL can be fetched according to robots.txt."""
         try:
             parsed = urlparse(url)
@@ -407,53 +422,89 @@ class RobotsTxtChecker:
                     async with session.get(robots_url, timeout=timeout) as response:
                         if response.status == 200:
                             robots_content = await response.text()
+                            logger.debug(f"Fetched robots.txt from {robots_url}")
                             self.robots_cache[base_url] = self._parse_robots_txt(
                                 robots_content
                             )
                         else:
+                            logger.debug(
+                                f"Could not fetch robots.txt from {robots_url} (status: {response.status})"
+                            )
                             # If we can't fetch robots.txt, allow all
                             self.robots_cache[base_url] = {"allow_all": True}
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"Error fetching robots.txt from {robots_url}: {e}")
                     # If we can't fetch robots.txt, allow all
                     self.robots_cache[base_url] = {"allow_all": True}
 
             robots_rules = self.robots_cache[base_url]
             if robots_rules.get("allow_all", False):
-                return True
+                logger.debug(f"No robots.txt rules for {base_url}, allowing access")
+                return True, "No robots.txt rules found"
 
             return self._check_url_allowed(url, robots_rules)
 
         except Exception as e:
             logger.warning(f"Error checking robots.txt for {url}: {e}")
-            return True
+            return True, f"Error checking robots.txt: {str(e)}"
 
     def _parse_robots_txt(self, content: str) -> Dict[str, Any]:
-        """Parse robots.txt content into rules."""
+        """Parse robots.txt content into rules following the standard format."""
         lines = [line.strip() for line in content.split("\n") if line.strip()]
+        logger.debug(f"Parsing robots.txt with {len(lines)} lines")
 
         user_agents: Dict[str, Dict[str, List[str]]] = {}
         current_user_agent = None
 
         for line in lines:
-            if line.startswith("#"):
+            # Skip comments and empty lines
+            if line.startswith("#") or not line:
                 continue
-            elif line.lower().startswith("user-agent:"):
-                current_user_agent = line.split(":", 1)[1].strip()
-                if current_user_agent not in user_agents:
-                    user_agents[current_user_agent] = {"disallow": [], "allow": []}
-            elif line.lower().startswith("disallow:"):
+
+            # Handle line continuation
+            if line.startswith(" ") or line.startswith("\t"):
                 if current_user_agent:
-                    path = line.split(":", 1)[1].strip()
-                    if path:  # Only add non-empty disallow rules
-                        user_agents[current_user_agent]["disallow"].append(path)
-            elif line.lower().startswith("allow:"):
-                if current_user_agent:
-                    path = line.split(":", 1)[1].strip()
-                    user_agents[current_user_agent]["allow"].append(path)
+                    # Append to the last rule
+                    last_rule_type = list(user_agents[current_user_agent].keys())[-1]
+                    user_agents[current_user_agent][last_rule_type][-1] += line.strip()
+                continue
+
+            # Parse directive
+            if ":" in line:
+                directive, value = line.split(":", 1)
+                directive = directive.strip().lower()
+                value = value.strip()
+
+                if directive == "user-agent":
+                    current_user_agent = value.lower()
+                    if current_user_agent not in user_agents:
+                        user_agents[current_user_agent] = {"disallow": [], "allow": []}
+                    logger.debug(f"Found user-agent: {current_user_agent}")
+                elif directive == "disallow" and current_user_agent:
+                    if value:  # Only add non-empty disallow rules
+                        user_agents[current_user_agent]["disallow"].append(value)
+                        logger.debug(
+                            f"Added disallow rule for {current_user_agent}: {value}"
+                        )
+                elif directive == "allow" and current_user_agent:
+                    user_agents[current_user_agent]["allow"].append(value)
+                    logger.debug(f"Added allow rule for {current_user_agent}: {value}")
+                elif directive == "crawl-delay" and current_user_agent:
+                    # Store crawl delay for rate limiting
+                    try:
+                        delay = float(value)
+                        user_agents[current_user_agent]["crawl_delay"] = delay
+                        logger.debug(
+                            f"Added crawl-delay for {current_user_agent}: {delay}"
+                        )
+                    except ValueError:
+                        logger.warning(f"Invalid crawl-delay value: {value}")
 
         return {"user_agents": user_agents}
 
-    def _check_url_allowed(self, url: str, robots_rules: Dict[str, Any]) -> bool:
+    def _check_url_allowed(
+        self, url: str, robots_rules: Dict[str, Any]
+    ) -> Tuple[bool, str]:
         """Check if URL is allowed based on parsed robots.txt rules."""
         parsed = urlparse(url)
         path = parsed.path
@@ -461,68 +512,90 @@ class RobotsTxtChecker:
             path = "/"
 
         user_agents = robots_rules.get("user_agents", {})
+        logger.debug(f"Checking rules for URL: {url} (path: {path})")
 
-        # First check for specific user agent rules
-        if self.user_agent in user_agents:
-            applicable_rules = user_agents[self.user_agent]
-        # Then check for wildcard rules
-        elif "*" in user_agents:
-            applicable_rules = user_agents["*"]
+        # Find applicable rules by checking user agent patterns
+        applicable_rules = None
+        matched_user_agent = None
+        user_agent_lower = self.user_agent.lower()
+
+        # First check exact match
+        if user_agent_lower in user_agents:
+            applicable_rules = user_agents[user_agent_lower]
+            matched_user_agent = user_agent_lower
+            logger.debug(f"Found exact user-agent match: {user_agent_lower}")
+        # Then check wildcard patterns
         else:
-            # If no rules found for our user agent or wildcard, allow by default
-            return True
+            for pattern in self.user_agent_patterns:
+                if pattern in user_agents:
+                    applicable_rules = user_agents[pattern]
+                    matched_user_agent = pattern
+                    logger.debug(f"Found wildcard user-agent match: {pattern}")
+                    break
+
+        # If no rules found, allow by default
+        if not applicable_rules:
+            return True, "No matching rules found"
+
+        logger.debug(f"Using rules for user-agent: {matched_user_agent}")
 
         # Check allow rules first (most specific wins)
-        for allow_pattern in applicable_rules["allow"]:
+        for allow_pattern in applicable_rules.get("allow", []):
             if self._path_matches_pattern(path, allow_pattern):
-                return True
+                logger.debug(f"URL allowed by pattern: {allow_pattern}")
+                return True, f"Explicitly allowed by pattern: {allow_pattern}"
 
         # Then check disallow rules
-        for disallow_pattern in applicable_rules["disallow"]:
+        for disallow_pattern in applicable_rules.get("disallow", []):
             if self._path_matches_pattern(path, disallow_pattern):
                 # If we have a matching disallow rule, check if there's a more specific allow rule
-                for allow_pattern in applicable_rules["allow"]:
+                for allow_pattern in applicable_rules.get("allow", []):
                     if self._path_matches_pattern(path, allow_pattern) and len(
                         allow_pattern
                     ) > len(disallow_pattern):
-                        return True
-                return False
+                        logger.debug(
+                            f"URL allowed by more specific pattern: {allow_pattern} (overrides {disallow_pattern})"
+                        )
+                        return (
+                            True,
+                            f"Allowed by more specific pattern: {allow_pattern}",
+                        )
+                return False, f"Blocked by pattern: {disallow_pattern}"
 
         # If we have disallow rules but no match, default behavior depends on allow rules
-        if applicable_rules["disallow"]:
+        if applicable_rules.get("disallow"):
             # If there are any allow rules, default is to disallow unless explicitly allowed
-            if applicable_rules["allow"]:
-                return False
+            if applicable_rules.get("allow"):
+                return False, "Default disallow with allow rules present"
             else:
                 # Only disallow rules exist, so allow anything not explicitly disallowed
-                return True
+                return True, "No matching disallow rules"
 
         # No rules or only allow rules - default is to allow
-        return True
+        return True, "No blocking rules found"
 
     def _path_matches_pattern(self, path: str, pattern: str) -> bool:
-        """Check if path matches robots.txt pattern."""
+        """Check if path matches robots.txt pattern following standard rules."""
+        if not pattern:
+            return False
         if pattern == "/":
             return True  # Allow: / means allow everything
+
+        # Handle wildcards
+        if "*" in pattern:
+            # Convert pattern to regex
+            regex_pattern = pattern.replace(".", "\\.").replace("*", ".*")
+            return bool(re.match(f"^{regex_pattern}$", path))
+
+        # Handle trailing wildcard
         if pattern.endswith("*"):
             return path.startswith(pattern[:-1])
+
+        # Handle leading wildcard
         if pattern.startswith("*"):
             return path.endswith(pattern[1:])
-        if "*" in pattern:
-            # Handle wildcards in the middle of the pattern
-            pattern_parts = pattern.split("*")
-            if not path.startswith(pattern_parts[0]):
-                return False
-            if not path.endswith(pattern_parts[-1]):
-                return False
-            # Check that the parts between wildcards appear in order
-            current_pos = len(pattern_parts[0])
-            for part in pattern_parts[1:-1]:
-                pos = path.find(part, current_pos)
-                if pos == -1:
-                    return False
-                current_pos = pos + len(part)
-            return True
+
+        # Exact match
         return path.startswith(pattern)
 
 
@@ -538,10 +611,12 @@ class ToastCrawler:
         timeout: int = 30,
         allowed_domains: Optional[List[str]] = None,
         respect_robots_txt: bool = True,
-        user_agent: str = "ToastCrawler/1.0 (Legal Document Crawler)",
+        user_agent: str = "ToastCrawler/2.0 (Legal Document Discovery Bot; website coming soon)",
         follow_external_links: bool = False,
         min_legal_score: float = 2.0,
         strategy: str = "bfs",  # "bfs", "dfs", "best_first"
+        ignore_robots_for_domains: List[str]
+        | None = None,  # List of domains to ignore robots.txt for
     ):
         """
         Initialize the ToastCrawler.
@@ -558,6 +633,7 @@ class ToastCrawler:
             follow_external_links: Whether to follow external links
             min_legal_score: Minimum score to consider a URL legal-relevant
             strategy: Crawling strategy ("bfs", "dfs", "best_first")
+            ignore_robots_for_domains: List of domains to ignore robots.txt for
         """
         self.max_depth = max_depth
         self.max_pages = max_pages
@@ -572,6 +648,7 @@ class ToastCrawler:
         self.follow_external_links = follow_external_links
         self.min_legal_score = min_legal_score
         self.strategy = strategy
+        self.ignore_robots_for_domains = set(ignore_robots_for_domains or [])
 
         # Components
         self.url_scorer = URLScorer()
@@ -736,20 +813,33 @@ class ToastCrawler:
         await self.rate_limit()
 
         try:
+            # Check if we should ignore robots.txt for this domain
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower()
+            if domain.startswith("www."):
+                domain = domain[4:]
+
+            should_check_robots = (
+                self.respect_robots_txt and domain not in self.ignore_robots_for_domains
+            )
+
             # Check robots.txt
-            if self.robots_checker and not await self.robots_checker.can_fetch(
-                session, url
-            ):
-                return CrawlResult(
-                    url=url,
-                    title="",
-                    content="",
-                    markdown="",
-                    metadata={},
-                    status_code=403,
-                    success=False,
-                    error_message="Blocked by robots.txt",
-                )
+            if should_check_robots and self.robots_checker:
+                is_allowed, reason = await self.robots_checker.can_fetch(session, url)
+                if not is_allowed:
+                    logger.warning(
+                        f"URL blocked by robots.txt: {url} - Reason: {reason}"
+                    )
+                    return CrawlResult(
+                        url=url,
+                        title="",
+                        content="",
+                        markdown="",
+                        metadata={},
+                        status_code=403,
+                        success=False,
+                        error_message=f"Blocked by robots.txt: {reason}",
+                    )
 
             timeout = aiohttp.ClientTimeout(total=self.timeout)
             headers = {"User-Agent": self.user_agent}

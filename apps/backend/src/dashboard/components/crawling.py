@@ -25,21 +25,18 @@ def run_crawl_async(company: Company):
                 concurrent_limit=5,  # Reduced for single company
                 delay_between_requests=1.0,
             )
-            
+
             # Process single company and return documents
-            return loop.run_until_complete(pipeline.run([company]))
-        finally:
-            # Cancel all pending tasks before closing the loop
+            result = loop.run_until_complete(pipeline.run([company]))
+
+            # Wait for any remaining tasks to complete
             pending_tasks = asyncio.all_tasks(loop)
-            for task in pending_tasks:
-                task.cancel()
-
-            # Wait for all tasks to be cancelled
             if pending_tasks:
-                loop.run_until_complete(
-                    asyncio.gather(*pending_tasks, return_exceptions=True)
-                )
+                loop.run_until_complete(asyncio.gather(*pending_tasks))
 
+            return result
+        finally:
+            # Only close the loop after all tasks are done
             loop.close()
 
     # Run in a separate thread to avoid any event loop conflicts
@@ -156,26 +153,19 @@ def show_crawling():
                 progress_placeholder.info("🔍 Starting crawler...")
 
                 # Run the crawling process
-                documents = run_crawl_async(selected_company)
+                processing_stats = run_crawl_async(selected_company)
 
-                if documents is not None:
+                if processing_stats is not None:
                     progress_placeholder.empty()
 
                     # Show results
                     st.success("✅ Crawling completed successfully!")
 
-                    if documents:
-                        st.write(f"**Found {len(documents)} legal documents:**")
+                    if processing_stats:
+                        st.write(
+                            f"**Found {processing_stats.legal_documents_stored} legal documents:**"
+                        )
 
-                        # Show document details in an expander
-                        with st.expander("View discovered documents", expanded=True):
-                            for i, doc in enumerate(documents, 1):
-                                st.write(f"**{i}. {doc.url}**")
-                                st.write(f"• Type: {doc.doc_type}")
-                                st.write(
-                                    f"• Legal document: {'Yes' if doc.is_legal_document else 'No'}"
-                                )
-                                st.write("---")
                     else:
                         st.warning("No legal documents were found during the crawl.")
                         st.info("This could mean:")
