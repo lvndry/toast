@@ -45,7 +45,6 @@ def show_company_creation():
                     else None
                 )
 
-                # Create company instance
                 company = Company(
                     id=shortuuid.uuid(),
                     name=name,

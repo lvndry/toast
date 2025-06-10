@@ -462,31 +462,31 @@ class RobotsTxtChecker:
 
         user_agents = robots_rules.get("user_agents", {})
 
-        # Check rules for specific user agent first, then fallback to '*'
-        applicable_rules = None
+        # First check for specific user agent rules
         if self.user_agent in user_agents:
             applicable_rules = user_agents[self.user_agent]
+        # Then check for wildcard rules
         elif "*" in user_agents:
             applicable_rules = user_agents["*"]
+        else:
+            # If no rules found for our user agent or wildcard, allow by default
+            return True
 
-        if not applicable_rules:
-            return True  # No rules found, allow by default
+        # Check allow rules first (most specific wins)
+        for allow_pattern in applicable_rules["allow"]:
+            if self._path_matches_pattern(path, allow_pattern):
+                return True
 
-        # Check disallow rules first (most specific wins)
+        # Then check disallow rules
         for disallow_pattern in applicable_rules["disallow"]:
             if self._path_matches_pattern(path, disallow_pattern):
-                # Check if there's a more specific allow rule
+                # If we have a matching disallow rule, check if there's a more specific allow rule
                 for allow_pattern in applicable_rules["allow"]:
                     if self._path_matches_pattern(path, allow_pattern) and len(
                         allow_pattern
                     ) > len(disallow_pattern):
                         return True
                 return False
-
-        # Check allow rules
-        for allow_pattern in applicable_rules["allow"]:
-            if self._path_matches_pattern(path, allow_pattern):
-                return True
 
         # If we have disallow rules but no match, default behavior depends on allow rules
         if applicable_rules["disallow"]:
@@ -506,6 +506,23 @@ class RobotsTxtChecker:
             return True  # Allow: / means allow everything
         if pattern.endswith("*"):
             return path.startswith(pattern[:-1])
+        if pattern.startswith("*"):
+            return path.endswith(pattern[1:])
+        if "*" in pattern:
+            # Handle wildcards in the middle of the pattern
+            pattern_parts = pattern.split("*")
+            if not path.startswith(pattern_parts[0]):
+                return False
+            if not path.endswith(pattern_parts[-1]):
+                return False
+            # Check that the parts between wildcards appear in order
+            current_pos = len(pattern_parts[0])
+            for part in pattern_parts[1:-1]:
+                pos = path.find(part, current_pos)
+                if pos == -1:
+                    return False
+                current_pos = pos + len(part)
+            return True
         return path.startswith(pattern)
 
 

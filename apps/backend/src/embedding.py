@@ -49,14 +49,15 @@ async def embed_company_documents(company_slug: str):
                 "id": shortuuid.uuid(),
                 "values": embedding_data["embedding"],
                 "metadata": {
-                    "company_slug": company_slug,
                     "document_id": doc.id,
                     "title": doc.title,
                     "document_type": doc.doc_type,
                     "url": doc.url,
                     "locale": doc.locale,
                     "chunk_text": chunk,  # Store the actual chunk text for reference
-                    "effective_date": doc.effective_date.isoformat(),
+                    "effective_date": doc.effective_date.isoformat()
+                    if doc.effective_date
+                    else "",
                 },
             }
             all_vectors.append(vector)

@@ -35,7 +35,7 @@ async def embed_query(query: str) -> list[float]:
         raise
 
 
-async def search_query(query: str, company_slug: str, top_k: int = 5):
+async def search_query(query: str, company_slug: str, top_k: int = 8):
     # Convert text query to vector embedding
     query_vector = await embed_query(query)
     index = pc.Index(INDEX_NAME)
@@ -95,6 +95,7 @@ async def get_answer(question: str, company_slug: str) -> str:
     """
     # Search for relevant documents in Pinecone
     search_results = await search_query(question, company_slug)
+    logger.debug(f"Search results: {search_results}")
 
     if len(search_results["matches"]) == 0:
         return "I couldn't find any relevant information to answer your question."

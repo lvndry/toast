@@ -1,8 +1,8 @@
 import os
 
-from pinecone import Pinecone, ServerlessSpec  # type: ignore
 from loguru import logger
 
+from pinecone import Pinecone, ServerlessSpec  # type: ignore
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 if not PINECONE_API_KEY:
@@ -31,4 +31,4 @@ def init_pinecone_index(dimension: int, index_name: str = INDEX_NAME) -> None:
         )
         logger.info(f"Index '{index_name}' created with dimension {dimension}")
     else:
-        logger.info(f"Index '{index_name}' already exists")
+        logger.info(f"Index '{index_name}' successfully initialized")

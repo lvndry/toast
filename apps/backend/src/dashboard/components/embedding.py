@@ -8,7 +8,7 @@ from src.dashboard.utils import run_async
 from src.embedding import embed_company_documents
 
 
-def run_embedding_async(company_slug: str):
+def run_embedding_async(company_slug: str | list[str]):
     """Run embedding in a completely isolated thread with its own event loop"""
 
     def run_in_thread():
@@ -16,7 +16,18 @@ def run_embedding_async(company_slug: str):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            return loop.run_until_complete(embed_company_documents(company_slug))
+            if isinstance(company_slug, list):
+                results = []
+                for slug in company_slug:
+                    try:
+                        result = loop.run_until_complete(embed_company_documents(slug))
+                        results.append((slug, result))
+                    except Exception as e:
+                        results.append((slug, False))
+                        st.error(f"Error embedding {slug}: {str(e)}")
+                return results
+            else:
+                return loop.run_until_complete(embed_company_documents(company_slug))
         finally:
             # Cancel all pending tasks before closing the loop
             pending_tasks = asyncio.all_tasks(loop)
@@ -115,7 +126,7 @@ def show_embedding():
     • This process may take several minutes depending on document count
     """)
 
-    # Start embedding button
+    # Start embedding buttons
     col1, col2, col3 = st.columns([2, 1, 2])
 
     with col2:
@@ -150,6 +161,52 @@ def show_embedding():
                     st.error("Embedding failed. Please check the logs and try again.")
                     st.info("**Common issues:**")
                     st.write("• No documents found for this company")
+                    st.write("• API key issues (Mistral or Pinecone)")
+                    st.write("• Network connectivity problems")
+
+    # Add Embed All button
+    with col2:
+        if st.button("🚀 Embed All Companies", type="secondary", key="embed_all_btn"):
+            # Start embedding for all companies
+            with st.spinner(
+                "Processing documents for all companies... This may take several minutes."
+            ):
+                # Show progress info
+                progress_placeholder = st.empty()
+                progress_placeholder.info("🔍 Loading documents for all companies...")
+
+                # Get all company slugs
+                company_slugs = [company.slug for company in companies]
+
+                # Run the embedding process for all companies
+                results = run_embedding_async(company_slugs)
+
+                progress_placeholder.empty()
+
+                if results:
+                    success_count = sum(
+                        1 for _, success in results if success is not False
+                    )
+                    st.success(
+                        f"✅ Document embedding completed for {success_count} out of {len(companies)} companies!"
+                    )
+
+                    # Show detailed results
+                    st.info("**Embedding Results:**")
+                    for slug, success in results:
+                        company_name = next(
+                            (c.name for c in companies if c.slug == slug), slug
+                        )
+                        if success is not False:
+                            st.write(f"✅ {company_name}: Success")
+                        else:
+                            st.write(f"❌ {company_name}: Failed")
+                else:
+                    st.error(
+                        "Embedding failed for all companies. Please check the logs and try again."
+                    )
+                    st.info("**Common issues:**")
+                    st.write("• No documents found for companies")
                     st.write("• API key issues (Mistral or Pinecone)")
                     st.write("• Network connectivity problems")
 

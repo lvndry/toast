@@ -13,28 +13,35 @@ from src.summarizer import (
 )
 
 
-def run_summarization_async(company_slug: str) -> bool:
+def run_summarization_async(
+    company_slug: str, loop: asyncio.AbstractEventLoop = None
+) -> bool:
     """Run document summarization in an isolated async context"""
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        should_close_loop = False
+        if loop is None:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            should_close_loop = True
+
         try:
             loop.run_until_complete(summarize_all_company_documents(company_slug))
             return True
         finally:
-            # Clean up pending tasks
-            pending_tasks = asyncio.all_tasks(loop)
-            if pending_tasks:
-                # Cancel all tasks at once and wait for completion
-                for task in pending_tasks:
-                    task.cancel()
+            if should_close_loop:
+                # Clean up pending tasks
+                pending_tasks = asyncio.all_tasks(loop)
+                if pending_tasks:
+                    # Cancel all tasks at once and wait for completion
+                    for task in pending_tasks:
+                        task.cancel()
 
-                # Wait for all cancelled tasks to finish
-                loop.run_until_complete(
-                    asyncio.gather(*pending_tasks, return_exceptions=True)
-                )
+                    # Wait for all cancelled tasks to finish
+                    loop.run_until_complete(
+                        asyncio.gather(*pending_tasks, return_exceptions=True)
+                    )
 
-            loop.close()
+                loop.close()
     except Exception as e:
         st.error(f"Summarization error: {str(e)}")
         return False
@@ -79,13 +86,27 @@ def show_summarization():
             progress_placeholder = st.empty()
             progress_placeholder.info("🔍 Processing documents...")
 
-            all_success = True
-            for company in companies:
-                progress_placeholder.info(f"Processing {company.name}...")
-                success = run_summarization_async(company.slug)
-                if not success:
-                    all_success = False
-                    st.error(f"Failed to process documents for {company.name}")
+            # Create a single loop for all companies
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                all_success = True
+                for company in companies:
+                    progress_placeholder.info(f"Processing {company.name}...")
+                    success = run_summarization_async(company.slug, loop)
+                    if not success:
+                        all_success = False
+                        st.error(f"Failed to process documents for {company.name}")
+            finally:
+                # Clean up the loop after all companies are processed
+                pending_tasks = asyncio.all_tasks(loop)
+                if pending_tasks:
+                    for task in pending_tasks:
+                        task.cancel()
+                    loop.run_until_complete(
+                        asyncio.gather(*pending_tasks, return_exceptions=True)
+                    )
+                loop.close()
 
             progress_placeholder.empty()
 

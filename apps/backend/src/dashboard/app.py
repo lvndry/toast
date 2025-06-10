@@ -4,6 +4,7 @@ from src.dashboard.components.company_creation import show_company_creation
 from src.dashboard.components.company_view import show_company_view
 from src.dashboard.components.crawling import show_crawling
 from src.dashboard.components.embedding import show_embedding
+from src.dashboard.components.rag import show_rag
 from src.dashboard.components.summarization import show_summarization
 
 st.set_page_config(page_title="Toast Dashboard", page_icon="🍞", layout="wide")
@@ -22,6 +23,7 @@ def main():
         "Start Crawling",
         "Generate Embeddings",
         "Summarization",
+        "RAG",
         "Settings",
     ]
 
@@ -46,6 +48,8 @@ def main():
         show_embedding()
     elif page == "Summarization":
         show_summarization()
+    elif page == "RAG":
+        show_rag()
     else:
         st.title("Settings")
         st.info("This feature is coming soon!")

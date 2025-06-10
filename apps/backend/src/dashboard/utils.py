@@ -1,11 +1,21 @@
 import asyncio
 import concurrent.futures
+from typing import Coroutine, TypeVar
 
 import streamlit as st
 
+T = TypeVar("T")
 
-def run_async(coro):
-    """Run async function in a completely isolated thread with its own event loop"""
+
+def run_async(coro: Coroutine[None, None, T]) -> T | None:
+    """Run async function in a completely isolated thread with its own event loop
+
+    Args:
+        coro: The coroutine to run
+
+    Returns:
+        The result of the coroutine with its original type preserved, or None if an error occurs
+    """
 
     def run_in_thread():
         # Create a completely fresh event loop in this thread
