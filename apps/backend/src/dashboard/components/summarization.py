@@ -60,6 +60,53 @@ def show_summarization():
         st.warning("No companies found. Please create a company first.")
         return
 
+    # Add Summarize All section
+    st.write("---")
+    st.subheader("🌐 Summarize All Companies")
+
+    st.info("""
+    **This will:**
+    • Analyze documents for all companies
+    • Generate privacy-focused summaries for each document
+    • Extract key points and transparency scores
+    • This process may take several minutes depending on the number of companies and documents
+    """)
+
+    if st.button("🚀 Summarize All Companies", type="primary", key="summarize_all_btn"):
+        with st.spinner(
+            "Analyzing documents for all companies... This may take several minutes."
+        ):
+            progress_placeholder = st.empty()
+            progress_placeholder.info("🔍 Processing documents...")
+
+            all_success = True
+            for company in companies:
+                progress_placeholder.info(f"Processing {company.name}...")
+                success = run_summarization_async(company.slug)
+                if not success:
+                    all_success = False
+                    st.error(f"Failed to process documents for {company.name}")
+
+            progress_placeholder.empty()
+
+            if all_success:
+                st.success(
+                    "✅ Document analysis completed successfully for all companies!"
+                )
+                st.info("""
+                **What happened:**
+                • All documents were analyzed for privacy practices
+                • Summaries were generated with transparency and data usage scores
+                • Key points were extracted for each document
+                • Analysis data was stored in the database
+                • You can now generate meta-summaries for individual companies
+                """)
+                st.rerun()
+            else:
+                st.error(
+                    "Document analysis failed for some companies. Please check the logs and try again."
+                )
+
     # Create company dropdown options
     company_options = {
         f"{company.name} ({company.slug})": company for company in companies

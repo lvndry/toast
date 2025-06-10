@@ -1,5 +1,4 @@
 import asyncio
-import os
 
 from dotenv import load_dotenv
 from litellm import completion, embedding
@@ -9,14 +8,6 @@ from src.models import get_model
 from src.pinecone import INDEX_NAME, pc
 
 load_dotenv()
-
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-if not MISTRAL_API_KEY:
-    raise ValueError("MISTRAL_API_KEY is not set")
-
-VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
-if not VOYAGE_API_KEY:
-    raise ValueError("VOYAGE_API_KEY is not set")
 
 
 async def embed_query(query: str) -> list[float]:
@@ -29,12 +20,13 @@ async def embed_query(query: str) -> list[float]:
     Returns:
         list[float]: The vector embedding of the query
     """
+    model = get_model("voyage-law-2")
     try:
         response = embedding(
-            model="voyage/voyage-law-2",
+            model=model.model,
+            api_key=model.api_key,
             input=[query],
             input_type="query",
-            api_key=VOYAGE_API_KEY,
         )
 
         return response.data[0]["embedding"]
@@ -103,7 +95,6 @@ async def get_answer(question: str, company_slug: str) -> str:
     """
     # Search for relevant documents in Pinecone
     search_results = await search_query(question, company_slug)
-    logger.debug(search_results)
 
     if len(search_results["matches"]) == 0:
         return "I couldn't find any relevant information to answer your question."
@@ -117,7 +108,6 @@ Document URL: {match["metadata"]["url"]}
         formatted_chunks.append(chunk)
 
     context = "\n\n---\n\n".join(formatted_chunks)
-    logger.debug(f"Context: {context}")
 
     # Create the messages for the chat
     messages = [
@@ -135,7 +125,6 @@ Document URL: {match["metadata"]["url"]}
         )
 
         return response.choices[0].message.content
-
     except Exception as e:
         logger.error(f"Error getting completion from LiteLLM: {str(e)}")
         return "I apologize, but I encountered an error while trying to generate an answer."
@@ -145,4 +134,4 @@ if __name__ == "__main__":
     answer = asyncio.run(
         get_answer("what personal information notion stores about me?", "notion")
     )
-    logger.debug(answer)
+    logger.info(answer)

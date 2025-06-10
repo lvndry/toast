@@ -11,7 +11,7 @@ class Model:
         self.api_key = api_key
 
 
-SupportedModel = Literal["mistral-small", "gemini-1.5-flash-8b", "gemini-2.0-flash"]
+SupportedModel = Literal["mistral-small", "gemini-2.0-flash", "voyage-law-2"]
 
 
 def get_model(model_name: SupportedModel) -> Model:
@@ -35,7 +35,6 @@ def get_model(model_name: SupportedModel) -> Model:
             raise ValueError("GEMINI_API_KEY is not set")
 
         model_mapping = {
-            "gemini-1.5-flash-8b": "gemini/gemini-1.5-flash-8b",
             "gemini-2.0-flash": "gemini/gemini-2.0-flash",
         }
 
@@ -43,6 +42,15 @@ def get_model(model_name: SupportedModel) -> Model:
         return Model(
             model=full_model,
             api_key=GEMINI_API_KEY,
+        )
+    elif model_name == "voyage-law-2":
+        VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
+        if not VOYAGE_API_KEY:
+            raise ValueError("VOYAGE_API_KEY is not set")
+
+        return Model(
+            model="voyage/voyage-law-2",
+            api_key=VOYAGE_API_KEY,
         )
     else:
         raise ValueError(f"Unsupported model: {model_name}")

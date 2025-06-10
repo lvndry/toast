@@ -65,7 +65,6 @@ from src.toast_crawler import CrawlResult, ToastCrawler
 from src.utils.markdown import markdown_to_text
 from src.utils.perf import log_memory_usage, memory_monitor_task
 
-# Load environment variables
 load_dotenv()
 
 # Configure loguru for structured logging
@@ -338,7 +337,8 @@ Return JSON:
     "confidence": float 0-1,
     "justification": "reasoning",
     "regional_indicators": ["text snippets"]
-}}"""
+}}
+"""
 
         system_prompt = """You are a legal geographic scope analyst. Determine document applicability accurately."""
 
