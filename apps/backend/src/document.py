@@ -5,6 +5,11 @@ import shortuuid
 from pydantic import BaseModel, Field
 
 
+class DocumentAnalysisScores(BaseModel):
+    score: int
+    justification: str
+
+
 class DocumentAnalysis(BaseModel):
     """
     Document analysis model.
@@ -17,7 +22,7 @@ class DocumentAnalysis(BaseModel):
     """
 
     summary: str
-    scores: dict[str, float]
+    scores: dict[str, DocumentAnalysisScores]
     key_points: list[str]
 
 

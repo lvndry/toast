@@ -75,10 +75,10 @@ Return output in this structure:
 {{
   "summary": "...",
   "scores": {{
-    "transparency": number, // Clarity and accessibility of the language
-    "data_usage": number, // Respect for data minimization and purpose limitation
-    "control_and_rights": number,   // How much control the user has (opt-in/out, delete, correct)
-    "third_party_sharing": number, // How often data is shared with third parties
+    "transparency": Score, // Clarity and accessibility of the language
+    "data_usage": Score, // Respect for data minimization and purpose limitation
+    "control_and_rights": Score,   // How much control the user has (opt-in/out, delete, correct)
+    "third_party_sharing": Score, // How often data is shared with third parties
   }},
   "key_points": [
     "What personal data is collected and why",
@@ -90,6 +90,12 @@ Return output in this structure:
     "Whether the document uses vague or overly broad language",
     ...
   ]
+}}
+
+Score is a JSON object with the following fields:
+{{
+    "score": number, // 0-10
+    "justification": "...", // 1-2 sentences
 }}
 """
 
@@ -154,7 +160,7 @@ async def generate_company_meta_summary(company_slug: str) -> AsyncGenerator[str
     documents = await get_company_documents(company_slug)
     for doc in documents:
         doc_type = doc.doc_type
-        summary = doc.analysis.summary
+        summary = doc.analysis.summary if doc.analysis else ""
         summaries.append(f"Document Type: {doc_type}\nSummary: {summary}\n")
 
     document_summaries = "\n---\n".join(summaries)
@@ -240,6 +246,7 @@ Your goal is to help users make informed decisions about their data and privacy.
                 {"role": "user", "content": prompt},
             ],
             temperature=0.5,
+            response_format={"type": "json_object"},
         )
 
         return DocumentAnalysis.model_validate_json(
@@ -256,7 +263,7 @@ async def main():
     print("Generating company meta-summary:")
     print("=" * 50)
     meta_summary = await generate_company_meta_summary("notion")
-    print(meta_summary)
+    logger.info(meta_summary)
     print("\n" + "=" * 50)
 
 
