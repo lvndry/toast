@@ -63,4 +63,5 @@ class Document(BaseModel):
     analysis: DocumentAnalysis | None = None
     locale: str | None = None
     regions: list[Region] = []
+    effective_date: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.now)

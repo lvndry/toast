@@ -46,8 +46,10 @@ Usage:
 import asyncio
 import hashlib
 import json
+import re
 import time
 import tracemalloc
+from datetime import datetime
 from typing import Any, Dict, List, Optional, cast
 
 from dotenv import load_dotenv
@@ -58,9 +60,10 @@ from pydantic import BaseModel
 from src.company import Company
 from src.db import get_all_companies, get_document_by_url, mongo
 from src.document import Document, Region
-from src.utils.perf import log_memory_usage, memory_monitor_task
+from src.models import SupportedModel, get_model
 from src.toast_crawler import CrawlResult, ToastCrawler
 from src.utils.markdown import markdown_to_text
+from src.utils.perf import log_memory_usage, memory_monitor_task
 
 # Load environment variables
 load_dotenv()
@@ -125,10 +128,9 @@ class DocumentAnalyzer:
 
     def __init__(
         self,
-        model: str = "mistral/mistral-small-latest",
+        model: SupportedModel = "mistral-small",
         temperature: float = 0.1,
         max_content_length: int = 5000,
-        api_key: Optional[str] = None,
     ):
         """
         Initialize the document analyzer.
@@ -139,10 +141,12 @@ class DocumentAnalyzer:
             max_content_length: Maximum content length to send to LLM
             api_key: API key for LLM service (loaded from env if not provided)
         """
-        self.model = model
+        model = get_model(model)
+
+        self.model = model.model
+        self.api_key = model.api_key
         self.temperature = temperature
         self.max_content_length = max_content_length
-        self.api_key = api_key
 
         # Document type categories for classification
         self.categories = [
@@ -457,6 +461,199 @@ Return JSON:
         title = f"{type_titles.get(doc_type, 'Legal Document')} - {domain}"
         return {"title": title, "confidence": 0.5}
 
+    async def extract_effective_date(
+        self, content: str, metadata: Dict[str, Any]
+    ) -> Optional[str]:
+        """
+        Extract the effective date from a legal document.
+
+        First attempts static extraction from metadata and common patterns,
+        then falls back to LLM analysis if needed.
+
+        Args:
+            content: Document text content
+            metadata: Document metadata
+
+        Returns:
+            Effective date as ISO string (YYYY-MM-DD) or None if not found
+        """
+
+        # Try static extraction first
+        effective_date = await self._extract_effective_date_static(content, metadata)
+        if effective_date:
+            logger.debug(f"Found effective date statically: {effective_date}")
+            return effective_date
+
+        # Fall back to LLM analysis
+        logger.debug("Static extraction failed, using LLM for effective date")
+        return await self._extract_effective_date_llm(content, metadata)
+
+    async def _extract_effective_date_static(
+        self, content: str, metadata: Dict[str, Any]
+    ) -> Optional[str]:
+        """
+        Attempt static extraction of effective date from metadata and content patterns.
+
+        Args:
+            content: Document text content
+            metadata: Document metadata
+
+        Returns:
+            Effective date as ISO string or None
+        """
+        import re
+
+        # Check metadata first
+        if metadata:
+            for key in ["effective_date", "last_updated", "date", "published"]:
+                if key in metadata and metadata[key]:
+                    date_str = str(metadata[key]).strip()
+                    parsed_date = self._parse_date_string(date_str)
+                    if parsed_date:
+                        return parsed_date
+
+        # Common effective date patterns in legal documents
+        patterns = [
+            r"effective\s+(?:date|as\s+of):\s*([^.\n]+)",
+            r"effective\s+([^.\n]+)",
+            r"last\s+updated:?\s*([^.\n]+)",
+            r"(?:this\s+policy\s+)?(?:is\s+)?effective\s+(?:as\s+of\s+)?([^.\n]+)",
+            r"updated\s+on:?\s*([^.\n]+)",
+            r"revision\s+date:?\s*([^.\n]+)",
+        ]
+
+        search_text = content.lower()
+
+        for pattern in patterns:
+            matches = re.finditer(pattern, search_text, re.IGNORECASE | re.MULTILINE)
+            for match in matches:
+                date_str = match.group(1).strip()
+                parsed_date = self._parse_date_string(date_str)
+                if parsed_date:
+                    return parsed_date
+
+        return None
+
+    async def _extract_effective_date_llm(
+        self, content: str, metadata: Dict[str, Any]
+    ) -> Optional[str]:
+        """
+        Use LLM to extract effective date from document content.
+
+        Args:
+            content: Document text content
+            metadata: Document metadata
+
+        Returns:
+            Effective date as ISO string or None if not found
+        """
+        # Use first portion of content where dates are typically mentioned
+        content_sample = content[:3000] if len(content) > 3000 else content
+
+        prompt = f"""Analyze this legal document to find the effective date.
+
+Content: {content_sample}
+Metadata: {json.dumps(metadata, indent=2) if metadata else "None"}
+
+Look for:
+- "Effective date:", "Effective as of:", etc.
+- "Last updated:", "Updated on:", etc.
+- "This policy is effective...", "This agreement takes effect..."
+- Any explicit date mentioned as when the document becomes effective
+
+Return JSON:
+{{
+    "effective_date": "YYYY-MM-DD" or null,
+    "confidence": float 0-1,
+    "source_text": "exact text snippet where date was found" or null,
+    "reasoning": "explanation of why this date was chosen or why none found"
+}}
+
+IMPORTANT: Return null for effective_date if you cannot find a clear effective date. Do not guess or infer dates."""
+
+        system_prompt = """You are an expert at extracting effective dates from legal documents. Only return dates that are explicitly stated as effective dates, last updated dates, or similar. Do not guess or infer dates."""
+
+        try:
+            response = await acompletion(
+                model=self.model,
+                api_key=self.api_key,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt},
+                ],
+                response_format={"type": "json_object"},
+                temperature=self.temperature,
+            )
+
+            result = json.loads(response.choices[0].message.content)
+            effective_date = result.get("effective_date")
+
+            if effective_date:
+                # Validate the date format
+                parsed_date = self._parse_date_string(effective_date)
+                if parsed_date:
+                    logger.debug(
+                        f"LLM found effective date: {parsed_date} "
+                        f"(confidence: {result.get('confidence', 0):.2f})"
+                    )
+                    return parsed_date
+
+            logger.debug("LLM could not find effective date")
+            return None
+
+        except Exception as e:
+            logger.warning(f"LLM effective date extraction failed: {e}")
+            return None
+
+    def _parse_date_string(self, date_str: str) -> Optional[str]:
+        """
+        Parse a date string into ISO format (YYYY-MM-DD).
+
+        Args:
+            date_str: Date string to parse
+
+        Returns:
+            ISO formatted date string or None if parsing fails
+        """
+        if not date_str or not isinstance(date_str, str):
+            return None
+
+        # Clean up the date string
+        date_str = date_str.strip().replace(",", "")
+
+        # Common date formats to try
+        formats = [
+            "%Y-%m-%d",  # 2023-12-01
+            "%m/%d/%Y",  # 12/01/2023
+            "%d/%m/%Y",  # 01/12/2023
+            "%B %d, %Y",  # December 1, 2023
+            "%b %d, %Y",  # Dec 1, 2023
+            "%d %B %Y",  # 1 December 2023
+            "%d %b %Y",  # 1 Dec 2023
+            "%Y-%m-%dT%H:%M:%S",  # ISO with time
+            "%Y-%m-%d %H:%M:%S",  # Standard with time
+        ]
+
+        for fmt in formats:
+            try:
+                parsed = datetime.strptime(date_str, fmt)
+                return parsed.strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+
+        # Try to extract year-month-day pattern with regex
+        pattern = r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})"
+        match = re.search(pattern, date_str)
+        if match:
+            year, month, day = match.groups()
+            try:
+                parsed = datetime(int(year), int(month), int(day))
+                return parsed.strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+
+        return None
+
 
 class LegalDocumentPipeline:
     """
@@ -627,6 +824,20 @@ class LegalDocumentPipeline:
                 text_content, result.metadata, result.url
             )
 
+            # Extract effective date
+            effective_date_str = await self.analyzer.extract_effective_date(
+                text_content, result.metadata
+            )
+            effective_date = None
+            if effective_date_str:
+                try:
+                    effective_date = datetime.strptime(effective_date_str, "%Y-%m-%d")
+                    logger.debug(f"Parsed effective date: {effective_date}")
+                except ValueError as e:
+                    logger.warning(
+                        f"Failed to parse effective date '{effective_date_str}': {e}"
+                    )
+
             # Extract title
             title_result = await self.analyzer.extract_title(
                 result.markdown,
@@ -646,11 +857,17 @@ class LegalDocumentPipeline:
                 doc_type=classification.get("classification", "other"),
                 locale=detected_locale,
                 regions=region_detection.get("regions", ["global"]),
+                effective_date=effective_date,
             )
 
+            effective_date_info = (
+                f", effective: {document.effective_date.strftime('%Y-%m-%d')}"
+                if document.effective_date
+                else ""
+            )
             logger.info(
                 f"✅ Processed legal document: {document.title} "
-                f"({document.doc_type}, {document.locale}, {document.regions})"
+                f"({document.doc_type}, {document.locale}, {document.regions}{effective_date_info})"
             )
 
             return document

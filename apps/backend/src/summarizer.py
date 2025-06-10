@@ -1,29 +1,37 @@
+"""Document summarization module for privacy-focused analysis of legal documents."""
+
 import asyncio
-import os
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
-from litellm import completion
+from litellm import acompletion
 from loguru import logger
 
 from src.db import get_company_documents, update_document
 from src.document import Document, DocumentAnalysis
+from src.models import get_model
 
 load_dotenv()
-
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
 
 async def summarize_all_company_documents(company_slug: str) -> str:
     documents = await get_company_documents(company_slug)
-    logger.info(f"Summarizing {len(documents)} documents for {company_slug}")
-    for doc in documents:
+    total_docs = len(documents)
+    logger.info(f"Summarizing {total_docs} documents for {company_slug}")
+
+    for index, doc in enumerate(documents, 1):
+        logger.info(f"Processing document {index}/{total_docs}: {doc.title}")
         analysis = await summarize_document(doc)
         doc.analysis = analysis
         logger.debug(f"Analysis: {analysis}")
         await update_document(doc)
+        logger.info(
+            f"✓ Completed document {index}/{total_docs} ({(index / total_docs) * 100:.1f}%)"
+        )
 
-    logger.info(f"Summarized {len(documents)} documents for {company_slug}")
+    logger.info(
+        f"✓ Successfully summarized all {total_docs} documents for {company_slug}"
+    )
 
 
 async def summarize_document(document: Document) -> DocumentAnalysis:
@@ -67,12 +75,19 @@ Return output in this structure:
 {{
   "summary": "...",
   "scores": {{
-    "transparency": number,
-    "data_usage": number
+    "transparency": number, // Clarity and accessibility of the language
+    "data_usage": number, // Respect for data minimization and purpose limitation
+    "control_and_rights": number,   // How much control the user has (opt-in/out, delete, correct)
+    "third_party_sharing": number, // How often data is shared with third parties
   }},
   "key_points": [
-    "First important insight...",
-    "Second important insight...",
+    "What personal data is collected and why",
+    "Whether data is sold or shared with third parties",
+    "How long data is stored and how it's protected",
+    "User rights (delete, correct, access, etc.)",
+    "Surprising permissions or obligations",
+    "Whether consent is opt-in or opt-out",
+    "Whether the document uses vague or overly broad language",
     ...
   ]
 }}
@@ -104,9 +119,10 @@ Your goal is to help users make informed, empowered decisions about their relati
 """
 
     try:
-        response = completion(
-            model="mistral/mistral-small-latest",
-            api_key=MISTRAL_API_KEY,
+        model = get_model("gemini-2.0-flash")
+        response = await acompletion(
+            model=model.model,
+            api_key=model.api_key,
             messages=[
                 {
                     "role": "system",
@@ -115,14 +131,13 @@ Your goal is to help users make informed, empowered decisions about their relati
                 {"role": "user", "content": prompt},
             ],
             response_format={"type": "json_object"},
-            temperature=0.1,
+            temperature=0.5,
         )
-
         summary_data = response.choices[0].message.content
-        return DocumentAnalysis.model_validate_json(summary_data)
+        return DocumentAnalysis.model_validate_json(summary_data, strict=False)
     except Exception as e:
         logger.error(f"Error summarizing document: {str(e)}")
-        raise
+        return None
 
 
 async def generate_company_meta_summary(company_slug: str) -> AsyncGenerator[str, None]:
@@ -167,6 +182,34 @@ Tone and style guidelines:
 - Do not describe yourself as a privacy expert; simply be a helpful assistant created by toast.ai.
 
 The goal is to empower privacy-conscious users with a clear understanding of the company's data practices.
+
+Return output in this structure:
+
+{{
+  "summary": "...",
+  "scores": {{
+    "transparency": Score, // Clarity and accessibility of the language
+    "data_usage": Score, // Respect for data minimization and purpose limitation
+    "control_and_rights": Score, // How much control the user has (opt-in/out, delete, correct)
+    "third_party_sharing": Score, // How often data is shared with third parties
+  }},
+  "key_points": [
+    "What personal data is collected and why",
+    "Whether data is sold or shared with third parties",
+    "How long data is stored and how it's protected",
+    "User rights (delete, correct, access, etc.)",
+    "Surprising permissions or obligations",
+    "Whether consent is opt-in or opt-out",
+    "Whether the document uses vague or overly broad language",
+    ...
+  ]
+}}
+
+Score is a JSON object with the following fields:
+{{
+    "score": number, // 0-10
+    "justification": "...", // 1-2 sentences
+}}
 """
 
     system_prompt = """
@@ -185,8 +228,10 @@ Your goal is to help users make informed decisions about their data and privacy.
 """
 
     try:
-        response = completion(
-            model="mistral/mistral-large-latest",
+        model = get_model("gemini-2.0-flash")
+        response = await acompletion(
+            model=model.model,
+            api_key=model.api_key,
             messages=[
                 {
                     "role": "system",
@@ -194,18 +239,15 @@ Your goal is to help users make informed decisions about their data and privacy.
                 },
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.7,
-            stream=True,
-            api_key=MISTRAL_API_KEY,
+            temperature=0.5,
         )
 
-        for chunk in response:
-            if chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
-
+        return DocumentAnalysis.model_validate_json(
+            response.choices[0].message.content, strict=False
+        )
     except Exception as e:
         logger.error(f"Error generating meta-summary: {str(e)}")
-        yield "Error generating meta-summary. Please try again later."
+        return None
 
 
 async def main():
@@ -213,8 +255,8 @@ async def main():
 
     print("Generating company meta-summary:")
     print("=" * 50)
-    async for chunk in generate_company_meta_summary("notion"):
-        print(chunk, end="")
+    meta_summary = await generate_company_meta_summary("notion")
+    print(meta_summary)
     print("\n" + "=" * 50)
 
 

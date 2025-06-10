@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from litellm import completion, embedding
 from loguru import logger
 
+from src.models import get_model
 from src.pinecone import INDEX_NAME, pc
 
 load_dotenv()
@@ -125,11 +126,12 @@ Document URL: {match["metadata"]["url"]}
     ]
 
     try:
+        model = get_model("gemini-2.0-flash")
         response = completion(
-            model="mistral/mistral-small-latest",
+            model=model.model,
+            api_key=model.api_key,
             messages=messages,
-            temperature=0.1,
-            api_key=MISTRAL_API_KEY,
+            temperature=0.2,
         )
 
         return response.choices[0].message.content
