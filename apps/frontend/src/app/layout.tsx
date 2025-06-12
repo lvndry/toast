@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import { ThemeProvider } from 'next-themes';
 import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
+
+import Providers from '@/Providers';
 
 import './globals.css';
 
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode;
   return (
     <html lang='en'>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
