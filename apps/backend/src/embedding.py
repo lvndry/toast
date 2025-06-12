@@ -6,7 +6,7 @@ from loguru import logger
 
 from src.db import get_company_documents
 from src.models import get_model
-from src.pinecone import INDEX_NAME, init_pinecone_index, pc
+from src.vector_db import INDEX_NAME, init_pinecone_index, pc
 
 load_dotenv()
 

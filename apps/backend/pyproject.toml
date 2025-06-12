@@ -28,4 +28,5 @@ dependencies = [
     "streamlit>=1.43.2",
     "supabase>=2.13.0",
     "tenacity>=9.1.2",
+    "watchdog>=6.0.0",
 ]
