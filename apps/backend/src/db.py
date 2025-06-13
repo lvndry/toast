@@ -38,6 +38,13 @@ mongo = Database()
 
 
 ##### Company ######
+async def get_company_by_id(id: str) -> Company:
+    company = await mongo.db.companies.find_one({"id": id})
+    if not company:
+        raise ValueError(f"Company with id {id} not found")
+    return Company(**company)
+
+
 async def get_company_by_slug(slug: str) -> Company:
     company = await mongo.db.companies.find_one({"slug": slug})
     if not company:

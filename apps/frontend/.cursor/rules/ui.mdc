@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 This comprehensive guide outlines best practices, conventions, and standards for development with modern web technologies including ReactJS, NextJS, TypeScript, JavaScript, HTML, CSS, and UI frameworks.
 
 Development Philosophy
@@ -9,11 +14,11 @@ Development Philosophy
     - Use world class best practices while building an app that can be easily maintained by a single developer
 
 Code Implementation Guidelines
-  Planning Phase
-    - Begin with step-by-step planning
-    - Write detailed pseudocode before implementation
-    - Document component architecture and data flow
-    - Consider edge cases and error scenarios
+    Planning Phase
+        - Begin with step-by-step planning
+        - Write detailed pseudocode before implementation
+        - Document component architecture and data flow
+        - Consider edge cases and error scenarios
   
   Code Style
     - Use tabs for indentation
@@ -131,7 +136,7 @@ UI, UX and Styling
     - Use Tailwind CSS for styling
     - Use Tailwind CSS for utility-first, maintainable styling.
     - Design with mobile-first, responsive principles for flexibility across devices.
-    - Implement dark mode using CSS variables or Tailwind’s dark mode features.
+    - Implement dark mode using CSS variables or Tailwind's dark mode features.
     - Ensure color contrast ratios meet accessibility standards for readability.
     - Maintain consistent spacing values to establish visual harmony.
     - Define CSS variables for theme colors and spacing to support easy theming and maintainability.
@@ -150,7 +155,6 @@ State Management
     - Use Zustand for global state
     - Normalize state structure to avoid deeply nested data.
     - Use selectors to encapsulate state access.
-
 
 Error Handling and Validation
   Form Validation

@@ -1,7 +1,6 @@
 """Document summarization module for privacy-focused analysis of legal documents."""
 
 import asyncio
-from typing import AsyncGenerator
 
 from dotenv import load_dotenv
 from litellm import acompletion
@@ -146,7 +145,7 @@ Your goal is to help users make informed, empowered decisions about their relati
         return None
 
 
-async def generate_company_meta_summary(company_slug: str) -> AsyncGenerator[str, None]:
+async def generate_company_meta_summary(company_slug: str) -> DocumentAnalysis:
     """
     Generate a meta-summary of all analyzed documents for a company.
 
@@ -185,7 +184,7 @@ Tone and style guidelines:
 - Avoid ambiguous pronouns like "they," "them," "their," "we," "us," or "our." Always refer to the company explicitly.
 - Use a professional, warm, and friendly tone.
 - Include only information directly supported by the documents; do not speculate or invent details.
-- Do not describe yourself as a privacy expert; simply be a helpful assistant created by toast.ai.
+- Do not introduce yourself.
 
 The goal is to empower privacy-conscious users with a clear understanding of the company's data practices.
 
