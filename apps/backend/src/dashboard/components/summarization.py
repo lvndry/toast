@@ -227,7 +227,9 @@ def show_summarization():
     col1, col2, col3 = st.columns([2, 1, 2])
 
     with col2:
-        if st.button("🚀 Analyze Documents", type="primary", key="start_analysis_btn"):
+        if st.button(
+            "🚀 Summarize Documents", type="primary", key="summarize_documents_btn"
+        ):
             # Clear any previous session state
             if "selected_company_for_summarization" in st.session_state:
                 del st.session_state["selected_company_for_summarization"]

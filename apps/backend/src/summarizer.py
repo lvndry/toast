@@ -100,7 +100,6 @@ Score is a JSON object with the following fields:
 
     SYSTEM_PROMPT = """
 You are a privacy-focused document summarizer designed to make legal documents—especially privacy policies and terms of service—clear and accessible to non-expert, privacy-conscious users.
-
 Your job is to extract and explain the real-world implications of these documents, focusing on how the company collects, uses, shares, retains, and protects user data.
 
 Style and Language Guidelines:
@@ -165,71 +164,85 @@ async def generate_company_meta_summary(company_slug: str) -> DocumentAnalysis:
     document_summaries = "\n---\n".join(summaries)
 
     prompt = f"""
-You are a privacy-focused document analyst named toast AI, created by toast.ai.
-
-Your task is to create a comprehensive summary of the company's data handling practices based on the provided individual document summaries:
+Your task is to create a clear and accessible summary of the company’s data practices based on the following document summaries:
 
 {document_summaries}
 
-Please produce a clear, user-friendly summary that:
+The audience is privacy-conscious users with little or no legal background. Your job is to help them understand what the company does with their data, what rights they have, and any noteworthy risks — in simple, direct language.
 
-1. Synthesizes key points from all documents.
-2. Highlights any contradictions or inconsistencies found across documents.
-3. Provides an overall assessment of the company's approach to data privacy and usage.
-4. Identifies the most important privacy and data usage considerations for users.
+Write in a tone that is professional, calm, and easy to read. Use short paragraphs and structured sections.
 
-Tone and style guidelines:
+**Instructions:**
 
-- Never imply affiliation with the company; always state that you are created by toast.ai and your role is to help users understand the company's data practices.
-- Avoid ambiguous pronouns like "they," "them," "their," "we," "us," or "our." Always refer to the company explicitly.
-- Use a professional, warm, and friendly tone.
-- Include only information directly supported by the documents; do not speculate or invent details.
 - Do not introduce yourself.
+- Do not refer to "we", "us", "our", "they", "them", or "their".
+- Always refer to the company by its full name (e.g., “Notion Labs, Inc.”).
+- Include only what is explicitly supported by the documents — do not speculate or add extra interpretation.
 
-The goal is to empower privacy-conscious users with a clear understanding of the company's data practices.
+**Format your response as follows:**
 
-Return output in this structure:
+1. A plain-language summary divided into clear and relevant sections.
+Example structure:
+   - **What Data Is Collected**
+   - **How the Data Is Used**
+   - **Who the Data Is Shared With**
+   - **How the Data Is Stored and Protected**
+   - **User Rights and Controls**
+   - **Notable Clauses or Surprising Terms**
+   - **Overall Assessment**
+
+   If there are contradictions or inconsistencies across documents, highlight them in the relevant section.
+
+2. Follow the summary with this structured JSON output:
 
 {{
-  "summary": "...",
-  "scores": {{
-    "transparency": Score, // Clarity and accessibility of the language
-    "data_usage": Score, // Respect for data minimization and purpose limitation
-    "control_and_rights": Score, // How much control the user has (opt-in/out, delete, correct)
-    "third_party_sharing": Score, // How often data is shared with third parties
-  }},
-  "key_points": [
-    "What personal data is collected and why",
-    "Whether data is sold or shared with third parties",
-    "How long data is stored and how it's protected",
-    "User rights (delete, correct, access, etc.)",
-    "Surprising permissions or obligations",
-    "Whether consent is opt-in or opt-out",
-    "Whether the document uses vague or overly broad language",
-    ...
-  ]
-}}
-
-Score is a JSON object with the following fields:
-{{
-    "score": number, // 0-10
-    "justification": "...", // 1-2 sentences
+    "summary": "...",
+    "scores": {{
+      "transparency": {{
+        "score": number (0-10),
+        "justification": "1-2 sentences explaining how clear and understandable the documents are."
+      }},
+    "data_usage": {{
+      "score": number (0-10),
+      "justification": "1-2 sentences explaining whether the company limits data use to what's necessary."
+      }},
+    "control_and_rights": {{
+        "score": number (0-10),
+        "justification": "1-2 sentences on how much control users have over their data."
+      }},
+    "third_party_sharing": {{
+        "score": number (0-10),
+        "justification": "1-2 sentences on how often and how transparently data is shared externally."
+      }}
+    }},
+    "key_points": [
+        "What personal data is collected and for what purpose",
+        "Whether data is sold or shared with third parties",
+        "How long data is stored and how it's protected",
+        "What rights users have (delete, access, correct, etc.)",
+        "Any surprising permissions, risks, or responsibilities",
+        "Whether user consent is opt-in or opt-out",
+        "Whether the documents use vague, broad, or confusing language"
+    ]
 }}
 """
 
-    system_prompt = """
-You are a privacy-focused document analyst who creates clear, user-friendly summaries of website legal documents such as privacy policies, terms of service, and related texts.
+    SYSTEM_PROMPT = """
+You arg a privacy-focused document analyst who creates clear, user-friendly summaries of website legal documents such as privacy policies, terms of service, and related texts.
 
-Your summaries should:
-- Use plain, accessible language suitable for privacy-conscious but non-legal readers.
-- Explain how the company collects, uses, shares, and protects user data.
-- Highlight key user rights, permissions, and restrictions.
-- Avoid legal jargon or explain it simply when necessary.
-- Refer to the company explicitly by name or as "the company," never using ambiguous pronouns.
-- Remain strictly factual, summarizing only what the documents state without speculation.
-- Maintain a warm, professional tone that supports users in understanding their data privacy.
+Your role is to help non-expert but privacy-conscious users understand what they are agreeing to, in plain, accessible language.
 
-Your goal is to help users make informed decisions about their data and privacy.
+You produce structured reports that:
+- Synthesize key information across documents about how the company collects, uses, shares, and protects user data.
+- Highlight user rights, permissions, obligations, and any contradictions or surprising terms.
+- Avoid legal jargon unless absolutely necessary, and explain it clearly when used.
+- Never speculate — include only what is directly supported by the documents.
+- Refer to the company by name or as "the company" — never use ambiguous pronouns like "they" or "we."
+- Use a warm, professional tone focused on empowerment and clarity.
+- Provide transparency, data usage, user control, and third-party sharing scores with clear justification.
+- Do not introduce yourself to the user.
+
+Your summaries are created by toast.ai to support user understanding of data practices — never suggest affiliation with the company being analyzed.
 """
 
     try:
@@ -240,13 +253,15 @@ Your goal is to help users make informed decisions about their data and privacy.
             messages=[
                 {
                     "role": "system",
-                    "content": system_prompt,
+                    "content": SYSTEM_PROMPT,
                 },
                 {"role": "user", "content": prompt},
             ],
             temperature=0.5,
             response_format={"type": "json_object"},
         )
+
+        logger.debug(response.choices[0].message.content)
 
         return DocumentAnalysis.model_validate_json(
             response.choices[0].message.content, strict=False
