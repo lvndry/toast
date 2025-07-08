@@ -29,9 +29,8 @@ async def get_company_meta_summary(company_id: str):
     # First verify the company exists
     try:
         company = await get_company_by_id(company_id)
-        return (
-            await generate_company_meta_summary(company_slug=company.slug)
-        ).model_dump()
+        meta_summary = await generate_company_meta_summary(company_slug=company.slug)
+        return meta_summary.model_dump()
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

@@ -1,0 +1,127 @@
+{
+  "price": {
+    "title": "Cheap, transparent prices!",
+    "pricing": "Pricing",
+    "slogan": "Start at full speed !",
+    "monthly_bill": "Monthly Billing",
+    "annual_bill": "Annual Billing",
+    "annual_info": "will be charged when annual",
+    "monthly_info": "when charged monthly",
+    "mo": "/mo",
+    "contact": "for to contact our support team.",
+    "contact_2": "You can test the subscriptions and won&apos;t be charged.",
+    "faq": "Frequently Asked Questions",
+    "faq_detail": "Explore our comprehensive FAQ to find quick answers to common inquiries. If you need further assistance, don&apos;t hesitate to contact us for personalized help.",
+    "signup": "Sign up",
+    "upgrade": "Upgrade",
+    "manage_subscription": "Manage Subscription",
+    "go_to_dashboard": "Go to dashboard",
+    "": ""
+  },
+  "marketing": {
+    "introducing": "Introducing Toast AI",
+    "title": "Understand Legal Documents Instantly",
+    "sub_title": "AI-powered summaries and analysis for privacy policies, terms of service, and more. Empowering privacy-conscious users and professionals to make informed decisions.",
+    "get_started": "Try Toast AI Now",
+    "view_on_github": "View on GitHub",
+    "explore_product": "Explore Product",
+    "features": "Features",
+    "sub_features": "AI-driven: Instantly analyze and summarize complex legal documents.",
+    "k8s_features": "Automated Web Scraping",
+    "devops_features": "Quality & Compliance Evaluation",
+    "price_features": "Privacy-First, Secure, and Reliable.",
+    "main_nav_features": "Features",
+    "main_nav_pricing": "Pricing",
+    "main_nav_products": "Products",
+    "main_nav_blog": "Blog",
+    "main_nav_documentation": "Documentation",
+    "login": "Login",
+    "signup": "Sign up",
+    "": "",
+    "contributors": {
+      "contributors_desc": "contributors made Toast AI stronger",
+      "developers_first": "Helping over ",
+      "developers_second": " privacy-conscious users and professionals"
+    },
+    "right_side": {
+      "deploy_on_vercel_title": "Analyze Any Website Instantly",
+      "deploy_on_vercel_desc": "Paste a URL and get a privacy-focused summary in seconds.",
+      "ship_on_cloudflare_title": "Secure & Fast AI Processing",
+      "ship_on_cloudflare_desc": "Your data is processed securely and never stored.",
+      "showcase_title": "See Real Use Cases",
+      "showcase_desc": "Discover how users and teams leverage Toast AI for compliance, research, and peace of mind."
+    },
+    "features_grid": {
+      "monorepo_title": "AI-Powered Summarization",
+      "monorepo_desc": "Get concise, easy-to-understand summaries of privacy policies, terms of service, and more.",
+      "i18n_title": "Multilingual Support",
+      "i18n_desc": "Understand legal documents in your preferred language with accurate translations.",
+      "payments_title": "Quality & Risk Evaluation",
+      "payments_desc": "AI evaluates document quality and highlights potential risks or missing information.",
+      "nextauth_title": "RAG Q&A Engine",
+      "nextauth_desc": "Ask follow-up questions about any document and get instant, reliable answers."
+    },
+    "sponsor": {
+      "title": "Loved by Privacy Advocates & Professionals",
+      "donate": "Support our mission, Your Brand here"
+    },
+    "video": {
+      "first_text": "See Toast AI in Action, then",
+      "second_text1": "analyze your first document in ",
+      "second_text2": "",
+      "time_text": "seconds"
+    },
+    "people_comment": {
+      "title": "What Users Are Saying",
+      "desc": "Don't just take our word for it. Here's what real users are saying about Toast AI."
+    }
+  },
+  "login": {
+    "back": "Back",
+    "welcome_back": "Welcome back",
+    "signin_title": "Enter your email to log into your account",
+    "singup_title": "Don't have an account? Sign up now.",
+    "signin_email": "Log in with Email",
+    "signin_others": "Or continue with",
+    "signup": "Sign up",
+    "privacy": "only your email and profile picture will be stored.",
+    "signup_github": "Sign Up with Github",
+    "": ""
+  },
+  "common": {
+    "copyright": "Copyright © ${currentYear} Nextify Limited. All rights reserved.",
+    "dashboard": {
+      "main_nav_documentation": "Documentation",
+      "main_nav_support": "Support",
+      "sidebar_nav_clusters": "Clusters",
+      "sidebar_nav_billing": "Billing",
+      "sidebar_nav_settings": "Settings",
+      "title_text": "Create and manage clusters."
+    },
+    "": ""
+  },
+  "business": {
+    "k8s": {
+      "new_cluster": "New Cluster",
+      "no_cluster_title": "No clusters created",
+      "no_cluster_content": "You don&apos;t have any clusters yet. Start creating cluster. ",
+      "": ""
+    },
+    "billing": {
+      "billing": "Billing",
+      "content": "Manage your subscription and billing details",
+      "noSubscription": "You are not subscribed to any plan. ",
+      "subscriptionInfo": "You are currently on the <strong>{plan}</strong> plan.Your subscription will renew on <strong>{date}</strong>.",
+      "manage_subscription": "Manage Subscription",
+      "upgrade": "upgrade",
+      "": ""
+    }
+  },
+  "dropdown": {
+    "dashboard": "Dashboard",
+    "billing": "Billing",
+    "settings": "Settings",
+    "sign_out": "Sign out",
+    "": ""
+  }
+}

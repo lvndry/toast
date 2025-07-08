@@ -49,8 +49,9 @@ def run_summarization_async(
 
 async def generate_meta_summary_async(company_slug: str):
     """Generate meta summary for a company"""
-    async for chunk in generate_company_meta_summary(company_slug):
-        yield chunk
+    result = await generate_company_meta_summary(company_slug)
+    summary_content = str(result)  # or format as needed
+    yield summary_content
 
 
 def show_summarization():
@@ -287,7 +288,6 @@ def show_summarization():
                 try:
                     # Create a placeholder for streaming content
                     summary_placeholder = st.empty()
-                    summary_content = ""
 
                     # Generate the meta summary using async generator
                     loop = asyncio.new_event_loop()
@@ -295,16 +295,14 @@ def show_summarization():
 
                     try:
 
-                        async def stream_summary():
-                            nonlocal summary_content
-                            async for chunk in generate_company_meta_summary(
+                        async def get_summary():
+                            result = await generate_company_meta_summary(
                                 selected_company.slug
-                            ):
-                                summary_content += chunk
-                                summary_placeholder.markdown(summary_content)
+                            )
+                            return str(result)
 
-                        loop.run_until_complete(stream_summary())
-
+                        summary_content = loop.run_until_complete(get_summary())
+                        summary_placeholder.markdown(summary_content)
                     finally:
                         loop.close()
 

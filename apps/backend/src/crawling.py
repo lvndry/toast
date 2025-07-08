@@ -970,7 +970,7 @@ class LegalDocumentPipeline:
         log_memory_usage("Pipeline start")
 
         # Start background memory monitoring
-        memory_task = asyncio.create_task(memory_monitor_task(30))
+        memory_task = asyncio.create_task(memory_monitor_task(60))
 
         try:
             # Get all companies

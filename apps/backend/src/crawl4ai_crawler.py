@@ -1,3 +1,8 @@
+"""
+Legacy module, not used anymore.
+Prefer using the new crawler in src/crawler.py
+"""
+
 import asyncio
 import hashlib
 import json
