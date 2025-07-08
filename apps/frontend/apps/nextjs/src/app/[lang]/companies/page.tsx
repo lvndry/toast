@@ -3,14 +3,7 @@
 import { HoverEffect } from "@saasfly/ui/card-hover-effect";
 import { useEffect, useState } from "react";
 import { env } from "~/env.mjs";
-
-interface Company {
-  id: number;
-  name: string;
-  description?: string;
-  logo_url?: string;
-  website?: string;
-}
+import type { Company } from "~/types/company";
 
 async function fetchCompanies(): Promise<Company[]> {
   console.log("env.NEXT_PUBLIC_BACKEND_URL", env.NEXT_PUBLIC_BACKEND_URL);
@@ -34,7 +27,7 @@ export default function CompaniesPage() {
   const items = companies.map((company) => ({
     title: company.name,
     description: company.description ?? "",
-    link: company.website ?? "#",
+    link: `/${company.slug}`,
     logo: company.logo_url,
   }));
 
