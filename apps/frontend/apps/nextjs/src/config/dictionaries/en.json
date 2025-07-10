@@ -89,7 +89,7 @@
     "": ""
   },
   "common": {
-    "copyright": "Copyright © ${currentYear} Nextify Limited. All rights reserved.",
+    "copyright": "Copyright © ${currentYear} Toast AI. All rights reserved.",
     "dashboard": {
       "main_nav_documentation": "Documentation",
       "main_nav_support": "Support",

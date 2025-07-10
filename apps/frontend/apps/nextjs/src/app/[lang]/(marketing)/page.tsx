@@ -9,7 +9,6 @@ import { Button } from "@saasfly/ui/button";
 import * as Icons from "@saasfly/ui/icons";
 
 import { FaAirbnb, FaFacebook, FaGoogle, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
-import { VideoScroll } from "~/components/video-scroll";
 import type { Locale } from "~/config/i18n-config";
 
 
@@ -94,8 +93,37 @@ export default async function IndexPage({
         </div>
       </section>
 
-      <section className="container pt-8">
-        <VideoScroll dict={dict.marketing.video} />
+      <section className="container py-8">
+        <div className="flex flex-col items-center">
+          <h2 className="text-2xl font-bold mb-6">Pricing</h2>
+          <div className="w-full max-w-2xl grid grid-cols-2 gap-6">
+            {/* Free Plan */}
+            <div className="rounded-xl border bg-white dark:bg-neutral-900/40 p-6 flex flex-col items-center shadow">
+              <h3 className="text-xl font-semibold mb-2">Basic</h3>
+              <p className="text-3xl font-bold mb-4">$0</p>
+              <ul className="mb-4 space-y-2 text-left w-full">
+                <li>✅ Access top 100 companies</li>
+                <li>✅ Community support</li>
+                <li>✅ Basic analytics</li>
+              </ul>
+              <span className="inline-block rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-medium">Current</span>
+            </div>
+            {/* Premium Plan */}
+            <div className="rounded-xl border bg-gray-100 dark:bg-neutral-800/40 p-6 flex flex-col items-center opacity-60 cursor-not-allowed">
+              <h3 className="text-xl font-semibold mb-2">Premium</h3>
+              <p className="text-3xl font-bold mb-4">Coming Soon</p>
+              <ul className="mb-4 space-y-2 text-left w-full">
+                <li>✅ Everything in basic</li>
+                <li>✅ Unlimited access to all companies</li>
+                <li>✅ Advanced analytics</li>
+                <li>✅ Priority support</li>
+                <li>✅ Team collaboration</li>
+                <li>✅ Early access to new features</li>
+              </ul>
+              <span className="inline-block rounded-full bg-gray-300 text-gray-700 px-3 py-1 text-xs font-medium">Coming Soon</span>
+            </div>
+          </div>
+        </div>
       </section>
     </>
   );

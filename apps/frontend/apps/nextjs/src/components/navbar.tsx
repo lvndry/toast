@@ -1,17 +1,15 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
 import type { User } from "@saasfly/auth";
+import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
+import React from "react";
 
 import { cn } from "@saasfly/ui";
 import { Button } from "@saasfly/ui/button";
 
-import { MainNav } from "./main-nav";
-import { LocaleChange } from "~/components/locale-change";
-import { GitHubStar } from "~/components/github-star";
 import { useSigninModal } from "~/hooks/use-signin-modal";
+import { MainNav } from "./main-nav";
 import { UserAccountNav } from "./user-account-nav";
 
 import useScroll from "~/hooks/use-scroll";
@@ -46,9 +44,8 @@ export function NavBar({
 
   return (
     <header
-      className={`sticky top-0 z-40 flex w-full justify-center border-border bg-background/60 backdrop-blur-xl transition-all ${
-        scroll ? (scrolled ? "border-b" : "bg-background/0") : "border-b"
-      }`}
+      className={`sticky top-0 z-40 flex w-full justify-center border-border bg-background/60 backdrop-blur-xl transition-all ${scroll ? (scrolled ? "border-b" : "bg-background/0") : "border-b"
+        }`}
     >
       <div className="container flex h-16 items-center justify-between py-4">
         <MainNav items={items} params={{ lang: `${lang}` }} marketing={marketing}>
@@ -80,10 +77,7 @@ export function NavBar({
 
           {rightElements}
 
-          <div className="hidden md:flex lg:flex xl:flex">
-            <GitHubStar />
-          </div>
-          <LocaleChange url={"/"} />
+
           {!user ? (
             <Link href={`/${lang}/login-clerk`}>
               <Button variant="outline" size="sm">
