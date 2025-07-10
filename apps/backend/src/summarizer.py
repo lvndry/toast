@@ -238,6 +238,7 @@ Your task is to create a clear and accessible summary of the of the following do
         response = await acompletion(
             model=model.model,
             api_key=model.api_key,
+            max_tokens=2000,
             messages=[
                 {
                     "role": "system",

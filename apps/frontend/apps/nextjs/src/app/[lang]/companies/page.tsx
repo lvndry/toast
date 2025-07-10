@@ -17,6 +17,7 @@ async function fetchCompanies(): Promise<Company[]> {
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchCompanies()
@@ -31,13 +32,28 @@ export default function CompaniesPage() {
     logo: company.logo_url,
   }));
 
+  const filteredItems = items.filter(
+    (item) =>
+      item.title.toLowerCase().includes(search.toLowerCase()) ||
+      item.description.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="container py-10">
       <h1 className="text-3xl font-bold mb-8 text-center">Supported Companies</h1>
+      <div className="flex justify-center mb-8">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search companies..."
+          className="w-full max-w-md px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-neutral-100 dark:bg-neutral-800 dark:text-white"
+        />
+      </div>
       {error ? (
         <div className="text-center text-red-500">{error}</div>
-      ) : items.length > 0 ? (
-        <HoverEffect items={items} />
+      ) : filteredItems.length > 0 ? (
+        <HoverEffect items={filteredItems} />
       ) : (
         <div className="text-center text-neutral-500">No companies found.</div>
       )}
