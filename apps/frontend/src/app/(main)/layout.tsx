@@ -108,7 +108,7 @@ export default function RootLayout({
         />
       </head>
       <Providers>
-        <Column as="body" background="page" fillWidth margin="0" padding="0">
+        <Column as="body" background="page" fillWidth fillHeight margin="0" padding="0">
           <Background
             position="absolute"
             mask={{

@@ -25,6 +25,19 @@ interface Company {
   documentsCount?: number;
 }
 
+// Gradient backgrounds for cards
+const gradientBackgrounds = [
+  "from-blue-500/10 to-purple-500/10",
+  "from-emerald-500/10 to-teal-500/10",
+  "from-orange-500/10 to-red-500/10",
+  "from-pink-500/10 to-rose-500/10",
+  "from-indigo-500/10 to-blue-500/10",
+  "from-green-500/10 to-emerald-500/10",
+  "from-yellow-500/10 to-orange-500/10",
+  "from-purple-500/10 to-pink-500/10",
+  "from-cyan-500/10 to-blue-500/10"
+];
+
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,15 +75,28 @@ export default function CompaniesPage() {
 
   if (loading) {
     return (
-      <Column fillWidth className="min-h-screen" horizontal="center" align="center">
+      <Column fillWidth className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100" horizontal="center" align="center">
         <Column maxWidth="xl" padding="xl" horizontal="center">
-          <Column gap="l" horizontal="center" align="center">
-            <Icon name="loading" size="xl" onBackground="brand-strong" />
-            <Heading variant="heading-strong-l">Loading Companies...</Heading>
-            <Text variant="body-default-m" onBackground="neutral-weak">
-              Fetching our database of analyzed companies
-            </Text>
-          </Column>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <Column gap="l" horizontal="center" align="center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
+                <Icon name="loading" size="xl" onBackground="brand-strong" />
+              </motion.div>
+              <Heading variant="heading-strong-l" className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Loading Companies...
+              </Heading>
+              <Text variant="body-default-m" onBackground="neutral-weak">
+                Fetching our database of analyzed companies
+              </Text>
+            </Column>
+          </motion.div>
         </Column>
       </Column>
     );
@@ -78,45 +104,79 @@ export default function CompaniesPage() {
 
   if (error) {
     return (
-      <Column fillWidth className="min-h-screen" horizontal="center" align="center">
+      <Column fillWidth className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50" horizontal="center" align="center">
         <Column maxWidth="xl" padding="xl" horizontal="center">
-          <Column gap="l" horizontal="center" align="center">
-            <Icon name="alert" size="xl" onBackground="brand-strong" />
-            <Heading variant="heading-strong-l">Error Loading Companies</Heading>
-            <Text variant="body-default-m" onBackground="neutral-weak">
-              {error}
-            </Text>
-            <Button
-              size="m"
-              weight="strong"
-              onClick={() => window.location.reload()}
-            >
-              Try Again
-            </Button>
-          </Column>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <Column gap="l" horizontal="center" align="center">
+              <Icon name="alert" size="xl" onBackground="brand-strong" />
+              <Heading variant="heading-strong-l">Error Loading Companies</Heading>
+              <Text variant="body-default-m" onBackground="neutral-weak">
+                {error}
+              </Text>
+              <Button
+                size="m"
+                weight="strong"
+                onClick={() => window.location.reload()}
+              >
+                Try Again
+              </Button>
+            </Column>
+          </motion.div>
         </Column>
       </Column>
     );
   }
 
   return (
-    <Column fillWidth className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200">
+    <Column fillWidth className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
+          animate={{
+            x: [0, 100, 0],
+            y: [0, -50, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl"
+          animate={{
+            x: [0, -100, 0],
+            y: [0, 50, 0],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+      </div>
+
       {/* Header Section */}
-      <Column maxWidth="xl" padding="l" horizontal="center">
+      <Column maxWidth="xl" padding="l" horizontal="center" className="relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
           <Column horizontal="center" gap="l" align="center">
-            <Heading variant="display-strong-xl">
+            <Heading variant="display-strong-xl" className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
               Search Companies
             </Heading>
             <Text
               variant="heading-default-l"
               onBackground="neutral-weak"
               wrap="balance"
-              className="max-w-2xl"
+              className="max-w-2xl text-center"
             >
               Browse thousands of companies and analyze their legal documents with AI
             </Text>
@@ -125,25 +185,30 @@ export default function CompaniesPage() {
       </Column>
 
       {/* Search Section */}
-      <Column maxWidth="xl" horizontal="center">
+      <Column maxWidth="xl" horizontal="center" className="relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="w-full"
         >
           <Row
             vertical="center"
-            className="max-w-4xl w-full bg-white rounded-2xl p-2 shadow-lg border border-gray-100"
+            horizontal="center"
+            align="center"
+            width="l"
           >
-            <Icon name="search" size="l" onBackground="neutral-weak" className="ml-4" />
+            <Icon
+              name="search" size="l"
+              onBackground="neutral-weak"
+              className="ml-4"
+            />
             <Input
               id="search-companies"
               type="text"
               placeholder="Search companies by name, description, or industry..."
               value={searchTerm}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-              className="flex-1 py-5 px-4 border-none text-lg outline-none bg-transparent font-medium"
+              className="flex-1 py-5 px-4 border-none text-lg outline-none bg-transparent font-medium w-full"
             />
             {searchTerm && (
               <Button
@@ -160,7 +225,7 @@ export default function CompaniesPage() {
       </Column>
 
       {/* Companies Grid */}
-      <Column maxWidth="xl" padding="l" horizontal="center">
+      <Column paddingY="l" horizontal="center" className="relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -168,19 +233,25 @@ export default function CompaniesPage() {
         >
           <Column gap="l">
             <Row horizontal="space-between" align="center">
-              <Text variant="heading-strong-m">
+              <Text variant="heading-strong-m" className="bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
                 {filteredCompanies.length} Companies Found
               </Text>
             </Row>
 
             {filteredCompanies.length === 0 ? (
-              <Column gap="m" horizontal="center" align="center" padding="xl">
-                <Icon name="search" size="xl" onBackground="neutral-weak" />
-                <Heading variant="heading-strong-m">No companies found</Heading>
-                <Text variant="body-default-m" onBackground="neutral-weak">
-                  Try adjusting your search terms
-                </Text>
-              </Column>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+              >
+                <Column gap="m" horizontal="center" align="center" padding="xl">
+                  <Icon name="search" size="xl" onBackground="neutral-weak" />
+                  <Heading variant="heading-strong-m">No companies found</Heading>
+                  <Text variant="body-default-m" onBackground="neutral-weak">
+                    Try adjusting your search terms
+                  </Text>
+                </Column>
+              </motion.div>
             ) : (
               <Grid
                 columns={3}
@@ -189,23 +260,46 @@ export default function CompaniesPage() {
                 {filteredCompanies.map((company, index) => (
                   <motion.div
                     key={company.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.05 }}
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{
+                      duration: 0.6,
+                      delay: index * 0.1,
+                      ease: "easeOut"
+                    }}
                     whileHover={{
-                      y: -8,
-                      transition: { duration: 0.2 }
+                      y: -12,
+                      scale: 1.02,
+                      transition: { duration: 0.3, ease: "easeOut" }
+                    }}
+                    whileTap={{
+                      scale: 0.98,
+                      transition: { duration: 0.1 }
                     }}
                   >
                     <Card
-                      padding="l"
+                      paddingX="xl"
+                      paddingY="l"
                       radius="l"
-                      className="bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group h-64 w-full"
+                      vertical="center"
+                      className={`bg-gradient-to-br ${gradientBackgrounds[index % gradientBackgrounds.length]} backdrop-blur-sm border border-white/30 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer group h-72 w-full relative overflow-hidden`}
                       onClick={() => window.location.href = `/companies/${company.slug}`}
                     >
-                      <Column gap="m" className="h-full">
-                        <Row horizontal="space-between" align="center" className="flex-shrink-0">
-                          <Heading variant="heading-strong-m" className="text-slate-800 group-hover:text-blue-600 transition-colors duration-300 line-clamp-2">
+                      {/* Animated background overlay */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                        initial={false}
+                      />
+
+                      {/* Shimmer effect */}
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
+                        initial={false}
+                      />
+
+                      <Column gap="m" vertical="center" className="h-full relative z-10">
+                        <Row horizontal="space-between" align="center" vertical="center" className="flex-shrink-0">
+                          <Heading variant="heading-strong-m" className="text-slate-800 group-hover:text-blue-600 transition-colors duration-300 line-clamp-2 font-bold">
                             {company.name}
                           </Heading>
                           <Row gap="s" align="center" className="flex-shrink-0">
@@ -218,15 +312,22 @@ export default function CompaniesPage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110"
                               />
                             )}
-                            <Icon
-                              name="arrow-right"
-                              size="s"
-                              onBackground="neutral-weak"
-                              className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300"
-                            />
+                            <motion.div
+                              initial={false}
+                              animate={{ x: 0 }}
+                              whileHover={{ x: 5 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <Icon
+                                name="arrow-right"
+                                size="s"
+                                onBackground="neutral-weak"
+                                className="opacity-0 group-hover:opacity-100 transition-all duration-300"
+                              />
+                            </motion.div>
                           </Row>
                         </Row>
 
@@ -244,24 +345,34 @@ export default function CompaniesPage() {
 
                         <Row gap="m" wrap className="flex-shrink-0">
                           {company.industry && (
-                            <Badge
-                              textVariant="label-default-s"
-                              onBackground="neutral-medium"
-                              border="neutral-alpha-medium"
-                              className="bg-slate-100 text-slate-700 border border-slate-200 group-hover:bg-slate-200 transition-colors duration-300"
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              transition={{ duration: 0.2 }}
                             >
-                              {company.industry}
-                            </Badge>
+                              <Badge
+                                textVariant="label-default-s"
+                                onBackground="neutral-medium"
+                                border="neutral-alpha-medium"
+                                className="bg-white/60 backdrop-blur-sm text-slate-700 border border-white/40 group-hover:bg-white/80 transition-all duration-300 font-medium"
+                              >
+                                {company.industry}
+                              </Badge>
+                            </motion.div>
                           )}
                           {company.documentsCount && (
-                            <Badge
-                              textVariant="label-default-s"
-                              onBackground="brand-medium"
-                              border="brand-alpha-medium"
-                              className="bg-blue-100 text-blue-700 border border-blue-200 group-hover:bg-blue-200 transition-colors duration-300"
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              transition={{ duration: 0.2 }}
                             >
-                              {company.documentsCount} documents
-                            </Badge>
+                              <Badge
+                                textVariant="label-default-s"
+                                onBackground="brand-medium"
+                                border="brand-alpha-medium"
+                                className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm text-blue-700 border border-blue-200/50 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300 font-medium"
+                              >
+                                {company.documentsCount} documents
+                              </Badge>
+                            </motion.div>
                           )}
                         </Row>
                       </Column>
