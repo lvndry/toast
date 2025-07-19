@@ -21,7 +21,7 @@ export function Header() {
         <Image
           src="/toastai-no-bg.png"
           alt="ToastAI Logo"
-          width={70}
+          width={65}
           height={60}
           objectFit="contain"
           onError={(e) => {
@@ -69,7 +69,7 @@ export function Header() {
         <Button
           size="m"
           weight="strong"
-          href="/"
+          href="/companies"
         >
           Get Started
         </Button>

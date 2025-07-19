@@ -15,7 +15,6 @@ import { motion } from "motion/react";
 import {
   FiBookOpen,
   FiShield,
-  FiStar,
   FiZap
 } from "react-icons/fi";
 
@@ -23,8 +22,8 @@ export default function Home() {
   return (
     <Column fillWidth style={{ minHeight: "100vh" }}>
       {/* Hero Section */}
-      <Column maxWidth="xl" padding="xl" horizontal="center">
-        <Column horizontal="center" gap="xl" paddingY="l" align="center">
+      <Column maxWidth="xl" padding="l" horizontal="center">
+        <Column horizontal="center" align="center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -80,13 +79,13 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <Row gap="m" wrap horizontal="center">
+            <Row gap="m" wrap horizontal="center" marginTop="l">
               <Button
                 size="l"
                 weight="strong"
                 prefixIcon="play"
                 arrowIcon
-                href="#demo"
+                href="/companies"
               >
                 Try Demo
               </Button>
@@ -101,7 +100,7 @@ export default function Home() {
             </Row>
           </motion.div>
 
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.8 }}
@@ -119,7 +118,7 @@ export default function Home() {
                 4.9/5 rating
               </Text>
             </Row>
-          </motion.div>
+          </motion.div> */}
         </Column>
       </Column>
 
@@ -259,7 +258,7 @@ export default function Home() {
       </Column>
 
       {/* Social Proof Section */}
-      <Column maxWidth="xl" padding="xl" horizontal="center">
+      {/* <Column maxWidth="xl" padding="xl" horizontal="center">
         <Column gap="xl" paddingY="l">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -325,7 +324,7 @@ export default function Home() {
             ))}
           </Row>
         </Column>
-      </Column>
+      </Column> */}
 
       {/* CTA Section */}
       <Column maxWidth="xl" padding="xl" horizontal="center">
@@ -353,7 +352,7 @@ export default function Home() {
                   weight="strong"
                   prefixIcon="play"
                   arrowIcon
-                  href="#demo"
+                  href="/companies"
                 >
                   Try Free Demo
                 </Button>
