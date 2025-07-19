@@ -5,8 +5,10 @@ import {
   Button,
   Card,
   Column,
+  Grid,
   Heading,
   Icon,
+  Input,
   Row,
   Text
 } from "@once-ui-system/core";
@@ -16,6 +18,7 @@ import { useEffect, useState } from "react";
 interface Company {
   id: string;
   name: string;
+  slug: string;
   description?: string;
   website?: string;
   industry?: string;
@@ -59,7 +62,7 @@ export default function CompaniesPage() {
 
   if (loading) {
     return (
-      <Column fillWidth style={{ minHeight: "100vh" }} horizontal="center" align="center">
+      <Column fillWidth className="min-h-screen" horizontal="center" align="center">
         <Column maxWidth="xl" padding="xl" horizontal="center">
           <Column gap="l" horizontal="center" align="center">
             <Icon name="loading" size="xl" onBackground="brand-strong" />
@@ -75,7 +78,7 @@ export default function CompaniesPage() {
 
   if (error) {
     return (
-      <Column fillWidth style={{ minHeight: "100vh" }} horizontal="center" align="center">
+      <Column fillWidth className="min-h-screen" horizontal="center" align="center">
         <Column maxWidth="xl" padding="xl" horizontal="center">
           <Column gap="l" horizontal="center" align="center">
             <Icon name="alert" size="xl" onBackground="brand-strong" />
@@ -97,7 +100,7 @@ export default function CompaniesPage() {
   }
 
   return (
-    <Column fillWidth style={{ minHeight: "100vh" }}>
+    <Column fillWidth className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200">
       {/* Header Section */}
       <Column maxWidth="xl" padding="l" horizontal="center">
         <motion.div
@@ -113,7 +116,7 @@ export default function CompaniesPage() {
               variant="heading-default-l"
               onBackground="neutral-weak"
               wrap="balance"
-              style={{ maxWidth: "600px" }}
+              className="max-w-2xl"
             >
               Browse thousands of companies and analyze their legal documents with AI
             </Text>
@@ -122,29 +125,36 @@ export default function CompaniesPage() {
       </Column>
 
       {/* Search Section */}
-      <Column maxWidth="xl" padding="l" horizontal="center">
+      <Column maxWidth="xl" horizontal="center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
+          className="w-full"
         >
-          <Row gap="m" align="center" style={{ maxWidth: "500px", width: "100%" }}>
-            <Icon name="search" size="m" onBackground="neutral-weak" />
-            <input
+          <Row
+            vertical="center"
+            className="max-w-4xl w-full bg-white rounded-2xl p-2 shadow-lg border border-gray-100"
+          >
+            <Icon name="search" size="l" onBackground="neutral-weak" className="ml-4" />
+            <Input
+              id="search-companies"
               type="text"
               placeholder="Search companies by name, description, or industry..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                flex: 1,
-                padding: "12px 16px",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-                fontSize: "16px",
-                outline: "none",
-                backgroundColor: "white"
-              }}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              className="flex-1 py-5 px-4 border-none text-lg outline-none bg-transparent font-medium"
             />
+            {searchTerm && (
+              <Button
+                size="s"
+                variant="secondary"
+                onClick={() => setSearchTerm("")}
+                className="mr-2"
+              >
+                Clear
+              </Button>
+            )}
           </Row>
         </motion.div>
       </Column>
@@ -161,15 +171,6 @@ export default function CompaniesPage() {
               <Text variant="heading-strong-m">
                 {filteredCompanies.length} Companies Found
               </Text>
-              {searchTerm && (
-                <Button
-                  size="s"
-                  variant="secondary"
-                  onClick={() => setSearchTerm("")}
-                >
-                  Clear Search
-                </Button>
-              )}
             </Row>
 
             {filteredCompanies.length === 0 ? (
@@ -181,43 +182,73 @@ export default function CompaniesPage() {
                 </Text>
               </Column>
             ) : (
-              <Row gap="l" wrap horizontal="center">
+              <Grid
+                columns={3}
+                gap="l"
+              >
                 {filteredCompanies.map((company, index) => (
                   <motion.div
                     key={company.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: index * 0.05 }}
-                    style={{ flex: "1", minWidth: "300px", maxWidth: "400px" }}
+                    whileHover={{
+                      y: -8,
+                      transition: { duration: 0.2 }
+                    }}
                   >
-                    <Card padding="l" style={{ height: "100%" }}>
-                      <Column gap="m">
-                        <Row horizontal="space-between" align="center">
-                          <Heading variant="heading-strong-m">{company.name}</Heading>
-                          {company.website && (
-                            <Button
+                    <Card
+                      padding="l"
+                      radius="l"
+                      className="bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group h-64 w-full"
+                      onClick={() => window.location.href = `/companies/${company.slug}`}
+                    >
+                      <Column gap="m" className="h-full">
+                        <Row horizontal="space-between" align="center" className="flex-shrink-0">
+                          <Heading variant="heading-strong-m" className="text-slate-800 group-hover:text-blue-600 transition-colors duration-300 line-clamp-2">
+                            {company.name}
+                          </Heading>
+                          <Row gap="s" align="center" className="flex-shrink-0">
+                            {company.website && (
+                              <Button
+                                size="s"
+                                variant="secondary"
+                                prefixIcon="external-link"
+                                href={company.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                              />
+                            )}
+                            <Icon
+                              name="arrow-right"
                               size="s"
-                              variant="primary"
-                              prefixIcon="external-link"
-                              href={company.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              onBackground="neutral-weak"
+                              className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300"
                             />
-                          )}
+                          </Row>
                         </Row>
 
-                        {company.description && (
-                          <Text variant="body-default-m" onBackground="neutral-weak">
-                            {company.description}
-                          </Text>
-                        )}
+                        <div className="flex-1 min-h-0">
+                          {company.description && (
+                            <Text
+                              variant="body-default-m"
+                              onBackground="neutral-weak"
+                              className="leading-relaxed text-slate-600 group-hover:text-slate-700 transition-colors duration-300 line-clamp-3"
+                            >
+                              {company.description}
+                            </Text>
+                          )}
+                        </div>
 
-                        <Row gap="m" wrap>
+                        <Row gap="m" wrap className="flex-shrink-0">
                           {company.industry && (
                             <Badge
                               textVariant="label-default-s"
                               onBackground="neutral-medium"
                               border="neutral-alpha-medium"
+                              className="bg-slate-100 text-slate-700 border border-slate-200 group-hover:bg-slate-200 transition-colors duration-300"
                             >
                               {company.industry}
                             </Badge>
@@ -227,26 +258,17 @@ export default function CompaniesPage() {
                               textVariant="label-default-s"
                               onBackground="brand-medium"
                               border="brand-alpha-medium"
+                              className="bg-blue-100 text-blue-700 border border-blue-200 group-hover:bg-blue-200 transition-colors duration-300"
                             >
                               {company.documentsCount} documents
                             </Badge>
                           )}
                         </Row>
-
-                        <Button
-                          size="m"
-                          weight="strong"
-                          prefixIcon="search"
-                          href={`/companies/${company.id}`}
-                          style={{ marginTop: "auto" }}
-                        >
-                          Analyze Documents
-                        </Button>
                       </Column>
                     </Card>
                   </motion.div>
                 ))}
-              </Row>
+              </Grid>
             )}
           </Column>
         </motion.div>

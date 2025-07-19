@@ -1,9 +1,8 @@
 // IMPORTANT: Replace with your own domain address - it's used for SEO in meta tags and schema
-const baseURL = "https://demo.once-ui.com";
+const baseURL = "https://toast.ai";
 
 // Import and set font for each variant
-import { Geist } from "next/font/google";
-import { Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 
 const heading = Geist({
   variable: "--font-heading",
@@ -109,13 +108,13 @@ const effects = {
 const meta = {
   home: {
     path: "/",
-    title: "Once UI for Next.js",
+    title: "Toast AI",
     description:
-      "An open-source design system and component library for Next.js that emphasizes easy styling and accessibility in UI development.",
+      "Terms of services made easy.",
     image: "/images/og/home.jpg",
-    canonical: "https://once-ui.com",
+    canonical: "https://toast.ai",
     robots: "index,follow",
-    alternates: [{ href: "https://once-ui.com", hrefLang: "en" }],
+    alternates: [{ href: "https://toast.ai", hrefLang: "en" }],
   },
   // add more routes and reference them in page.tsx
 };
@@ -124,16 +123,10 @@ const meta = {
 const schema = {
   logo: "",
   type: "Organization",
-  name: "Once UI",
+  name: "Toast AI",
   description: meta.home.description,
-  email: "lorant@once-ui.com",
+  email: "toast@toast.ai",
 };
 
-// social links
-const social = {
-  twitter: "https://www.twitter.com/_onceui",
-  linkedin: "https://www.linkedin.com/company/once-ui/",
-  discord: "https://discord.com/invite/5EyAQ4eNdS",
-};
+export { baseURL, dataStyle, effects, fonts, meta, schema, style };
 
-export { baseURL, fonts, style, meta, schema, social, effects, dataStyle };
