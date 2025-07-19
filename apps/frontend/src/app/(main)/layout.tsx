@@ -1,12 +1,13 @@
+import '@/resources/custom.css';
 import '@once-ui-system/core/css/styles.css';
 import '@once-ui-system/core/css/tokens.css';
-import '@/resources/custom.css'
 
 import classNames from "classnames";
 
-import { baseURL, meta, fonts, effects, style, dataStyle } from "@/resources/once-ui.config";
-import { Meta, Schema,  Column, Flex, opacity, SpacingToken, Background} from "@once-ui-system/core";
+import { Header } from '@/components/Header';
 import { Providers } from '@/components/Providers';
+import { baseURL, dataStyle, effects, fonts, meta, style } from "@/resources/once-ui.config";
+import { Background, Column, Flex, Meta, opacity, Schema, SpacingToken } from "@once-ui-system/core";
 
 export async function generateMetadata() {
   return Meta.generate({
@@ -54,27 +55,27 @@ export default function RootLayout({
               (function() {
                 try {
                   const root = document.documentElement;
-                  
+
                   // Set defaults from config
                   const config = ${JSON.stringify({
-                    theme: style.theme,
-                    brand: style.brand,
-                    accent: style.accent,
-                    neutral: style.neutral,
-                    solid: style.solid,
-                    'solid-style': style.solidStyle,
-                    border: style.border,
-                    surface: style.surface,
-                    transition: style.transition,
-                    scaling: style.scaling,
-                    'viz-style': dataStyle.variant,
-                  })};
-                  
+              theme: style.theme,
+              brand: style.brand,
+              accent: style.accent,
+              neutral: style.neutral,
+              solid: style.solid,
+              'solid-style': style.solidStyle,
+              border: style.border,
+              surface: style.surface,
+              transition: style.transition,
+              scaling: style.scaling,
+              'viz-style': dataStyle.variant,
+            })};
+
                   // Apply default values
                   Object.entries(config).forEach(([key, value]) => {
                     root.setAttribute('data-' + key, value);
                   });
-                  
+
                   // Resolve theme
                   const resolveTheme = (themeValue) => {
                     if (!themeValue || themeValue === 'system') {
@@ -82,13 +83,13 @@ export default function RootLayout({
                     }
                     return themeValue;
                   };
-                  
+
                   // Apply saved theme or use config default
                   const savedTheme = localStorage.getItem('data-theme');
                   // Only override with system preference if explicitly set to 'system'
                   const resolvedTheme = savedTheme ? resolveTheme(savedTheme) : config.theme === 'system' ? resolveTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : config.theme;
                   root.setAttribute('data-theme', resolvedTheme);
-                  
+
                   // Apply any saved style overrides
                   const styleKeys = Object.keys(config);
                   styleKeys.forEach(key => {
@@ -149,6 +150,7 @@ export default function RootLayout({
               color: effects.lines.color,
             }}
           />
+          <Header />
           {children}
         </Column>
       </Providers>
