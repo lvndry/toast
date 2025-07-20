@@ -48,7 +48,6 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
         const data = await response.json();
         setCompanyMeta(data);
 
-        // Add the meta summary as the first assistant message
         setMessages([
           {
             id: "meta-summary",
@@ -230,7 +229,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
           </div>
 
           {/* Chat Container - Scrollable content */}
-          <div className="max-w-4xl w-full px-12 pb-32">
+          <div className="max-w-5xl mx-auto w-full pb-36">
             <ChatContainer
               messages={messages}
               loading={loading}

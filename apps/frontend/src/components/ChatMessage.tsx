@@ -16,35 +16,44 @@ export function ChatMessage({ id, content, role, timestamp }: ChatMessageProps) 
   return (
     <motion.div
       key={id}
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={`flex ${role === "user" ? "justify-end" : "justify-start"}`}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className={`flex ${role === "user" ? "justify-end" : "justify-start"} mb-6`}
     >
       <div
-        className={`max-w-[80%] rounded-2xl p-4 ${role === "user"
-          ? "bg-blue-600 text-white"
-          : "bg-gray-100 text-gray-900"
+        className={`rounded-xl px-12 py-8 ${role === "user"
+          ? "bg-neutral-900 text-white border border-neutral-800"
+          : "bg-white border border-neutral-200 text-neutral-900 shadow-sm"
           }`}
       >
-        <div className={`prose ${role === "user" ? "prose-invert" : "prose-gray"
-          } max-w-none`}>
+        <div className={`prose ${role === "user" ? "prose-invert" : "prose-neutral"
+          } max-w-none prose-md`}>
           <ReactMarkdown
             components={{
-              p: ({ children }) => <Text variant="body-default-m">{children}</Text>,
-              h1: ({ children }) => <Heading variant="heading-strong-l">{children}</Heading>,
-              h2: ({ children }) => <Heading variant="heading-strong-m">{children}</Heading>,
-              h3: ({ children }) => <Heading variant="heading-strong-s">{children}</Heading>,
+              p: ({ children }) => <Text variant="body-default-s" className="mb-2 last:mb-0">{children}</Text>,
+              h1: ({ children }) => <Heading variant="heading-strong-m" className="mb-3">{children}</Heading>,
+              h2: ({ children }) => <Heading variant="heading-strong-s" className="mb-2">{children}</Heading>,
+              h3: ({ children }) => <Heading variant="heading-strong-s" className="mb-2">{children}</Heading>,
               code: ({ children }) => (
-                <code className="bg-gray-200 text-gray-800 px-2 py-1 rounded text-sm select-text">
+                <code className={`${role === "user"
+                  ? "bg-neutral-800 text-neutral-200"
+                  : "bg-neutral-100 text-neutral-800"
+                  } px-1.5 py-0.5 rounded text-xs font-mono select-text`}>
                   {children}
                 </code>
               ),
               pre: ({ children }) => (
-                <pre className="bg-gray-200 text-gray-800 p-4 rounded-lg overflow-x-auto select-text">
+                <pre className={`${role === "user"
+                  ? "bg-neutral-800 text-neutral-200 border-neutral-700"
+                  : "bg-neutral-50 text-neutral-800 border-neutral-200"
+                  } p-3 rounded-lg overflow-x-auto select-text border text-sm font-mono`}>
                   {children}
                 </pre>
               ),
+              ul: ({ children }) => <ul className="space-y-1">{children}</ul>,
+              ol: ({ children }) => <ol className="space-y-1">{children}</ol>,
+              li: ({ children }) => <li className="text-sm">{children}</li>,
             }}
           >
             {content}
