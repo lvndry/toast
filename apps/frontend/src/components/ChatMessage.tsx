@@ -3,6 +3,7 @@ import {
   Text
 } from "@once-ui-system/core";
 import { motion } from "motion/react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 
 interface ChatMessageProps {
@@ -12,7 +13,7 @@ interface ChatMessageProps {
   timestamp: Date;
 }
 
-export function ChatMessage({ id, content, role, timestamp }: ChatMessageProps) {
+export function ChatMessage({ id, content, role }: ChatMessageProps) {
   return (
     <motion.div
       key={id}
@@ -34,7 +35,8 @@ export function ChatMessage({ id, content, role, timestamp }: ChatMessageProps) 
               p: ({ children }) => <Text variant="body-default-s" className="mb-2 last:mb-0">{children}</Text>,
               h1: ({ children }) => <Heading variant="heading-strong-m" className="mb-3">{children}</Heading>,
               h2: ({ children }) => <Heading variant="heading-strong-s" className="mb-2">{children}</Heading>,
-              h3: ({ children }) => <Heading variant="heading-strong-s" className="mb-2">{children}</Heading>,
+              h3: ({ children }) => <Heading variant="heading-strong-xs" className="mb-2">{children}</Heading>,
+              a: ({ children, href }) => href ? <Link href={href} className="text-blue-500">{children}</Link> : children,
               code: ({ children }) => (
                 <code className={`${role === "user"
                   ? "bg-neutral-800 text-neutral-200"

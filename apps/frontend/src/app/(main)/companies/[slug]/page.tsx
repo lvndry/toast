@@ -155,7 +155,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
     <div className="bg-gray-50 min-h-screen">
       {/* Loading Animation */}
       {loading && !companyMeta && (
-        <div className="w-full flex justify-center items-center bg-gray-50 mt-8">
+        <div className="w-full min-h-screen h-full flex justify-center items-center">
           <div className="flex flex-col items-center gap-6">
             {/* Simple Spinner */}
             <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>

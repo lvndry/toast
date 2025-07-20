@@ -229,7 +229,7 @@ export default function CompaniesPage() {
                 columns={3}
                 gap="l"
               >
-                {filteredCompanies.map((company, index) => (
+                {filteredCompanies.sort((a, b) => a.name.localeCompare(b.name)).map((company, index) => (
                   <motion.div
                     key={company.id}
                     initial={{ opacity: 0, y: 20, scale: 0.9 }}
