@@ -322,7 +322,7 @@ export default function CompaniesPage() {
                               transition={{ duration: 0.2 }}
                             >
                               <Icon
-                                name="arrow-right"
+                                name="arrowRight"
                                 size="s"
                                 onBackground="neutral-weak"
                                 className="opacity-0 group-hover:opacity-100 transition-all duration-300"

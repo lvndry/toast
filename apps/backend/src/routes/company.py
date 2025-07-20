@@ -23,13 +23,15 @@ async def get_company(slug: str):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.get("/meta-summary/{company_id}")
-async def get_company_meta_summary(company_id: str):
+@router.get("/meta-summary/{company_slug}")
+async def get_company_meta_summary(company_slug: str):
     """Get a meta-summary of all documents for a company."""
     # First verify the company exists
     try:
-        company = await get_company_by_id(company_id)
-        meta_summary = await generate_company_meta_summary(company_slug=company.slug)
+        company = await get_company_by_slug(company_slug)
+        if not company:
+            raise ValueError(f"Company with slug {company_slug} not found")
+        meta_summary = await generate_company_meta_summary(company_slug=company_slug)
         return meta_summary.model_dump()
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

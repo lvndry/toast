@@ -3,17 +3,14 @@
 import {
   Badge,
   Button,
-  Card,
-  Column,
   Heading,
   Icon,
-  Input,
-  Row,
   Text
 } from "@once-ui-system/core";
 import { motion } from "motion/react";
-import { use, useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { use, useEffect, useState } from "react";
+import { ChatContainer } from "../../../../components/ChatContainer";
+import { ChatInput } from "../../../../components/ChatInput";
 
 interface Message {
   id: string;
@@ -37,15 +34,6 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
   const [loading, setLoading] = useState(false);
   const [companyMeta, setCompanyMeta] = useState<CompanyMetaSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   useEffect(() => {
     async function fetchCompanyMeta() {
@@ -111,10 +99,11 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
       }
 
       const data = await response.json();
+      console.log("data", data);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.response || data.message || "Sorry, I couldn't process your request.",
+        content: data.answer || "Sorry, I couldn't process your request.",
         role: "assistant",
         timestamp: new Date()
       };
@@ -143,9 +132,9 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
 
   if (error) {
     return (
-      <Column fillWidth className="min-h-screen" horizontal="center" align="center">
-        <Column maxWidth="xl" padding="xl" horizontal="center">
-          <Column gap="l" horizontal="center" align="center">
+      <div className="w-full min-h-screen flex justify-center items-center">
+        <div className="max-w-xl px-8">
+          <div className="flex flex-col gap-6 items-center">
             <Icon name="alert" size="xl" onBackground="brand-strong" />
             <Heading variant="heading-strong-l">Error Loading Company</Heading>
             <Text variant="body-default-m" onBackground="neutral-weak">
@@ -158,40 +147,75 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
             >
               Try Again
             </Button>
-          </Column>
-        </Column>
-      </Column>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Column fillWidth className="h-screen bg-gradient-to-br from-slate-50 to-slate-200">
-      {/* Header */}
-      <Column maxWidth="xl" padding="l" horizontal="center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full"
-        >
-          <Card padding="l" radius="l" className="bg-white border border-gray-100 shadow-sm">
-            <Row horizontal="space-between" align="center">
-              <Column gap="s">
-                <Heading variant="heading-strong-l">
-                  {companyMeta?.name || "Loading..."}
-                </Heading>
-                <Row gap="m" wrap>
-                  {companyMeta?.industry && (
+    <div className="h-screen bg-gray-50 flex flex-col">
+      {/* Loading Animation */}
+      {loading && !companyMeta && (
+        <div className="w-full h-full flex justify-center items-center bg-gray-50">
+          <div className="flex flex-col items-center gap-6">
+            {/* Spinning Icon */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+              className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center"
+            >
+              <Icon name="loading" size="l" onBackground="neutral-strong" />
+            </motion.div>
+
+            {/* Text */}
+            <div className="text-center">
+              <Heading variant="heading-strong-l">Loading...</Heading>
+              <Text variant="body-default-m" onBackground="neutral-weak" className="mt-2">
+                Preparing your conversation
+              </Text>
+            </div>
+
+            {/* Simple Dots */}
+            <div className="flex gap-2">
+              {[0, 1, 2].map((index) => (
+                <motion.div
+                  key={index}
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    delay: index * 0.2
+                  }}
+                  className="w-3 h-3 bg-blue-500 rounded-full"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Interface */}
+      {companyMeta && (
+        <div className="flex flex-col h-full">
+          {/* Company Header - Fixed at top */}
+          <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Heading variant="heading-strong-l">{companyMeta.name}</Heading>
+                  {companyMeta.industry && (
                     <Badge
                       textVariant="label-default-s"
                       onBackground="neutral-medium"
                       border="neutral-alpha-medium"
-                      className="bg-slate-100 text-slate-700 border border-slate-200"
                     >
                       {companyMeta.industry}
                     </Badge>
                   )}
-                  {companyMeta?.website && (
+                </div>
+                <div className="flex items-center gap-2">
+                  {companyMeta.website && (
                     <Button
                       size="s"
                       variant="secondary"
@@ -203,126 +227,42 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
                       Website
                     </Button>
                   )}
-                </Row>
-              </Column>
-              <Button
-                size="s"
-                variant="secondary"
-                prefixIcon="arrow-left"
-                onClick={() => window.history.back()}
-              >
-                Back
-              </Button>
-            </Row>
-          </Card>
-        </motion.div>
-      </Column>
-
-      {/* Chat Messages */}
-      <Column
-        fillWidth
-        className="flex-1 overflow-hidden"
-        maxWidth="xl"
-        horizontal="center"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="w-full h-full flex flex-col"
-        >
-          <Card
-            padding="l"
-            radius="l"
-            className="bg-white border border-gray-100 shadow-sm flex-1 flex flex-col overflow-hidden"
-          >
-            {/* Messages Container */}
-            <Column
-              className="flex-1 overflow-y-auto space-y-4 mb-4"
-              gap="m"
-            >
-              {messages.map((message) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-2xl p-4 ${message.role === "user"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-900"
-                      }`}
+                  <Button
+                    size="s"
+                    variant="secondary"
+                    prefixIcon="arrowLeft"
+                    onClick={() => window.history.back()}
                   >
-                    <div className={`prose ${message.role === "user" ? "prose-invert" : "prose-gray"
-                      } max-w-none`}>
-                      <ReactMarkdown
-                        components={{
-                          p: ({ children }) => <Text variant="body-default-m">{children}</Text>,
-                          h1: ({ children }) => <Heading variant="heading-strong-l">{children}</Heading>,
-                          h2: ({ children }) => <Heading variant="heading-strong-m">{children}</Heading>,
-                          h3: ({ children }) => <Heading variant="heading-strong-s">{children}</Heading>,
-                          code: ({ children }) => (
-                            <code className="bg-gray-200 text-gray-800 px-2 py-1 rounded text-sm">
-                              {children}
-                            </code>
-                          ),
-                          pre: ({ children }) => (
-                            <pre className="bg-gray-200 text-gray-800 p-4 rounded-lg overflow-x-auto">
-                              {children}
-                            </pre>
-                          ),
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-              {loading && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-start"
-                >
-                  <div className="bg-gray-100 text-gray-900 rounded-2xl p-4">
-                    <Row gap="s" align="center">
-                      <Icon name="loading" size="s" onBackground="neutral-weak" className="animate-spin" />
-                      <Text variant="body-default-m">Thinking...</Text>
-                    </Row>
-                  </div>
-                </motion.div>
-              )}
-              <div ref={messagesEndRef} />
-            </Column>
+                    Back
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
 
-            {/* Input Section */}
-            <Row gap="s" align="end">
-              <Input
-                id="chat-input"
-                type="text"
-                placeholder="Ask about this company..."
+          {/* Chat Container - Scrollable area */}
+          <div className="flex-1 overflow-hidden max-w-4xl mx-auto w-full p-4">
+            <ChatContainer
+              messages={messages}
+              loading={loading}
+            />
+          </div>
+
+          {/* Chat Input - Fixed at bottom */}
+          <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
+            <div className="max-w-4xl mx-auto">
+              <ChatInput
                 value={inputValue}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value)}
+                onChange={(e) => setInputValue(e.target.value)}
+                onSend={handleSendMessage}
                 onKeyPress={handleKeyPress}
-                className="flex-1"
                 disabled={loading}
+                placeholder="Ask me anything about this company..."
               />
-              <Button
-                size="m"
-                weight="strong"
-                prefixIcon="send"
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || loading}
-              >
-                Send
-              </Button>
-            </Row>
-          </Card>
-        </motion.div>
-      </Column>
-    </Column>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

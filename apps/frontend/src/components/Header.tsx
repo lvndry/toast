@@ -23,7 +23,7 @@ export function Header() {
           alt="ToastAI Logo"
           width={65}
           height={60}
-          objectFit="contain"
+          className="object-contain"
           onError={(e) => {
             // Fallback to emoji if PNG fails to load
             const target = e.target as HTMLImageElement;
@@ -32,19 +32,7 @@ export function Header() {
             if (fallback) fallback.style.display = 'flex';
           }}
         />
-        <div style={{
-          width: "32px",
-          height: "32px",
-          borderRadius: "4px",
-          background: "#F4A261",
-          display: "none",
-          alignItems: "center",
-          justifyContent: "center",
-          border: "2px solid #E76F51",
-          position: "absolute",
-          top: 0,
-          left: 0
-        }}>
+        <div className="w-8 h-8 rounded absolute top-0 left-0 bg-[#F4A261] border-2 border-[#E76F51] hidden items-center justify-center">
           <span style={{ fontSize: "16px" }}>🍞</span>
         </div>
       </Link>

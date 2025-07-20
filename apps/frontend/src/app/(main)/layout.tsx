@@ -33,6 +33,7 @@ export default function RootLayout({
       as="html"
       lang="en"
       fillWidth
+      fillHeight
       className={classNames(
         fonts.heading.variable,
         fonts.body.variable,
