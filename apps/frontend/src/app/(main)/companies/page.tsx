@@ -132,35 +132,7 @@ export default function CompaniesPage() {
   }
 
   return (
-    <Column fillWidth className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -50, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div
-          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl"
-          animate={{
-            x: [0, -100, 0],
-            y: [0, 50, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-      </div>
-
+    <Column fillWidth className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative">
       {/* Header Section */}
       <Column maxWidth="xl" padding="l" horizontal="center" className="relative z-10">
         <motion.div
@@ -195,7 +167,7 @@ export default function CompaniesPage() {
             vertical="center"
             horizontal="center"
             align="center"
-            width="l"
+            width="m"
           >
             <Icon
               name="search" size="l"
@@ -282,7 +254,7 @@ export default function CompaniesPage() {
                       paddingY="l"
                       radius="l"
                       vertical="center"
-                      className={`bg-gradient-to-br ${gradientBackgrounds[index % gradientBackgrounds.length]} backdrop-blur-sm border border-white/30 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer group h-72 w-full relative overflow-hidden`}
+                      className={`bg-gradient-to-br ${gradientBackgrounds[index % gradientBackgrounds.length]} backdrop-blur-sm border border-white/30 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer group h-72 w-full relative`}
                       onClick={() => window.location.href = `/companies/${company.slug}`}
                     >
                       {/* Animated background overlay */}

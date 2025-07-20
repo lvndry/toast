@@ -1,11 +1,11 @@
-import '@/resources/custom.css';
-import '@once-ui-system/core/css/styles.css';
-import '@once-ui-system/core/css/tokens.css';
+import "@/resources/custom.css";
+import "@once-ui-system/core/css/styles.css";
+import "@once-ui-system/core/css/tokens.css";
 
 import classNames from "classnames";
 
-import { Header } from '@/components/Header';
-import { Providers } from '@/components/Providers';
+import { Header } from "@/components/Header";
+import { Providers } from "@/components/Providers";
 import { baseURL, dataStyle, effects, fonts, meta, style } from "@/resources/once-ui.config";
 import { Background, Column, Flex, Meta, opacity, Schema, SpacingToken } from "@once-ui-system/core";
 
@@ -32,8 +32,6 @@ export default function RootLayout({
       suppressHydrationWarning
       as="html"
       lang="en"
-      fillWidth
-      fillHeight
       className={classNames(
         fonts.heading.variable,
         fonts.body.variable,

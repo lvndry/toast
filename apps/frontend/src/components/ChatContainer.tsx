@@ -30,33 +30,31 @@ export function ChatContainer({ messages, loading = false }: ChatContainerProps)
   }, [messages]);
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-y-auto space-y-4">
-        {messages.map((message) => (
-          <ChatMessage
-            key={message.id}
-            id={message.id}
-            content={message.content}
-            role={message.role}
-            timestamp={message.timestamp}
-          />
-        ))}
-        {loading && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-start"
-          >
-            <div className="bg-gray-100 text-gray-900 rounded-2xl p-4">
-              <div className="flex items-center gap-2">
-                <Icon name="loading" size="s" onBackground="neutral-weak" className="animate-spin" />
-                <Text variant="body-default-m">Thinking...</Text>
-              </div>
+    <div className="space-y-4">
+      {messages.map((message) => (
+        <ChatMessage
+          key={message.id}
+          id={message.id}
+          content={message.content}
+          role={message.role}
+          timestamp={message.timestamp}
+        />
+      ))}
+      {loading && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex justify-start"
+        >
+          <div className="bg-gray-100 text-gray-900 rounded-2xl p-4">
+            <div className="flex items-center gap-2">
+              <Icon name="loading" size="s" onBackground="neutral-weak" className="animate-spin" />
+              <Text variant="body-default-m">Thinking...</Text>
             </div>
-          </motion.div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+          </div>
+        </motion.div>
+      )}
+      <div ref={messagesEndRef} />
     </div>
   );
 }

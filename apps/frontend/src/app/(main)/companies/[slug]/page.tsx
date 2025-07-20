@@ -99,7 +99,6 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
       }
 
       const data = await response.json();
-      console.log("data", data);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -154,10 +153,10 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
+    <div className="bg-gray-50 min-h-screen">
       {/* Loading Animation */}
       {loading && !companyMeta && (
-        <div className="w-full h-full flex justify-center items-center bg-gray-50">
+        <div className="w-full flex justify-center items-center bg-gray-50">
           <div className="flex flex-col items-center gap-6">
             {/* Spinning Icon */}
             <motion.div
@@ -197,51 +196,47 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
 
       {/* Chat Interface */}
       {companyMeta && (
-        <div className="flex flex-col h-full">
-          {/* Company Header - Fixed at top */}
-          <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Heading variant="heading-strong-l">{companyMeta.name}</Heading>
-                  {companyMeta.industry && (
-                    <Badge
-                      textVariant="label-default-s"
-                      onBackground="neutral-medium"
-                      border="neutral-alpha-medium"
-                    >
-                      {companyMeta.industry}
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {companyMeta.website && (
-                    <Button
-                      size="s"
-                      variant="secondary"
-                      prefixIcon="external-link"
-                      href={companyMeta.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Website
-                    </Button>
-                  )}
-                  <Button
-                    size="s"
-                    variant="secondary"
-                    prefixIcon="arrowLeft"
-                    onClick={() => window.history.back()}
-                  >
-                    Back
-                  </Button>
-                </div>
-              </div>
+        <>
+          {/* Company Header */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <Heading variant="heading-strong-l">{companyMeta.name}</Heading>
+              {companyMeta.industry && (
+                <Badge
+                  textVariant="label-default-s"
+                  onBackground="neutral-medium"
+                  border="neutral-alpha-medium"
+                >
+                  {companyMeta.industry}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {companyMeta.website && (
+                <Button
+                  size="s"
+                  variant="secondary"
+                  prefixIcon="external-link"
+                  href={companyMeta.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Website
+                </Button>
+              )}
+              <Button
+                size="s"
+                variant="secondary"
+                prefixIcon="arrowLeft"
+                onClick={() => window.history.back()}
+              >
+                Back
+              </Button>
             </div>
           </div>
 
-          {/* Chat Container - Scrollable area */}
-          <div className="flex-1 overflow-hidden max-w-4xl mx-auto w-full p-4">
+          {/* Chat Container - Scrollable content */}
+          <div className="max-w-4xl mx-auto w-full p-4 pb-32">
             <ChatContainer
               messages={messages}
               loading={loading}
@@ -249,7 +244,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
           </div>
 
           {/* Chat Input - Fixed at bottom */}
-          <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
+          <div className="opacity-100 border-t border-gray-200 p-4 fixed bottom-0 left-0 right-0 z-10">
             <div className="max-w-4xl mx-auto">
               <ChatInput
                 value={inputValue}
@@ -261,7 +256,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
               />
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
