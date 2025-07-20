@@ -51,7 +51,7 @@ export default function CompaniesPage() {
         const response = await fetch('/api/companies');
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch companies: ${response.status}`);
+          throw new Error(`Failed to fetch companies: ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
@@ -242,12 +242,14 @@ export default function CompaniesPage() {
                     whileHover={{
                       y: -12,
                       scale: 1.02,
+                      zIndex: 10,
                       transition: { duration: 0.3, ease: "easeOut" }
                     }}
                     whileTap={{
                       scale: 0.98,
                       transition: { duration: 0.1 }
                     }}
+                    className="relative"
                   >
                     <Card
                       paddingX="xl"

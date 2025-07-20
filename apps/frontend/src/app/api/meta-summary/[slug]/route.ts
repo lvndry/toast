@@ -18,6 +18,7 @@ export async function GET(
       throw new Error(`Backend responded with status: ${response.status}`);
     }
 
+    console.log(response);
     const metaSummary = await response.json();
 
     // Return the meta summary with caching headers

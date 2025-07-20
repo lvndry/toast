@@ -21,7 +21,7 @@ export function ChatInput({
   placeholder = "Type your message..."
 }: ChatInputProps) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 items-center">
       <Input
         id="chat-input"
         type="text"

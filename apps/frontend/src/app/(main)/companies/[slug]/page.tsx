@@ -156,16 +156,10 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
     <div className="bg-gray-50 min-h-screen">
       {/* Loading Animation */}
       {loading && !companyMeta && (
-        <div className="w-full flex justify-center items-center bg-gray-50">
+        <div className="w-full flex justify-center items-center bg-gray-50 mt-8">
           <div className="flex flex-col items-center gap-6">
-            {/* Spinning Icon */}
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-              className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center"
-            >
-              <Icon name="loading" size="l" onBackground="neutral-strong" />
-            </motion.div>
+            {/* Simple Spinner */}
+            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
 
             {/* Text */}
             <div className="text-center">
@@ -236,7 +230,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
           </div>
 
           {/* Chat Container - Scrollable content */}
-          <div className="max-w-4xl mx-auto w-full p-4 pb-32">
+          <div className="max-w-4xl w-full px-12 pb-32">
             <ChatContainer
               messages={messages}
               loading={loading}
