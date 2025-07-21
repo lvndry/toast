@@ -1,15 +1,11 @@
 "use client";
 
 import {
-  Badge,
   Button,
   Card,
-  Column,
-  Grid,
   Heading,
   Icon,
   Input,
-  Row,
   Text
 } from "@once-ui-system/core";
 import { motion } from "motion/react";
@@ -75,14 +71,14 @@ export default function CompaniesPage() {
 
   if (loading) {
     return (
-      <Column fillWidth className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100" horizontal="center" align="center">
-        <Column maxWidth="xl" padding="xl" horizontal="center">
+      <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex justify-center items-center">
+        <div className="max-w-7xl px-8 py-8 flex justify-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <Column gap="l" horizontal="center" align="center">
+            <div className="flex flex-col gap-6 justify-center items-center text-center">
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -95,23 +91,23 @@ export default function CompaniesPage() {
               <Text variant="body-default-m" onBackground="neutral-weak">
                 Fetching our database of analyzed companies
               </Text>
-            </Column>
+            </div>
           </motion.div>
-        </Column>
-      </Column>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Column fillWidth className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50" horizontal="center" align="center">
-        <Column maxWidth="xl" padding="xl" horizontal="center">
+      <div className="w-full min-h-screen bg-gradient-to-br from-red-50 to-pink-50 flex justify-center items-center">
+        <div className="max-w-7xl px-8 py-8 flex justify-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Column gap="l" horizontal="center" align="center">
+            <div className="flex flex-col gap-6 justify-center items-center text-center">
               <Icon name="alert" size="xl" onBackground="brand-strong" />
               <Heading variant="heading-strong-l">Error Loading Companies</Heading>
               <Text variant="body-default-m" onBackground="neutral-weak">
@@ -124,23 +120,23 @@ export default function CompaniesPage() {
               >
                 Try Again
               </Button>
-            </Column>
+            </div>
           </motion.div>
-        </Column>
-      </Column>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Column fillWidth className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative">
+    <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative">
       {/* Header Section */}
-      <Column maxWidth="xl" padding="l" horizontal="center" className="relative z-10">
+      <div className="max-w-7xl mx-auto px-6 py-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <Column horizontal="center" gap="l" align="center">
+          <div className="flex flex-col justify-center gap-6 items-center text-center">
             <Heading variant="display-strong-xl" className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
               Search Companies
             </Heading>
@@ -152,23 +148,18 @@ export default function CompaniesPage() {
             >
               Browse thousands of companies and analyze their legal documents with AI
             </Text>
-          </Column>
+          </div>
         </motion.div>
-      </Column>
+      </div>
 
       {/* Search Section */}
-      <Column maxWidth="xl" horizontal="center" className="relative z-10">
+      <div className="max-w-7xl mx-auto flex justify-center relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <Row
-            vertical="center"
-            horizontal="center"
-            align="center"
-            width="m"
-          >
+          <div className="flex items-center justify-center w-96">
             <Icon
               name="search" size="l"
               onBackground="neutral-weak"
@@ -192,23 +183,23 @@ export default function CompaniesPage() {
                 Clear
               </Button>
             )}
-          </Row>
+          </div>
         </motion.div>
-      </Column>
+      </div>
 
       {/* Companies Grid */}
-      <Column paddingY="l" horizontal="center" className="relative z-10">
+      <div className="py-6 flex justify-center relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
         >
-          <Column gap="l">
-            <Row horizontal="space-between" align="center">
+          <div className="flex flex-col gap-6">
+            <div className="flex justify-between items-center">
               <Text variant="heading-strong-m" className="bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
                 {filteredCompanies.length} Companies Found
               </Text>
-            </Row>
+            </div>
 
             {filteredCompanies.length === 0 ? (
               <motion.div
@@ -216,19 +207,16 @@ export default function CompaniesPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6 }}
               >
-                <Column gap="m" horizontal="center" align="center" padding="xl">
+                <div className="flex flex-col gap-4 justify-center items-center p-8 text-center">
                   <Icon name="search" size="xl" onBackground="neutral-weak" />
                   <Heading variant="heading-strong-m">No companies found</Heading>
                   <Text variant="body-default-m" onBackground="neutral-weak">
                     Try adjusting your search terms
                   </Text>
-                </Column>
+                </div>
               </motion.div>
             ) : (
-              <Grid
-                columns={3}
-                gap="l"
-              >
+              <div className="grid grid-cols-3 gap-6">
                 {filteredCompanies.sort((a, b) => a.name.localeCompare(b.name)).map((company, index) => (
                   <motion.div
                     key={company.id}
@@ -253,10 +241,11 @@ export default function CompaniesPage() {
                   >
                     <Card
                       paddingX="xl"
-                      paddingY="l"
+                      paddingY="xl"
                       radius="l"
                       vertical="center"
-                      className={`bg-gradient-to-br ${gradientBackgrounds[index % gradientBackgrounds.length]} backdrop-blur-sm border border-white/30 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer group h-72 w-full relative`}
+                      horizontal="center"
+                      className={`bg-gradient-to-br ${gradientBackgrounds[index % gradientBackgrounds.length]} backdrop-blur-sm border border-white/30 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer group relative`}
                       onClick={() => window.location.href = `/companies/${company.slug}`}
                     >
                       {/* Animated background overlay */}
@@ -271,93 +260,29 @@ export default function CompaniesPage() {
                         initial={false}
                       />
 
-                      <Column gap="m" vertical="center" className="h-full relative z-10">
-                        <Row horizontal="space-between" align="center" vertical="center" className="flex-shrink-0">
-                          <Heading variant="heading-strong-m" className="text-slate-800 group-hover:text-blue-600 transition-colors duration-300 line-clamp-2 font-bold">
-                            {company.name}
-                          </Heading>
-                          <Row gap="s" align="center" className="flex-shrink-0">
-                            {company.website && (
-                              <Button
-                                size="s"
-                                variant="secondary"
-                                prefixIcon="external-link"
-                                href={company.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-                                className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110"
-                              />
-                            )}
-                            <motion.div
-                              initial={false}
-                              animate={{ x: 0 }}
-                              whileHover={{ x: 5 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <Icon
-                                name="arrowRight"
-                                size="s"
-                                onBackground="neutral-weak"
-                                className="opacity-0 group-hover:opacity-100 transition-all duration-300"
-                              />
-                            </motion.div>
-                          </Row>
-                        </Row>
+                      <div className="flex flex-col gap-4 justify-center items-center h-full z-10">
+                        <Heading variant="heading-strong-m" className="text-slate-800 group-hover:text-blue-600 transition-colors duration-300 line-clamp-2 font-bold">
+                          {company.name}
+                        </Heading>
 
-                        <div className="flex-1 min-h-0">
-                          {company.description && (
-                            <Text
-                              variant="body-default-m"
-                              onBackground="neutral-weak"
-                              className="leading-relaxed text-slate-600 group-hover:text-slate-700 transition-colors duration-300 line-clamp-3"
-                            >
-                              {company.description}
-                            </Text>
-                          )}
-                        </div>
-
-                        <Row gap="m" wrap className="flex-shrink-0">
-                          {company.industry && (
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <Badge
-                                textVariant="label-default-s"
-                                onBackground="neutral-medium"
-                                border="neutral-alpha-medium"
-                                className="bg-white/60 backdrop-blur-sm text-slate-700 border border-white/40 group-hover:bg-white/80 transition-all duration-300 font-medium"
-                              >
-                                {company.industry}
-                              </Badge>
-                            </motion.div>
-                          )}
-                          {company.documentsCount && (
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <Badge
-                                textVariant="label-default-s"
-                                onBackground="brand-medium"
-                                border="brand-alpha-medium"
-                                className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm text-blue-700 border border-blue-200/50 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300 font-medium"
-                              >
-                                {company.documentsCount} documents
-                              </Badge>
-                            </motion.div>
-                          )}
-                        </Row>
-                      </Column>
+                        {company.description && (
+                          <Text
+                            variant="body-default-m"
+                            onBackground="neutral-weak"
+                            className="leading-relaxed text-slate-600 group-hover:text-slate-700 transition-colors duration-300 line-clamp-3"
+                          >
+                            {company.description}
+                          </Text>
+                        )}
+                      </div>
                     </Card>
                   </motion.div>
                 ))}
-              </Grid>
+              </div>
             )}
-          </Column>
+          </div>
         </motion.div>
-      </Column>
-    </Column>
+      </div>
+    </div>
   );
 }
