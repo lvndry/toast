@@ -40,6 +40,8 @@ export default function CompaniesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const MotionCard = motion(Card);
+
   useEffect(() => {
     async function fetchCompanies() {
       try {
@@ -159,9 +161,10 @@ export default function CompaniesPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <div className="flex items-center justify-center w-96">
+          <div className="flex items-center justify-center w-3xl">
             <Icon
-              name="search" size="l"
+              name="search"
+              size="l"
               onBackground="neutral-weak"
               className="ml-4"
             />
@@ -227,26 +230,26 @@ export default function CompaniesPage() {
                       delay: index * 0.1,
                       ease: "easeOut"
                     }}
-                    whileHover={{
-                      y: -12,
-                      scale: 1.02,
-                      zIndex: 10,
-                      transition: { duration: 0.3, ease: "easeOut" }
-                    }}
-                    whileTap={{
-                      scale: 0.98,
-                      transition: { duration: 0.1 }
-                    }}
                     className="relative"
                   >
-                    <Card
+                    <MotionCard
                       paddingX="xl"
                       paddingY="xl"
                       radius="l"
                       vertical="center"
                       horizontal="center"
-                      className={`bg-gradient-to-br ${gradientBackgrounds[index % gradientBackgrounds.length]} backdrop-blur-sm border border-white/30 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer group relative`}
+                      className={`bg-gradient-to-br ${gradientBackgrounds[index % gradientBackgrounds.length]} backdrop-blur-sm border border-white/30 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer group relative w-80 h-64 flex flex-col justify-center items-center text-center overflow-hidden`}
                       onClick={() => window.location.href = `/companies/${company.slug}`}
+                      whileHover={{
+                        y: -12,
+                        scale: 1.02,
+                        zIndex: 10,
+                        transition: { duration: 0.3, ease: "easeOut" }
+                      }}
+                      whileTap={{
+                        scale: 0.98,
+                        transition: { duration: 0.1 }
+                      }}
                     >
                       {/* Animated background overlay */}
                       <motion.div
@@ -260,11 +263,14 @@ export default function CompaniesPage() {
                         initial={false}
                       />
 
-                      <div className="flex flex-col gap-4 justify-center items-center h-full z-10">
-                        <Heading variant="heading-strong-m" className="text-slate-800 group-hover:text-blue-600 transition-colors duration-300 line-clamp-2 font-bold">
+                      <div className="flex flex-col gap-4 justify-center items-center h-full z-10 text-center w-full min-w-0">
+                        <Heading
+                          variant="heading-strong-m"
+                          className="text-slate-800 group-hover:text-blue-600 transition-colors duration-300 font-bold truncate w-full text-[clamp(1rem,2vw,1.5rem)]"
+                          title={company.name}
+                        >
                           {company.name}
                         </Heading>
-
                         {company.description && (
                           <Text
                             variant="body-default-m"
@@ -275,7 +281,7 @@ export default function CompaniesPage() {
                           </Text>
                         )}
                       </div>
-                    </Card>
+                    </MotionCard>
                   </motion.div>
                 ))}
               </div>
