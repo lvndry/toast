@@ -110,6 +110,7 @@ export default function RootLayout({
         <Column as="body" background="page" fillWidth fillHeight margin="0" padding="0">
           <Background
             position="absolute"
+            className="pointer-events-none"
             mask={{
               x: effects.mask.x,
               y: effects.mask.y,
