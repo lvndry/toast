@@ -1,6 +1,6 @@
 import os
-import certifi
 
+import certifi
 from dotenv import load_dotenv
 from loguru import logger
 from motor.core import AgnosticDatabase
@@ -26,8 +26,8 @@ class Database:
         self.connect_to_mongo()
 
     def connect_to_mongo(self):
-        if "+srv" in MONGO_URI: # If the URI is a MongoDB Atlas URI, we need to use TLS
-            self.client = AsyncIOMotorClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=True, tlsCAFile=certifi.where())
+        if "+srv" in MONGO_URI:  # If the URI is a MongoDB Atlas URI, we need to use TLS
+            self.client = AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
         else:
             self.client = AsyncIOMotorClient(MONGO_URI)
         self.db = self.client[DATABASE_NAME]
