@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`);
+      throw new Error(`Backend responded with status: ${response.status} ${response.statusText}`);
     }
 
     const companies = await response.json();
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error fetching companies:", error);
     return NextResponse.json(
-      { error: "Failed to fetch companies" },
+      { error: `Failed to fetch companies: ${error}` },
       { status: 500 }
     );
   }
