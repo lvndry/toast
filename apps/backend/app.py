@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.routes import company, crawler, q, list
+from src.routes import company, crawler, list, q
 
 app = FastAPI(title="Toast API", root_path="/toast")
 app.add_middleware(
@@ -10,6 +10,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health")
+async def healthcheck():
+    """Health check endpoint to verify the API is running."""
+    return {"status": "healthy", "message": "Toast API is running"}
 
 
 routes = [
