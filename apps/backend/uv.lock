@@ -2699,6 +2699,7 @@ dependencies = [
     { name = "streamlit" },
     { name = "supabase" },
     { name = "tenacity" },
+    { name = "uvicorn" },
     { name = "watchdog" },
 ]
 
@@ -2727,6 +2728,7 @@ requires-dist = [
     { name = "streamlit", specifier = ">=1.43.2" },
     { name = "supabase", specifier = ">=2.13.0" },
     { name = "tenacity", specifier = ">=9.1.2" },
+    { name = "uvicorn", specifier = ">=0.34.2" },
     { name = "watchdog", specifier = ">=6.0.0" },
 ]
 
