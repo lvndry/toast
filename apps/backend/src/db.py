@@ -29,9 +29,7 @@ class Database:
     def connect_to_mongo(self):
         if "+srv" in MONGO_URI:  # If the URI is a MongoDB Atlas URI, we need to use TLS
             self.client = AsyncIOMotorClient(
-                "mongodb+srv://lvndry:jrFKkvH8qoNJGAYQ@cluster0.qszviq5.mongodb.net/?retryWrites=true&w=majority&appName=toastai&tls=true",
-                tls=True,
-                tlsCAFile=certifi.where(),
+                MONGO_URI, tls=True, tlsCAFile=certifi.where()
             )
         else:
             self.client = AsyncIOMotorClient(MONGO_URI)
@@ -55,7 +53,16 @@ class Database:
 
 
 mongo = Database()
-asyncio.run(mongo.test_connection())
+
+try:
+    loop = asyncio.get_running_loop()
+except RuntimeError:
+    loop = None
+
+if loop and loop.is_running():
+    asyncio.create_task(mongo.test_connection())
+else:
+    asyncio.run(mongo.test_connection())
 
 
 ##### Company ######
