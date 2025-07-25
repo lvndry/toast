@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 import certifi
@@ -27,11 +28,24 @@ class Database:
 
     def connect_to_mongo(self):
         if "+srv" in MONGO_URI:  # If the URI is a MongoDB Atlas URI, we need to use TLS
-            self.client = AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
+            self.client = AsyncIOMotorClient(
+                MONGO_URI, tls=True, tlsCAFile=certifi.where()
+            )
         else:
             self.client = AsyncIOMotorClient(MONGO_URI)
+
         self.db = self.client[DATABASE_NAME]
         logger.info(f"Connected to MongoDB at {MONGO_URI}")
+
+    async def test_connection(self):
+        try:
+            await self.client.admin.command("ping")
+            db_names = await self.client.list_database_names()
+            logger.info(f"db_names: {db_names}")
+            logger.info("Connected to MongoDB")
+        except Exception as e:
+            logger.error(f"Error connecting to MongoDB: {e}")
+            raise e
 
     def close_mongo_connection(self):
         self.client.close()
@@ -39,6 +53,7 @@ class Database:
 
 
 mongo = Database()
+asyncio.run(mongo.test_connection())
 
 
 ##### Company ######
