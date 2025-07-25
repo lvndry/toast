@@ -12,24 +12,18 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment
-RUN python -m venv $VENV_PATH
-
-# Install uv globally in the venv
 RUN pip install --no-cache-dir uv==0.4.30
+RUN uv venv $VENV_PATH
 
-# Copy dependency files
 COPY pyproject.toml ./
 COPY uv.lock ./
 
-# Install dependencies with uv
 RUN uv sync --no-dev --frozen
 
-# Copy app code
 COPY . .
 
-# Expose port (optional, depending on platform)
+# Expose port
 EXPOSE 8000
 
-# Start the app (adjust `main:app` to your actual entrypoint)
+# Start the app
 CMD ["uv","run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
