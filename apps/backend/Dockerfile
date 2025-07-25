@@ -32,4 +32,4 @@ COPY . .
 EXPOSE 8000
 
 # Start the app (adjust `main:app` to your actual entrypoint)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/opt/venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
