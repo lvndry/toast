@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  Badge,
   Button,
   Heading,
   Text
 } from "@once-ui-system/core";
 import { use, useEffect, useState } from "react";
-import { ChatContainer } from "../../../../components/ChatContainer";
 import { ChatInput } from "../../../../components/ChatInput";
 import { Company, Message, MetaSummary } from "../../../../lib/types";
 
@@ -19,6 +17,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
   const [company, setCompany] = useState<Company | null>(null);
   const [metaSummary, setMetaSummary] = useState<MetaSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAllKeyPoints, setShowAllKeyPoints] = useState(false);
 
   useEffect(() => {
     async function fetchCompanyData() {
@@ -185,9 +184,9 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b bg-white">
+      <div className="flex items-center justify-between p-3 bg-white">
         <div className="flex items-center gap-4">
           <Heading variant="heading-strong-l">{company.name}</Heading>
         </div>
@@ -207,50 +206,68 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
       <div className="flex-1 overflow-y-auto min-h-0">
         {/* Meta Summary Display */}
         {metaSummary && (
-          <div className="p-3 border-b bg-gray-50">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center justify-between mb-4">
-                <Heading variant="heading-strong-m">Privacy Analysis</Heading>
-                <div className="flex gap-2">
+          <div className="p-3 bg-gray-50">
+            <div className="max-w-7xl mx-auto">
+              {/* Scores Section - Top */}
+              <div className="mb-6">
+                <Heading variant="heading-strong-m" className="mb-4">Privacy Analysis Scores</Heading>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                   {Object.entries(metaSummary.scores).map(([key, score]) => (
-                    <Badge
-                      key={key}
-                      textVariant="label-default-s"
-                      onBackground="neutral-medium"
-                      border="neutral-alpha-medium"
-                    >
-                      {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: {score.score}/10
-                    </Badge>
+                    <div key={key} className="bg-white rounded-lg p-3 border text-center">
+                      <Text variant="label-default-s" className="text-gray-600 mb-1">
+                        {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Text>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {score.score}/10
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
 
-              <Text variant="body-default-l" className="mb-4">
-                {metaSummary.summary}
-              </Text>
+              {/* Grid Layout for Key Points and Summary */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Key Points Section - Left Side */}
+                <div className="lg:col-span-2">
+                  <Heading variant="heading-strong-s" className="mb-3">Key Points</Heading>
+                  <div className="bg-white rounded-lg p-4 border">
+                    <ul className="space-y-2">
+                      {(showAllKeyPoints ? metaSummary.keypoints : metaSummary.keypoints.slice(0, 5)).map((point, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <Text variant="body-default-s">{point}</Text>
+                        </li>
+                      ))}
+                    </ul>
+                    {metaSummary.keypoints.length > 5 && (
+                      <Button
+                        size="s"
+                        variant="secondary"
+                        onClick={() => setShowAllKeyPoints(!showAllKeyPoints)}
+                        className="mt-3"
+                      >
+                        {showAllKeyPoints ? 'Show Less' : `Show All ${metaSummary.keypoints.length} Points`}
+                      </Button>
+                    )}
+                  </div>
+                </div>
 
-              <div>
-                <Heading variant="heading-strong-s" className="mb-2">Key Points</Heading>
-                <ul className="list-disc list-inside space-y-1">
-                  {metaSummary.keypoints.map((point, index) => (
-                    <li key={index} className="text-sm">
-                      {point}
-                    </li>
-                  ))}
-                </ul>
+                {/* Summary Section - Right Side */}
+                <div className="lg:col-span-1">
+                  <Heading variant="heading-strong-s" className="mb-3">Summary</Heading>
+                  <div className="bg-white rounded-lg p-4 border">
+                    <Text variant="body-default-s">
+                      {metaSummary.summary}
+                    </Text>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         )}
-
-        {/* Chat Messages */}
-        <div className="p-3">
-          <ChatContainer messages={messages} />
-        </div>
       </div>
 
-      {/* Fixed Chat Input */}
-      <div className="border-t bg-white">
+      <div>
         <ChatInput
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
