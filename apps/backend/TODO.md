@@ -27,3 +27,9 @@ Might want to put FE and BE in a monorepo
 
 ### Ideas not prio
 - Handle multiple languages
+
+-------------------------------------------------------------------------------------------------
+
+Goal of today: Give a better strucuture to the summary so that I can give a better display on the frontend
+
+We needs a highlights sections. Like the top 5 facts, can be extended to 12

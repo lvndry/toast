@@ -1,83 +1,52 @@
 import {
   Badge,
-  Button,
   Card,
   Column,
   Heading,
-  Row
+  Row,
+  Text
 } from "@once-ui-system/core";
-import { motion } from "motion/react";
-
-interface CompanyMetaSummary {
-  id: string;
-  name: string;
-  summary: string;
-  industry?: string;
-  website?: string;
-}
+import { MetaSummary } from "../lib/types";
 
 interface CompanyHeaderProps {
-  companyMeta: CompanyMetaSummary | null;
-  loading?: boolean;
+  companyMeta: MetaSummary;
 }
 
-export function CompanyHeader({ companyMeta, loading = false }: CompanyHeaderProps) {
-  console.log("companyMeta", companyMeta);
-  console.log("loading", loading);
-  if (!loading) return null;
-
+export function CompanyHeader({ companyMeta }: CompanyHeaderProps) {
   return (
-    <Column maxWidth="xl" padding="l" horizontal="center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full"
-      >
-        <Card padding="l" radius="l" className="bg-white border border-gray-100 shadow-sm">
-          <Column gap="l" vertical="space-between" horizontal="center" align="center" className="flex flex-col">
-            <Row>
-              <Heading variant="heading-strong-l">
-                {companyMeta?.name || "Loading..."}
-              </Heading>
-              <Row gap="m" wrap>
-                {companyMeta?.industry && (
-                  <Badge
-                    textVariant="label-default-s"
-                    onBackground="neutral-medium"
-                    border="neutral-alpha-medium"
-                    className="bg-slate-100 text-slate-700 border border-slate-200"
-                  >
-                    {companyMeta.industry}
-                  </Badge>
-                )}
-                {companyMeta?.website && (
-                  <Button
-                    size="s"
-                    variant="secondary"
-                    prefixIcon="external-link"
-                    href={companyMeta.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Website
-                  </Button>
-                )}
-              </Row>
-            </Row>
-            <Row>
-              <Button
-                size="s"
-                variant="secondary"
-                prefixIcon="arrowLeft"
-                onClick={() => window.history.back()}
+    <Card>
+      <Column gap="m">
+        <Row className="justify-between items-center">
+          <Heading variant="heading-strong-l">Privacy Analysis</Heading>
+          <div className="flex gap-2">
+            {Object.entries(companyMeta.scores).map(([key, score]) => (
+              <Badge
+                key={key}
+                textVariant="label-default-s"
+                onBackground="neutral-medium"
+                border="neutral-alpha-medium"
               >
-                Back
-              </Button>
-            </Row>
-          </Column>
-        </Card>
-      </motion.div>
-    </Column>
+                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: {score.score}/10
+              </Badge>
+            ))}
+          </div>
+        </Row>
+
+        <Text variant="body-default-l">
+          {companyMeta.summary}
+        </Text>
+
+        <div>
+          <Heading variant="heading-strong-m" className="mb-2">Key Points</Heading>
+          <ul className="list-disc list-inside space-y-1">
+            {companyMeta.keypoints.map((point, index) => (
+              <li key={index} className="text-sm">
+                {point}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Column>
+    </Card>
   );
 }

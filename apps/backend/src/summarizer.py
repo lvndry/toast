@@ -5,12 +5,31 @@ import asyncio
 from dotenv import load_dotenv
 from litellm import acompletion
 from loguru import logger
+from pydantic import BaseModel
 
 from src.db import get_company_documents, update_document
 from src.document import Document, DocumentAnalysis
 from src.models import get_model
 
 load_dotenv()
+
+
+class MetaSummaryScore(BaseModel):
+    score: int
+    justification: str
+
+
+class MetaSummaryScores(BaseModel):
+    transparency: MetaSummaryScore
+    data_usage: MetaSummaryScore
+    control_and_rights: MetaSummaryScore
+    third_party_sharing: MetaSummaryScore
+
+
+class MetaSummary(BaseModel):
+    summary: str
+    scores: MetaSummaryScores
+    keypoints: list[str]
 
 
 async def summarize_all_company_documents(company_slug: str) -> str:
@@ -73,7 +92,7 @@ Expected output:
 2. scores: An object with values from 0 (poor) to 10 (excellent) for:
    - transparency: How clearly and accessibly the policy communicates its practices to non-experts.
 
-3. key_points: A list of concise, high-signal bullet points that capture:
+3. keypoints: A list of concise, high-signal bullet points that capture:
    - The most important or unique data practices
    - Notable user rights, obligations, or risks
    - Any red flags, surprises, or safeguards worth highlighting
@@ -87,7 +106,7 @@ Expected output:
       "justification": "1-2 sentences explaining how clear and understandable the documents are."
     }},
   }},
-  "key_points": [
+  "keypoints": [
     "What personal data is collected and why",
     "Whether data is sold or shared with third parties",
     "How long data is stored and how it's protected",
@@ -127,7 +146,7 @@ Document content:
         return None
 
 
-async def generate_company_meta_summary(company_slug: str) -> DocumentAnalysis:
+async def generate_company_meta_summary(company_slug: str) -> MetaSummary:
     """
     Generate a meta-summary of all analyzed documents for a company.
 
@@ -144,8 +163,24 @@ async def generate_company_meta_summary(company_slug: str) -> DocumentAnalysis:
     )
     for doc in documents:
         doc_type = doc.doc_type
-        summary = doc.analysis.summary if doc.analysis else ""
-        summaries.append(f"Document Type: {doc_type}\nSummary: {summary}\n")
+        if doc.analysis:
+            analysis = doc.analysis
+            summary = analysis.summary
+            keypoints = analysis.keypoints
+
+            # Format the full analysis
+            analysis_text = f"""Document Type: {doc_type}
+Summary: {summary}
+
+"""
+
+            analysis_text += "\nKey Points:\n"
+            for point in keypoints:
+                analysis_text += f"  • {point}\n"
+
+            summaries.append(analysis_text)
+        else:
+            summaries.append(f"Document Type: {doc_type}\nNo analysis available\n")
 
     document_summaries = "\n---\n".join(summaries)
 
@@ -179,6 +214,8 @@ Expected output:
 
 1. summary: A detailed yet plain-language explanation of the document's content and impact on the user.
    - Clearly describe the implications for the user's privacy, autonomy, and overall experience.
+   - Structure the summary in a way that is easy to understand and follow with paragraphs and spacing.
+   - The summary should be easy to digest and understand.
    - Highlight any permissions granted to the company, restrictions placed on the company, and any practices that might surprise or concern a typical user.
    - Include specific examples (when available) of:
      - What data is collected (e.g., location, browsing history, payment info)
@@ -189,10 +226,11 @@ Expected output:
 
 2. scores: An object with values from 0 (poor) to 10 (excellent)
 
-3. key_points: A list of concise, high-signal bullet points that capture:
+3. keypoints: A list of concise, high-signal bullet points that capture:
    - The most important or unique data practices
-   - Notable user rights, obligations, or risks
    - Any red flags, surprises, or safeguards worth highlighting
+   - Notable user rights, obligations, or risks
+   - 15 bullet points max ordered by importance
    
 {{
   "summary": "...",
@@ -214,7 +252,7 @@ Expected output:
         "justification": "1-2 sentences on how often and how transparently data is shared externally."
     }}
   }},
-  "key_points": [
+  "keypoints": [
     "What personal data is collected and why",
     "Whether data is sold or shared with third parties",
     "How long data is stored and how it's protected",
@@ -238,7 +276,6 @@ Your task is to create a clear and accessible summary of the of the following do
         response = await acompletion(
             model=model.model,
             api_key=model.api_key,
-            max_tokens=2000,
             messages=[
                 {
                     "role": "system",
@@ -247,12 +284,12 @@ Your task is to create a clear and accessible summary of the of the following do
                 {"role": "user", "content": prompt},
             ],
             temperature=0.5,
-            response_format={"type": "json_object"},
+            response_format=MetaSummary,
         )
 
         logger.debug(response.choices[0].message.content)
 
-        return DocumentAnalysis.model_validate_json(
+        return MetaSummary.model_validate_json(
             response.choices[0].message.content, strict=False
         )
     except Exception as e:

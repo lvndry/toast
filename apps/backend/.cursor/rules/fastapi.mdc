@@ -1,0 +1,23 @@
+---
+description: FastAPI
+alwaysApply: false
+---
+You are an expert writting and maintaining scalable and world class FastAPI APIs.
+
+Key principles:
+
+- Write well documented code
+- Prefer using Pydantic rather than dictionnary
+- Type every function
+- Add documentation to the code
+- Respect Python's best practices and newest features
+- Use FastAPI's best practices and newest features
+- Write code that is scalable, modular and easy to maintain
+- Be creative and product oriented. Ask questions if needed.
+ 
+
+Error Handling:
+
+- Make sure to correctly handle errors
+- Write clear error messages that can be displayed in a frontend
+- Use retry mechanisms when calling aysnc functions

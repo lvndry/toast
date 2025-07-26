@@ -1,6 +1,13 @@
 from fastapi import APIRouter, HTTPException
+from loguru import logger
 
-from src.db import get_all_companies, get_company_by_id, get_company_by_slug
+from src.db import (
+    get_all_companies,
+    get_company_by_id,
+    get_company_by_slug,
+    store_company_meta_summary,
+)
+from src.db import get_company_meta_summary as get_stored_meta_summary
 from src.summarizer import generate_company_meta_summary
 
 router = APIRouter(prefix="/companies")
@@ -31,7 +38,24 @@ async def get_company_meta_summary(company_slug: str):
         company = await get_company_by_slug(company_slug)
         if not company:
             raise ValueError(f"Company with slug {company_slug} not found")
-        meta_summary = await generate_company_meta_summary(company_slug=company_slug)
+
+        # Try to get existing meta summary from database
+        meta_summary = await get_stored_meta_summary(company_slug)
+
+        if meta_summary is None:
+            logger.info(f"Generating new meta summary for company {company_slug}")
+            # Generate new meta summary if not found in database
+            meta_summary = await generate_company_meta_summary(
+                company_slug=company_slug
+            )
+            if meta_summary:
+                # Store the generated meta summary in database
+                await store_company_meta_summary(company_slug, meta_summary)
+            else:
+                raise ValueError(
+                    f"Failed to generate meta summary for company {company_slug}"
+                )
+
         return meta_summary.model_dump()
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

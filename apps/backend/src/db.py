@@ -1,5 +1,5 @@
-import asyncio
 import os
+from datetime import datetime
 
 import certifi
 from dotenv import load_dotenv
@@ -8,7 +8,7 @@ from motor.core import AgnosticDatabase
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from src.company import Company
-from src.document import Document
+from src.document import Document, DocumentAnalysis
 
 load_dotenv()
 
@@ -54,15 +54,15 @@ class Database:
 
 mongo = Database()
 
-try:
-    loop = asyncio.get_running_loop()
-except RuntimeError:
-    loop = None
-
-if loop and loop.is_running():
-    asyncio.create_task(mongo.test_connection())
-else:
-    asyncio.run(mongo.test_connection())
+# try:
+#     loop = asyncio.get_running_loop()
+# except RuntimeError:
+#     loop = None
+#
+# if loop and loop.is_running():
+#     asyncio.create_task(mongo.test_connection())
+# else:
+#     asyncio.run(mongo.test_connection())
 
 
 ##### Company ######
@@ -114,6 +114,47 @@ async def update_document(document: Document):
         {"id": document.id},
         {"$set": document.model_dump(mode="json")},
     )
+
+
+###########
+
+
+####### Meta Summaries #######
+async def get_company_meta_summary(company_slug: str) -> DocumentAnalysis | None:
+    """Get a meta summary for a company from the database."""
+    try:
+        company = await get_company_by_slug(company_slug)
+        meta_summary_doc = await mongo.db.meta_summaries.find_one(
+            {"company_id": company.id}
+        )
+        if meta_summary_doc:
+            return DocumentAnalysis(**meta_summary_doc["analysis"])
+        return None
+    except Exception as e:
+        logger.error(f"Error getting meta summary for {company_slug}: {e}")
+        return None
+
+
+async def store_company_meta_summary(company_slug: str, meta_summary: DocumentAnalysis):
+    """Store a meta summary for a company in the database."""
+    try:
+        company = await get_company_by_slug(company_slug)
+        meta_summary_doc = {
+            "company_id": company.id,
+            "company_slug": company_slug,
+            "analysis": meta_summary.model_dump(),
+            "created_at": datetime.now(),
+            "updated_at": datetime.now(),
+        }
+
+        # Use upsert to either insert new or update existing
+        await mongo.db.meta_summaries.update_one(
+            {"company_id": company.id}, {"$set": meta_summary_doc}, upsert=True
+        )
+        logger.info(f"Stored meta summary for company {company_slug}")
+    except Exception as e:
+        logger.error(f"Error storing meta summary for {company_slug}: {e}")
+        raise e
 
 
 ###########
