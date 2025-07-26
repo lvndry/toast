@@ -5,6 +5,7 @@ from src.db import (
     get_all_companies,
     get_company_by_id,
     get_company_by_slug,
+    get_company_documents,
     store_company_meta_summary,
 )
 from src.db import get_company_meta_summary as get_stored_meta_summary
@@ -58,6 +59,22 @@ async def get_company_meta_summary(company_slug: str):
 
         return meta_summary.model_dump()
     except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/{company_slug}/sources")
+async def get_company_sources(company_slug: str):
+    """Get all documents (sources) for a company."""
+    try:
+        documents = await get_company_documents(company_slug)
+        # Return only title and url for each document
+        sources = [
+            {"title": doc.title or "Untitled Document", "url": doc.url}
+            for doc in documents
+        ]
+        return {"sources": sources}
+    except ValueError as e:
+        logger.error(f"Error fetching sources for company {company_slug}: {e}")
         raise HTTPException(status_code=404, detail=str(e))
 
 

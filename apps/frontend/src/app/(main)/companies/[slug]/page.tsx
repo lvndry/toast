@@ -8,6 +8,7 @@ import {
 import { use, useEffect, useState } from "react";
 import { ChatInput } from "../../../../components/ChatInput";
 import { ChatMessage } from "../../../../components/ChatMessage";
+import { SourcesModal } from "../../../../components/SourcesModal";
 import { Company, Message, MetaSummary } from "../../../../lib/types";
 
 export default function CompanyChatPage({ params }: { params: Promise<{ slug: string; }>; }) {
@@ -20,6 +21,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
   const [error, setError] = useState<string | null>(null);
   const [showAllKeyPoints, setShowAllKeyPoints] = useState(false);
   const [expandedScores, setExpandedScores] = useState<Set<string>>(new Set());
+  const [showSourcesModal, setShowSourcesModal] = useState(false);
 
   useEffect(() => {
     async function fetchCompanyData() {
@@ -214,15 +216,26 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
                 <Text variant="body-default-s" className="text-gray-500">Privacy Analysis & Chat</Text>
               </div>
             </div>
-            <Button
-              size="s"
-              variant="secondary"
-              prefixIcon="arrowLeft"
-              onClick={() => window.history.back()}
-              className="hover:bg-gray-100 transition-colors"
-            >
-              Back
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                size="s"
+                variant="secondary"
+                prefixIcon="document"
+                onClick={() => setShowSourcesModal(true)}
+                className="hover:bg-gray-100 transition-colors"
+              >
+                Sources
+              </Button>
+              <Button
+                size="s"
+                variant="secondary"
+                prefixIcon="arrowLeft"
+                onClick={() => window.history.back()}
+                className="hover:bg-gray-100 transition-colors"
+              >
+                Back
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -407,6 +420,13 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
           placeholder="Ask about privacy practices, data collection, user rights..."
         />
       </div>
+
+      {/* Sources Modal */}
+      <SourcesModal
+        isOpen={showSourcesModal}
+        onClose={() => setShowSourcesModal(false)}
+        companySlug={slug}
+      />
     </div>
   );
 }
