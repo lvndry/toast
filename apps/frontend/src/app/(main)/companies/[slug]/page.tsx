@@ -7,6 +7,7 @@ import {
 } from "@once-ui-system/core";
 import { use, useEffect, useState } from "react";
 import { ChatInput } from "../../../../components/ChatInput";
+import { ChatMessage } from "../../../../components/ChatMessage";
 import { Company, Message, MetaSummary } from "../../../../lib/types";
 
 export default function CompanyChatPage({ params }: { params: Promise<{ slug: string; }>; }) {
@@ -37,26 +38,6 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
         if (metaResponse.ok) {
           const metaData = await metaResponse.json();
           setMetaSummary(metaData);
-
-          // Set initial message with key points
-          setMessages([
-            {
-              id: "meta-summary",
-              content: metaData.keypoints.join('\n• '),
-              role: "assistant",
-              timestamp: new Date()
-            }
-          ]);
-        } else {
-          // If meta summary doesn't exist, set a default message
-          setMessages([
-            {
-              id: "welcome",
-              content: `Welcome to ${companyData.name}! Ask me anything about their privacy practices and data handling.`,
-              role: "assistant",
-              timestamp: new Date()
-            }
-          ]);
         }
       } catch (err) {
         console.error("Error fetching company data:", err);
@@ -102,7 +83,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
       const data = await response.json();
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.response,
+        content: data.answer,
         role: "assistant",
         timestamp: new Date()
       };
@@ -184,9 +165,9 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-white">
+      <div className="flex items-center justify-between p-3 bg-white border-b">
         <div className="flex items-center gap-4">
           <Heading variant="heading-strong-l">{company.name}</Heading>
         </div>
@@ -202,11 +183,11 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
 
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto">
         {/* Meta Summary Display */}
         {metaSummary && (
-          <div className="p-3 bg-gray-50">
+          <div className="p-3 bg-gray-50 border-b">
             <div className="max-w-7xl mx-auto">
               {/* Scores Section - Top */}
               <div className="mb-6">
@@ -265,9 +246,34 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
             </div>
           </div>
         )}
+
+        {/* Chat Messages Display */}
+        <div className="px-4 py-6">
+          <div className="max-w-4xl mx-auto">
+            {messages.map((message) => (
+              <ChatMessage
+                key={message.id}
+                id={message.id}
+                content={message.content}
+                role={message.role}
+                timestamp={message.timestamp}
+              />
+            ))}
+            {loading && (
+              <div className="flex justify-start mb-6">
+                <div className="bg-white border border-neutral-200 text-neutral-900 shadow-sm rounded-xl px-12 py-8">
+                  <Text variant="body-default-s" className="text-gray-500">
+                    Thinking...
+                  </Text>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div>
+      {/* Chat Input */}
+      <div className="border-t bg-white">
         <ChatInput
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
