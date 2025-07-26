@@ -373,9 +373,11 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
                 <div className="lg:col-span-1">
                   <Heading variant="heading-strong-s" className="mb-4 text-gray-900">Summary</Heading>
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-sm">
-                    <ReactMarkdown>
-                      {metaSummary.summary}
-                    </ReactMarkdown>
+                    <div className="text-gray-700">
+                      <ReactMarkdown>
+                        {metaSummary.summary}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               </div>
