@@ -5,7 +5,8 @@ import {
   Heading,
   Text
 } from "@once-ui-system/core";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { ChatInput } from "../../../../components/ChatInput";
 import { ChatMessage } from "../../../../components/ChatMessage";
 import { SourcesModal } from "../../../../components/SourcesModal";
@@ -22,6 +23,26 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
   const [showAllKeyPoints, setShowAllKeyPoints] = useState(false);
   const [expandedScores, setExpandedScores] = useState<Set<string>>(new Set());
   const [showSourcesModal, setShowSourcesModal] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Function to scroll to bottom
+  function scrollToBottom() {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Scroll to bottom when loading state changes (for loading indicator)
+  useEffect(() => {
+    if (loading) {
+      scrollToBottom();
+    }
+  }, [loading]);
 
   useEffect(() => {
     async function fetchCompanyData() {
@@ -241,7 +262,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
         {/* Enhanced Meta Summary Display */}
         {metaSummary && (
           <div className="p-6">
@@ -352,9 +373,9 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
                 <div className="lg:col-span-1">
                   <Heading variant="heading-strong-s" className="mb-4 text-gray-900">Summary</Heading>
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-sm">
-                    <Text variant="body-default-s" className="text-gray-700 leading-relaxed">
+                    <ReactMarkdown>
                       {metaSummary.summary}
-                    </Text>
+                    </ReactMarkdown>
                   </div>
                 </div>
               </div>
