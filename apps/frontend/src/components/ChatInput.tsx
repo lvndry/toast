@@ -43,7 +43,7 @@ export function ChatInput({
             onKeyDown={onKeyPress}
             disabled={disabled}
             rows={1}
-            className="w-full p-12 text-base rounded-2xl border-white/20 bg-white/60 backdrop-blur-sm focus:bg-white/80 focus:border-blue-500/30 transition-all duration-200 shadow-sm hover:shadow-md resize-none overflow-y-auto min-h-[56px] max-h-32"
+            className="w-full p-12 text-base rounded-2xl border-white/20 bg-white/60 backdrop-blur-sm focus:bg-white/80 focus:border-blue-500/30 transition-all duration-200 shadow-sm hover:shadow-md resize-none overflow-y-auto min-h-[56px] max-h-32 text-black"
             style={{ fontFamily: 'inherit' }}
           />
         </div>
