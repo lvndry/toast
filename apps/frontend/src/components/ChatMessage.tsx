@@ -17,45 +17,122 @@ export function ChatMessage({ id, content, role }: ChatMessageProps) {
   return (
     <motion.div
       key={id}
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       className={`flex ${role === "user" ? "justify-end" : "justify-start"} mb-6`}
     >
       <div
-        className={`rounded-xl px-12 py-8 ${role === "user"
-          ? "bg-neutral-900 text-white border border-neutral-800"
-          : "bg-white border border-neutral-200 text-neutral-900 shadow-sm"
+        className={`max-w-2xl rounded-2xl px-6 py-4 shadow-sm ${role === "user"
+          ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white border border-blue-500/20"
+          : "bg-white/80 backdrop-blur-sm border border-white/20 text-gray-900"
           }`}
       >
-        <div className={`prose ${role === "user" ? "prose-invert" : "prose-neutral"
-          } max-w-none prose-md`}>
+        <div className={`prose ${role === "user" ? "prose-invert" : "prose-neutral"} max-w-none prose-md`}>
           <ReactMarkdown
             components={{
-              p: ({ children }) => <Text variant="body-default-s" className="mb-2 last:mb-0">{children}</Text>,
-              h1: ({ children }) => <Heading variant="heading-strong-m" className="mb-3">{children}</Heading>,
-              h2: ({ children }) => <Heading variant="heading-strong-s" className="mb-2">{children}</Heading>,
-              h3: ({ children }) => <Heading variant="heading-strong-xs" className="mb-2">{children}</Heading>,
-              a: ({ children, href }) => href ? <Link href={href} className="text-blue-500">{children}</Link> : children,
+              p: ({ children }) => (
+                <Text
+                  variant="body-default-s"
+                  className={`mb-3 last:mb-0 leading-relaxed ${role === "user" ? "text-white/90" : "text-gray-700"
+                    }`}
+                >
+                  {children}
+                </Text>
+              ),
+              h1: ({ children }) => (
+                <Heading
+                  variant="heading-strong-m"
+                  className={`mb-4 ${role === "user" ? "text-white" : "text-gray-900"
+                    }`}
+                >
+                  {children}
+                </Heading>
+              ),
+              h2: ({ children }) => (
+                <Heading
+                  variant="heading-strong-s"
+                  className={`mb-3 ${role === "user" ? "text-white" : "text-gray-900"
+                    }`}
+                >
+                  {children}
+                </Heading>
+              ),
+              h3: ({ children }) => (
+                <Heading
+                  variant="heading-strong-xs"
+                  className={`mb-2 ${role === "user" ? "text-white" : "text-gray-900"
+                    }`}
+                >
+                  {children}
+                </Heading>
+              ),
+              a: ({ children, href }) =>
+                href ? (
+                  <Link
+                    href={href}
+                    className={`underline hover:no-underline transition-all ${role === "user"
+                      ? "text-blue-200 hover:text-white"
+                      : "text-blue-600 hover:text-blue-700"
+                      }`}
+                  >
+                    {children}
+                  </Link>
+                ) : children,
               code: ({ children }) => (
-                <code className={`${role === "user"
-                  ? "bg-neutral-800 text-neutral-200"
-                  : "bg-neutral-100 text-neutral-800"
-                  } px-1.5 py-0.5 rounded text-xs font-mono select-text`}>
+                <code className={`px-2 py-1 rounded-md text-xs font-mono select-text ${role === "user"
+                  ? "bg-white/20 text-white border border-white/30"
+                  : "bg-gray-100 text-gray-800 border border-gray-200"
+                  }`}>
                   {children}
                 </code>
               ),
               pre: ({ children }) => (
-                <pre className={`${role === "user"
-                  ? "bg-neutral-800 text-neutral-200 border-neutral-700"
-                  : "bg-neutral-50 text-neutral-800 border-neutral-200"
-                  } p-3 rounded-lg overflow-x-auto select-text border text-sm font-mono`}>
+                <pre className={`p-4 rounded-xl overflow-x-auto select-text border text-sm font-mono my-4 ${role === "user"
+                  ? "bg-white/10 text-white border-white/20"
+                  : "bg-gray-50 text-gray-800 border-gray-200"
+                  }`}>
                   {children}
                 </pre>
               ),
-              ul: ({ children }) => <ul className="space-y-1">{children}</ul>,
-              ol: ({ children }) => <ol className="space-y-1">{children}</ol>,
-              li: ({ children }) => <li className="text-sm">{children}</li>,
+              ul: ({ children }) => (
+                <ul className={`space-y-2 my-4 ${role === "user" ? "text-white/90" : "text-gray-700"
+                  }`}>
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }) => (
+                <ol className={`space-y-2 my-4 ${role === "user" ? "text-white/90" : "text-gray-700"
+                  }`}>
+                  {children}
+                </ol>
+              ),
+              li: ({ children }) => (
+                <li className={`text-sm leading-relaxed ${role === "user" ? "text-white/90" : "text-gray-700"
+                  }`}>
+                  {children}
+                </li>
+              ),
+              blockquote: ({ children }) => (
+                <blockquote className={`border-l-4 pl-4 my-4 italic ${role === "user"
+                  ? "border-white/30 text-white/80"
+                  : "border-gray-300 text-gray-600"
+                  }`}>
+                  {children}
+                </blockquote>
+              ),
+              strong: ({ children }) => (
+                <strong className={`font-semibold ${role === "user" ? "text-white" : "text-gray-900"
+                  }`}>
+                  {children}
+                </strong>
+              ),
+              em: ({ children }) => (
+                <em className={`italic ${role === "user" ? "text-white/90" : "text-gray-700"
+                  }`}>
+                  {children}
+                </em>
+              ),
             }}
           >
             {content}

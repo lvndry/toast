@@ -13,6 +13,7 @@ export interface Company {
 export interface MetaSummaryScore {
     score: number;
     justification: string;
+    recommendations?: string[];
 }
 
 export interface MetaSummaryScores {
