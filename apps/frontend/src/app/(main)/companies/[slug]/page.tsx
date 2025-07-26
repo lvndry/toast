@@ -86,7 +86,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
       const data = await response.json();
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.answerI,
+        content: data.answer,
         role: "assistant",
         timestamp: new Date()
       };

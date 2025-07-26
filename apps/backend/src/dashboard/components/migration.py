@@ -332,30 +332,59 @@ def display_migration_results(data: Dict[str, Any]):
     # Migration results
     st.subheader("Migration Results")
 
-    for collection_name, result in data.items():
-        if (
-            collection_name != "summary"
-            and collection_name != "dry_run"
-            and collection_name != "timestamp"
-        ):
-            with st.expander(f"{collection_name.title()} Migration"):
-                col1, col2, col3 = st.columns(3)
+    # Check if this is a single collection result or full migration result
+    if "migrated_count" in data and "skipped_count" in data:
+        # Single collection result (e.g., documents only, companies only)
+        result = data
+        collection_name = "Migration"  # Generic name for single collection
 
-                with col1:
-                    st.metric("Migrated", result.get("migrated_count", 0))
+        with st.expander(f"{collection_name}"):
+            col1, col2, col3 = st.columns(3)
 
-                with col2:
-                    st.metric("Skipped", result.get("skipped_count", 0))
+            with col1:
+                st.metric("Migrated", result.get("migrated_count", 0))
 
-                with col3:
-                    st.metric("Errors", len(result.get("errors", [])))
+            with col2:
+                st.metric("Skipped", result.get("skipped_count", 0))
 
-                if result.get("errors"):
-                    st.error("Errors occurred:")
-                    for error in result["errors"]:
-                        st.text(f"• {error}")
+            with col3:
+                st.metric("Errors", len(result.get("errors", [])))
 
-                if result.get("dry_run"):
-                    st.info("This was a dry run - no actual data was migrated")
-                else:
-                    st.success("Data was successfully migrated")
+            if result.get("errors"):
+                st.error("Errors occurred:")
+                for error in result["errors"]:
+                    st.text(f"• {error}")
+
+            if result.get("dry_run"):
+                st.info("This was a dry run - no actual data was migrated")
+            else:
+                st.success("Data was successfully migrated")
+    else:
+        # Full migration result with multiple collections
+        for collection_name, result in data.items():
+            if (
+                collection_name != "summary"
+                and collection_name != "dry_run"
+                and collection_name != "timestamp"
+            ):
+                with st.expander(f"{collection_name.title()} Migration"):
+                    col1, col2, col3 = st.columns(3)
+
+                    with col1:
+                        st.metric("Migrated", result.get("migrated_count", 0))
+
+                    with col2:
+                        st.metric("Skipped", result.get("skipped_count", 0))
+
+                    with col3:
+                        st.metric("Errors", len(result.get("errors", [])))
+
+                    if result.get("errors"):
+                        st.error("Errors occurred:")
+                        for error in result["errors"]:
+                            st.text(f"• {error}")
+
+                    if result.get("dry_run"):
+                        st.info("This was a dry run - no actual data was migrated")
+                    else:
+                        st.success("Data was successfully migrated")
