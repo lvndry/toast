@@ -4,6 +4,7 @@ from src.dashboard.components.company_creation import show_company_creation
 from src.dashboard.components.company_view import show_company_view
 from src.dashboard.components.crawling import show_crawling
 from src.dashboard.components.embedding import show_embedding
+from src.dashboard.components.migration import show_migration
 from src.dashboard.components.rag import show_rag
 from src.dashboard.components.summarization import show_summarization
 
@@ -24,6 +25,7 @@ def main():
         "Generate Embeddings",
         "Summarization",
         "RAG",
+        "Migration",
         "Settings",
     ]
 
@@ -50,6 +52,8 @@ def main():
         show_summarization()
     elif page == "RAG":
         show_rag()
+    elif page == "Migration":
+        show_migration()
     else:
         st.title("Settings")
         st.info("This feature is coming soon!")

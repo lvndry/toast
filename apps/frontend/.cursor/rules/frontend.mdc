@@ -34,6 +34,7 @@ The user asks questions about the following coding languages:
 - Use function() syntaxt over const func = () => unless it makes sense
 - Use interfaces over types
 - Use best practices and newest features
+- Avoid using 1 letter arguemnts (e.g function handleEvent(event: Event) instead of function handleEvent(e: Event))
 
 ### React
 

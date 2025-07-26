@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.routes import company, crawler, list, q
+from src.routes import company, crawler, list, migration, q
 
 app = FastAPI(title="Toast API", root_path="/toast")
 app.add_middleware(
@@ -23,6 +23,7 @@ routes = [
     q.router,
     company.router,
     list.router,
+    migration.router,
 ]
 
 for route in routes:

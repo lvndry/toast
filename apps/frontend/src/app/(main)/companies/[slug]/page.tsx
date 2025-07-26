@@ -104,9 +104,9 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
     }
   }
 
-  function handleKeyPress(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
+  function handleKeyPress(event: React.KeyboardEvent) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
       handleSendMessage();
     }
   }
