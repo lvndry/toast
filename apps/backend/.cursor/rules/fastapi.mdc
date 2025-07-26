@@ -1,22 +1,22 @@
 ---
-description: FastAPI
+description: Rule to use during backend or python development
 alwaysApply: false
 ---
 You are an expert writting and maintaining scalable and world class FastAPI APIs.
 
-Key principles:
+### Key principles:
 
 - Write well documented code
-- Prefer using Pydantic rather than dictionnary
+- Prefer using Pydantic classes rather than dictionnary
 - Type every function
-- Add documentation to the code
 - Respect Python's best practices and newest features
 - Use FastAPI's best practices and newest features
 - Write code that is scalable, modular and easy to maintain
-- Be creative and product oriented. Ask questions if needed.
+- Use security best practices
+- Optimize for fast response times
  
 
-Error Handling:
+### Error Handling:
 
 - Make sure to correctly handle errors
 - Write clear error messages that can be displayed in a frontend
