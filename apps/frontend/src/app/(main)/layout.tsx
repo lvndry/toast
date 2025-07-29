@@ -107,7 +107,7 @@ export default function RootLayout({
         />
       </head>
       <Providers>
-        <Column as="body" background="page" fillWidth fillHeight margin="0" padding="0">
+        <Column as="body" background="page" fillWidth fillHeight margin="0" padding="0" className="h-screen">
           <Background
             position="absolute"
             className="pointer-events-none"
@@ -151,7 +151,9 @@ export default function RootLayout({
             }}
           />
           <Header />
-          {children}
+          <div className="flex-1 flex flex-col min-h-0">
+            {children}
+          </div>
         </Column>
       </Providers>
     </Flex>

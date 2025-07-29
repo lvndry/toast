@@ -1,5 +1,6 @@
 "use client";
 
+import { SignInButton, useUser } from "@clerk/nextjs";
 import {
   Badge,
   Button,
@@ -19,6 +20,8 @@ import {
 } from "react-icons/fi";
 
 export default function Home() {
+  const { isSignedIn } = useUser();
+
   return (
     <Column fillWidth style={{ minHeight: "100vh" }}>
       {/* Hero Section */}
@@ -80,23 +83,38 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.6 }}
           >
             <Row gap="m" wrap horizontal="center" marginTop="l">
-              <Button
-                size="l"
-                weight="strong"
-                prefixIcon="play"
-                arrowIcon
-                href="/companies"
-              >
-                Try Demo
-              </Button>
-              <Button
-                size="l"
-                variant="secondary"
-                prefixIcon="users"
-                href="/pricing"
-              >
-                View Pricing
-              </Button>
+              {isSignedIn ? (
+                <Button
+                  size="l"
+                  weight="strong"
+                  prefixIcon="play"
+                  arrowIcon
+                  href="/companies"
+                >
+                  Go to App
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    size="l"
+                    weight="strong"
+                    prefixIcon="play"
+                    arrowIcon
+                    href="/companies"
+                  >
+                    Try Demo
+                  </Button>
+                  <SignInButton mode="modal">
+                    <Button
+                      size="l"
+                      variant="secondary"
+                      prefixIcon="users"
+                    >
+                      Sign In
+                    </Button>
+                  </SignInButton>
+                </>
+              )}
             </Row>
           </motion.div>
 
@@ -347,23 +365,38 @@ export default function Home() {
                 Start searching companies for free. Get instant legal insights and ask our AI assistant questions.
               </Text>
               <Row gap="m" wrap horizontal="center">
-                <Button
-                  size="l"
-                  weight="strong"
-                  prefixIcon="play"
-                  arrowIcon
-                  href="/companies"
-                >
-                  Try Free Demo
-                </Button>
-                <Button
-                  size="l"
-                  variant="secondary"
-                  prefixIcon="users"
-                  href="/pricing"
-                >
-                  View Plans
-                </Button>
+                {isSignedIn ? (
+                  <Button
+                    size="l"
+                    weight="strong"
+                    prefixIcon="play"
+                    arrowIcon
+                    href="/companies"
+                  >
+                    Go to App
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      size="l"
+                      weight="strong"
+                      prefixIcon="play"
+                      arrowIcon
+                      href="/companies"
+                    >
+                      Try Free Demo
+                    </Button>
+                    <SignInButton mode="modal">
+                      <Button
+                        size="l"
+                        variant="secondary"
+                        prefixIcon="users"
+                      >
+                        Sign In
+                      </Button>
+                    </SignInButton>
+                  </>
+                )}
               </Row>
               <Text variant="label-default-s" onBackground="neutral-weak">
                 Free tier includes 10 company searches per month

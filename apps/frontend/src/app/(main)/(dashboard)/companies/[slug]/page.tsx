@@ -7,10 +7,10 @@ import {
 } from "@once-ui-system/core";
 import { use, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ChatInput } from "../../../../components/ChatInput";
-import { ChatMessage } from "../../../../components/ChatMessage";
-import { SourcesModal } from "../../../../components/SourcesModal";
-import { Company, Message, MetaSummary } from "../../../../lib/types";
+import { ChatInput } from "../../../../../components/ChatInput";
+import { ChatMessage } from "../../../../../components/ChatMessage";
+import { SourcesModal } from "../../../../../components/SourcesModal";
+import { Company, Message, MetaSummary } from "../../../../../lib/types";
 
 export default function CompanyChatPage({ params }: { params: Promise<{ slug: string; }>; }) {
   const { slug } = use(params);
@@ -226,9 +226,9 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Modern Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-white/20 shadow-sm">
+    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Fixed Header */}
+      <div className="bg-white/80 backdrop-blur-sm border-b border-white/20 shadow-sm flex-shrink-0">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -261,15 +261,15 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
+      {/* Scrollable Main Content Area */}
+      <div className="flex-1 overflow-y-auto space-y-12" ref={chatContainerRef}>
         {/* Enhanced Meta Summary Display */}
         {metaSummary && (
           <div className="p-6">
             <div className="max-w-7xl mx-auto">
               {/* Modern Scores Section */}
               <div className="mb-8">
-                <Heading variant="heading-strong-m" className="mb-6 text-gray-900">Privacy Analysis Scores</Heading>
+                <Heading variant="heading-strong-m" paddingBottom="s" className="text-gray-900">Privacy Analysis Scores</Heading>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {Object.entries(metaSummary.scores).map(([key, score]) => {
                     const isExpanded = expandedScores.has(key);
@@ -346,7 +346,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Key Points Section */}
                 <div className="lg:col-span-2">
-                  <Heading variant="heading-strong-s" className="mb-4 text-gray-900">Key Points</Heading>
+                  <Heading variant="heading-strong-s" paddingBottom="s" className="text-gray-900">Key Points</Heading>
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-sm">
                     <ul className="space-y-3">
                       {(showAllKeyPoints ? metaSummary.keypoints : metaSummary.keypoints.slice(0, 5)).map((point, index) => (
@@ -386,7 +386,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
         )}
 
         {/* Enhanced Chat Messages Display */}
-        <div className="px-6 py-8">
+        <div className="px-6 py-8 pb-24">
           <div className="max-w-4xl mx-auto">
             {messages.length === 0 && !loading && (
               <div className="text-center py-12">
@@ -432,8 +432,8 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
 
-      {/* Enhanced Chat Input */}
-      <div className="bg-white/80 backdrop-blur-sm border-t border-white/20 shadow-lg">
+      {/* Fixed Chat Input at Bottom */}
+      <div className="bg-white/80 backdrop-blur-sm border-t border-white/20 shadow-lg flex-shrink-0">
         <ChatInput
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
