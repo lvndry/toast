@@ -9,6 +9,7 @@ import {
   Text
 } from "@once-ui-system/core";
 import { motion } from "motion/react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 interface Company {
@@ -19,6 +20,7 @@ interface Company {
   website?: string;
   industry?: string;
   documentsCount?: number;
+  logo?: string;
 }
 
 // Gradient backgrounds for cards
@@ -39,8 +41,38 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [logoLoadingStates, setLogoLoadingStates] = useState<Record<string, boolean>>({});
 
   const MotionCard = motion(Card);
+
+  async function fetchCompanyLogo(company: Company): Promise<string | null> {
+    try {
+      // Set loading state for this company's logo
+      setLogoLoadingStates(prev => ({ ...prev, [company.id]: true }));
+
+      const params = new URLSearchParams();
+      if (company.website) {
+        // Extract domain from website URL
+        const domain = company.website.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        params.append('domain', domain);
+      } else {
+        // Use company slug as domain fallback
+        params.append('domain', company.slug);
+      }
+
+      const response = await fetch(`/api/companies/logos?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.logo || null;
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch logo for ${company.name}:`, error);
+    } finally {
+      // Clear loading state for this company's logo
+      setLogoLoadingStates(prev => ({ ...prev, [company.id]: false }));
+    }
+    return null;
+  }
 
   useEffect(() => {
     async function fetchCompanies() {
@@ -53,7 +85,16 @@ export default function CompaniesPage() {
         }
 
         const data = await response.json();
-        setCompanies(data);
+
+        // Fetch logos for each company
+        const companiesWithLogos = await Promise.all(
+          data.map(async (company: Company) => {
+            const logo = await fetchCompanyLogo(company);
+            return { ...company, logo };
+          })
+        );
+
+        setCompanies(companiesWithLogos);
       } catch (err) {
         console.error("Error fetching companies:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch companies");
@@ -235,35 +276,70 @@ export default function CompaniesPage() {
                     <MotionCard
                       paddingX="xl"
                       paddingY="xl"
-                      radius="l"
+                      radius="xl"
                       vertical="center"
                       horizontal="center"
-                      className={`bg-gradient-to-br ${gradientBackgrounds[index % gradientBackgrounds.length]} backdrop-blur-sm border border-white/30 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer group relative w-80 h-64 flex flex-col justify-center items-center text-center overflow-hidden`}
+                      className="bg-white/80 backdrop-blur-sm border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group relative w-80 h-72 flex flex-col justify-between overflow-hidden hover:bg-white/90"
                       onClick={() => window.location.href = `/companies/${company.slug}`}
                       whileHover={{
-                        y: -12,
-                        scale: 1.02,
-                        zIndex: 10,
-                        transition: { duration: 0.3, ease: "easeOut" }
+                        y: -8,
+                        scale: 1.01,
+                        transition: { duration: 0.2, ease: "easeOut" }
                       }}
                       whileTap={{
-                        scale: 0.98,
+                        scale: 0.99,
                         transition: { duration: 0.1 }
                       }}
                     >
-                      {/* Animated background overlay */}
+                      {/* Subtle gradient overlay */}
                       <motion.div
-                        className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                        initial={false}
-                      />
-
-                      {/* Shimmer effect */}
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
+                        className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-gray-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                         initial={false}
                       />
 
                       <div className="flex flex-col gap-4 justify-center items-center h-full z-10 text-center w-full min-w-0">
+                        {/* Company Logo */}
+                        <div className="relative w-16 h-16 mb-2 group/logo">
+                          {logoLoadingStates[company.id] ? (
+                            // Loading state
+                            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center animate-pulse shadow-sm">
+                              <Icon name="loading" size="m" onBackground="neutral-weak" />
+                            </div>
+                          ) : company.logo ? (
+                            <div className="relative">
+                              <Image
+                                src={company.logo}
+                                alt={`${company.name} logo`}
+                                width={64}
+                                height={64}
+                                className="rounded-xl object-contain bg-white/90 backdrop-blur-sm border border-white/60 shadow-sm group-hover/logo:shadow-lg group-hover/logo:scale-105 transition-all duration-300"
+                                onError={() => {
+                                  // Handle error by showing fallback
+                                  const logoContainer = document.querySelector(`[data-company-id="${company.id}"]`);
+                                  if (logoContainer) {
+                                    const img = logoContainer.querySelector('img');
+                                    const fallback = logoContainer.querySelector('.logo-fallback');
+                                    if (img && fallback) {
+                                      img.style.display = 'none';
+                                      fallback.classList.remove('hidden');
+                                      fallback.classList.add('flex');
+                                    }
+                                  }
+                                }}
+                              />
+                              {/* Subtle overlay on hover */}
+                              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-transparent to-white/10 opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300" />
+                            </div>
+                          ) : null}
+                          {/* Fallback icon when no logo or logo fails to load */}
+                          <div
+                            data-company-id={company.id}
+                            className={`logo-fallback w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-sm group-hover/logo:shadow-lg group-hover/logo:scale-105 transition-all duration-300 ${company.logo && !logoLoadingStates[company.id] ? 'hidden' : 'flex'}`}
+                          >
+                            {company.name.charAt(0).toUpperCase()}
+                          </div>
+                        </div>
+
                         <Heading
                           variant="heading-strong-m"
                           className="text-slate-800 group-hover:text-blue-600 transition-colors duration-300 font-bold truncate w-full text-[clamp(1rem,2vw,1.5rem)]"
