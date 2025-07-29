@@ -23,7 +23,7 @@ class DocumentAnalysis(BaseModel):
 
     summary: str
     scores: dict[str, DocumentAnalysisScores]
-    keypoints: list[str]
+    keypoints: list[str] | None = None
 
 
 DocType = Literal[

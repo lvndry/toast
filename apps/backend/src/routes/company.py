@@ -15,9 +15,20 @@ router = APIRouter(prefix="/companies")
 
 
 @router.get("")
-async def get_companies():
-    """Get all companies."""
+async def get_companies(has_documents: bool = True):
+    """
+    Get all companies.
+
+    If has_documents is True, only return companies that have documents.
+    """
     companies = await get_all_companies()
+    if has_documents:
+        companies = [
+            company
+            for company in companies
+            if await get_company_documents(company.slug)
+        ]
+
     return companies
 
 
