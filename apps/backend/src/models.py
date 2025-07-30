@@ -11,7 +11,9 @@ class Model:
         self.api_key = api_key
 
 
-SupportedModel = Literal["mistral-small", "gemini-2.0-flash", "voyage-law-2"]
+SupportedModel = Literal[
+    "mistral-small", "mistral-medium", "gemini-2.0-flash", "voyage-law-2"
+]
 
 
 def get_model(model_name: SupportedModel) -> Model:
@@ -22,6 +24,7 @@ def get_model(model_name: SupportedModel) -> Model:
 
         model_mapping = {
             "mistral-small": "mistral/mistral-small-latest",
+            "mistral-medium": "mistral/mistral-medium-latest",
         }
 
         full_model = model_mapping.get(model_name, f"mistral/{model_name}")

@@ -226,7 +226,7 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
   }
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Fixed Header */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-white/20 shadow-sm flex-shrink-0">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -261,8 +261,26 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
 
-      {/* Scrollable Main Content Area */}
+      {/* Main Content Area - Always takes full height */}
       <div className="flex-1 overflow-y-auto space-y-12" ref={chatContainerRef}>
+        {/* Show thinking indicator when loading and no messages */}
+        {loading && messages.length === 0 && (
+          <div className="flex items-center justify-center min-h-[calc(100vh-200px)] p-6">
+            <div className="bg-white/80 backdrop-blur-sm border border-white/20 text-gray-900 shadow-lg rounded-2xl px-8 py-6 w-full max-w-md">
+              <div className="flex items-center gap-3">
+                <div className="flex space-x-1">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+                <Text variant="body-default-l" className="text-gray-700 font-medium">
+                  Thinking...
+                </Text>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Enhanced Meta Summary Display */}
         {metaSummary && (
           <div className="p-6">
@@ -412,16 +430,16 @@ export default function CompanyChatPage({ params }: { params: Promise<{ slug: st
               />
             ))}
 
-            {loading && (
-              <div className="flex justify-start mb-6">
-                <div className="bg-white/80 backdrop-blur-sm border border-white/20 text-gray-900 shadow-sm rounded-2xl px-6 py-4 max-w-md">
-                  <div className="flex items-center gap-2">
+            {loading && messages.length > 0 && (
+              <div className="w-full">
+                <div className="bg-white/80 backdrop-blur-sm border border-white/20 text-gray-900 shadow-lg rounded-2xl px-8 py-6 w-full max-w-md">
+                  <div className="flex items-center gap-3">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
+                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
-                    <Text variant="body-default-s" className="text-gray-500">
+                    <Text variant="body-default-l" className="text-gray-700 font-medium">
                       Thinking...
                     </Text>
                   </div>

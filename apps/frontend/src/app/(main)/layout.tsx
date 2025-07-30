@@ -107,7 +107,7 @@ export default function RootLayout({
         />
       </head>
       <Providers>
-        <Column as="body" background="page" fillWidth fillHeight margin="0" padding="0" className="h-screen">
+        <Column as="body" background="page" margin="0" padding="0" className="h-screen">
           <Background
             position="absolute"
             className="pointer-events-none"
