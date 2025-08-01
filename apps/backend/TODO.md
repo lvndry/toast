@@ -1,18 +1,5 @@
-### By 30th:
-- Summarize each documents -> done
-- Get a summary for each doc -> done
-- Do embedding for each company -> done
-- Get a global summary of each doc -> done
-- Do the RAG -> done
-- FastAPI API -> done
-- Quickly do a frontend -> done
-
 ### Next steps:
-- Build a streamlit to easily test features
-- Better crawling
-- Better summariazation
-- Better chunking and embedding
-- Improve prompts
+
 - User management (create account, ...)
 - Store conversations per user
 - Add paywall (top 100 companies free, must be premium user to access the rest)

@@ -712,7 +712,7 @@ class LegalDocumentPipeline:
             timeout=self.timeout,
             allowed_domains=company.domains,
             respect_robots_txt=self.respect_robots_txt,
-            user_agent="ToastCrawler/2.0 (Legal Document Discovery Bot)",
+            user_agent="ToastCrawler/2.0 (Legal Document Discovery Bot of Toast.AI)",
             follow_external_links=False,
             min_legal_score=0.0,
             strategy=self.crawler_strategy,

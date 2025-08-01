@@ -105,11 +105,11 @@ class URLScorer:
             "associate": 2.0,
             "transparency": 3.0,
             "report": 2.0,
+            "company": 1.0,
             # Negative keywords (reduce score)
             "blog": -1.0,
             "news": -1.0,
             "product": -0.5,
-            "support": -0.5,
             "help": -0.5,
             "contact": -0.5,
             "about": -0.5,
@@ -130,6 +130,7 @@ class URLScorer:
             r"/data-processing/?": 4.0,
             r"/security/?": 3.0,
             r"/disclaimer/?": 3.0,
+            r"/company/?": 3.0,
             # Enhanced patterns for DPAs and similar documents
             r"/data-processing-addendum/?": 5.0,
             r"/dpa/?": 5.0,
@@ -140,6 +141,28 @@ class URLScorer:
             r"/transparency/?": 3.5,
             # Pattern for UUID-based URLs that might be legal documents
             r"/[a-f0-9-]{32,}": 2.0,  # Boost UUID-like paths slightly
+            # Additional patterns for common legal document structures
+            r"/company/legal/?": 5.0,
+            r"/company/privacy/?": 5.0,
+            r"/company/terms/?": 5.0,
+            r"/company/tos/?": 5.0,
+            r"/about/legal/?": 4.5,
+            r"/about/privacy/?": 4.5,
+            r"/about/terms/?": 4.5,
+            r"/about/tos/?": 4.5,
+            r"/support/legal/?": 4.0,
+            r"/support/privacy/?": 4.0,
+            r"/support/terms/?": 4.0,
+            r"/help/legal/?": 4.0,
+            r"/help/privacy/?": 4.0,
+            r"/help/terms/?": 4.0,
+            r"/policies/privacy/?": 5.0,
+            r"/policies/terms/?": 5.0,
+            r"/policies/cookies/?": 4.5,
+            r"/legal/policies/?": 5.0,
+            r"/legal/policies/privacy/?": 5.0,
+            r"/legal/policies/terms/?": 5.0,
+            r"/legal/policies/cookies/?": 4.5,
         }
 
         # High-value legal document patterns that should get maximum score
@@ -493,7 +516,7 @@ class RobotsTxtChecker:
                     # Store crawl delay for rate limiting
                     try:
                         delay = float(value)
-                        user_agents[current_user_agent]["crawl_delay"] = delay
+                        user_agents[current_user_agent]["crawl_delay"] = delay  # type: ignore
                         logger.debug(
                             f"Added crawl-delay for {current_user_agent}: {delay}"
                         )
@@ -721,15 +744,23 @@ class ToastCrawler:
     def should_crawl_url(self, url: str, base_url: str, depth: int) -> bool:
         """Determine if URL should be crawled."""
         if depth > self.max_depth:
+            logger.debug(
+                f"❌ URL {url} rejected: depth {depth} > max_depth {self.max_depth}"
+            )
             return False
 
         if url in self.visited_urls or url in self.failed_urls:
+            logger.debug(f"❌ URL {url} rejected: already visited or failed")
             return False
 
         if not self.is_allowed_domain(url):
+            logger.debug(f"❌ URL {url} rejected: domain not allowed")
             return False
 
         if not self.follow_external_links and not self.is_same_domain(url, base_url):
+            logger.debug(
+                f"❌ URL {url} rejected: external link and follow_external_links=False"
+            )
             return False
 
         # Skip common non-content URLs
@@ -746,8 +777,10 @@ class ToastCrawler:
 
         for pattern in skip_patterns:
             if re.search(pattern, url, re.IGNORECASE):
+                logger.debug(f"❌ URL {url} rejected: matches skip pattern {pattern}")
                 return False
 
+        logger.debug(f"✅ URL {url} accepted for crawling at depth {depth}")
         return True
 
     def extract_links(self, soup: BeautifulSoup, base_url: str) -> List[str]:
@@ -757,8 +790,8 @@ class ToastCrawler:
         for link in soup.find_all("a", href=True):
             if hasattr(link, "get"):
                 href_attr = link.get("href")
-                if href_attr and hasattr(href_attr, "strip"):
-                    href = href_attr.strip()
+                if href_attr:
+                    href = str(href_attr).strip()
                     if not href:
                         continue
 
@@ -768,7 +801,15 @@ class ToastCrawler:
 
                     links.append(normalized_url)
 
-        return list(set(links))  # Remove duplicates
+        # Remove duplicates and log discovered links
+        unique_links = list(set(links))
+        logger.debug(f"🔗 Discovered {len(unique_links)} unique links from {base_url}")
+        for link in unique_links[:10]:  # Log first 10 links
+            logger.debug(f"  - {link}")
+        if len(unique_links) > 10:
+            logger.debug(f"  ... and {len(unique_links) - 10} more links")
+
+        return unique_links
 
     def extract_metadata(self, soup: BeautifulSoup) -> Dict[str, Any]:
         """Extract metadata from HTML."""
@@ -979,6 +1020,64 @@ class ToastCrawler:
                 error_message=str(e),
             )
 
+    def generate_potential_legal_urls(self, base_url: str) -> List[str]:
+        """Generate potential legal document URLs based on common patterns."""
+        parsed = urlparse(base_url)
+        domain = parsed.netloc
+        scheme = parsed.scheme
+
+        # Common legal document paths
+        legal_paths = [
+            "/legal",
+            "/legal/privacy",
+            "/legal/terms",
+            "/legal/cookies",
+            "/legal/tos",
+            "/privacy",
+            "/privacy-policy",
+            "/terms",
+            "/terms-of-service",
+            "/terms-of-use",
+            "/tos",
+            "/cookies",
+            "/cookie-policy",
+            "/legal/privacy-policy",
+            "/legal/terms-of-service",
+            "/legal/terms-of-use",
+            "/legal/cookie-policy",
+            "/company/legal",
+            "/company/privacy",
+            "/company/terms",
+            "/company/tos",
+            "/company/cookies",
+            "/about/legal",
+            "/about/privacy",
+            "/about/terms",
+            "/about/tos",
+            "/support/legal",
+            "/support/privacy",
+            "/support/terms",
+            "/help/legal",
+            "/help/privacy",
+            "/help/terms",
+            "/policies",
+            "/policies/privacy",
+            "/policies/terms",
+            "/policies/cookies",
+            "/legal/policies",
+            "/legal/policies/privacy",
+            "/legal/policies/terms",
+            "/legal/policies/cookies",
+        ]
+
+        # Generate URLs for each path
+        potential_urls = []
+        for path in legal_paths:
+            url = f"{scheme}://{domain}{path}"
+            potential_urls.append(url)
+
+        return potential_urls
+
     def add_urls_to_queue(self, urls: List[str], base_url: str, depth: int):
         """Add URLs to the appropriate queue based on strategy."""
         for url in urls:
@@ -987,11 +1086,38 @@ class ToastCrawler:
 
             if self.strategy == "bfs":
                 self.url_queue.append((url, depth + 1))
+                logger.debug(f"Added to BFS queue: {url} (depth: {depth + 1})")
             elif self.strategy == "dfs":
                 self.url_stack.append((url, depth + 1))
+                logger.debug(f"Added to DFS stack: {url} (depth: {depth + 1})")
             elif self.strategy == "best_first":
                 score = self.url_scorer.score_url(url)
                 heapq.heappush(self.url_priority_queue, (-score, url, depth + 1))
+                logger.debug(f"Added to Best-First queue: {url} (score: {score:.2f})")
+
+        # If we're at depth 0 (starting page), also add potential legal URLs
+        if depth == 0:
+            potential_legal_urls = self.generate_potential_legal_urls(base_url)
+            logger.info(
+                f"🔍 Generated {len(potential_legal_urls)} potential legal URLs"
+            )
+
+            for url in potential_legal_urls:
+                if not self.should_crawl_url(url, base_url, 1):
+                    continue
+
+                if self.strategy == "bfs":
+                    self.url_queue.append((url, 1))
+                    logger.debug(f"Added potential legal URL to BFS queue: {url}")
+                elif self.strategy == "dfs":
+                    self.url_stack.append((url, 1))
+                    logger.debug(f"Added potential legal URL to DFS stack: {url}")
+                elif self.strategy == "best_first":
+                    score = self.url_scorer.score_url(url)
+                    heapq.heappush(self.url_priority_queue, (-score, url, 1))
+                    logger.debug(
+                        f"Added potential legal URL to Best-First queue: {url} (score: {score:.2f})"
+                    )
 
     def get_next_url(self) -> Optional[Tuple[str, int]]:
         """Get next URL from queue based on strategy."""
@@ -1026,11 +1152,16 @@ class ToastCrawler:
         # Add base URL to queue
         if self.strategy == "bfs":
             self.url_queue.append((base_url, 0))
+            logger.debug(f"Added base URL to BFS queue: {base_url} (depth: 0)")
         elif self.strategy == "dfs":
             self.url_stack.append((base_url, 0))
+            logger.debug(f"Added base URL to DFS stack: {base_url} (depth: 0)")
         elif self.strategy == "best_first":
             score = self.url_scorer.score_url(base_url)
             heapq.heappush(self.url_priority_queue, (-score, base_url, 0))
+            logger.debug(
+                f"Added base URL to Best-First queue: {base_url} (score: {score:.2f})"
+            )
 
         # Create session with connection pooling
         connector = aiohttp.TCPConnector(limit=self.max_concurrent)
