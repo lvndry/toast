@@ -1,43 +1,27 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  sassOptions: {
-    compiler: "modern",
-    silenceDeprecations: ["legacy-js-api"],
+  reactStrictMode: true,
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: [
+        {
+          loader: "@svgr/webpack",
+          options: {
+            svgoConfig: {
+              plugins: [
+                {
+                  name: "removeViewBox",
+                  active: false,
+                },
+              ],
+            },
+          },
+        },
+      ],
+    })
+    return config
   },
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'logo.clearbit.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.google.com',
-        port: '',
-        pathname: '/s2/favicons/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'icons.duckduckgo.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'ui-avatars.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'api.dicebear.com',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-  },
-};
+}
 
-export default nextConfig;
+export default nextConfig

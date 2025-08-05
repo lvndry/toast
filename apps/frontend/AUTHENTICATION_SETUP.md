@@ -10,7 +10,7 @@ This project uses Clerk for authentication. Follow these steps to set up authent
 
 ## 2. Configure Environment Variables
 
-Create a `.env.local` file in the `apps/frontend` directory with the following variables:
+The `.env.local` file has been created with placeholder values. Update it with your actual Clerk keys:
 
 ```env
 # Clerk Authentication
@@ -19,7 +19,6 @@ CLERK_SECRET_KEY=sk_test_your_secret_key_here
 
 # Clerk URLs (optional - these are the defaults)
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/companies
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/companies
 ```
@@ -43,23 +42,21 @@ In your Clerk dashboard:
 
 ## Features Implemented
 
-- ✅ Sign-in and sign-up pages
-- ✅ Protected routes (companies, profile)
-- ✅ Dynamic header based on authentication status
-- ✅ "Get Started" button changes to "Go to App" when logged in
-- ✅ User profile management page
+- ✅ Sign-in and sign-up pages with Clerk components
+- ✅ Protected routes (companies page)
+- ✅ Dashboard layout with authentication checks
+- ✅ User profile display
 - ✅ Sign-out functionality
-- ✅ Modal sign-in for better UX
+- ✅ Automatic redirects for unauthenticated users
+- ✅ Loading states during authentication checks
 
 ## Protected Routes
 
 The following routes require authentication:
-- `/(main)/(dashboard)/*` - All dashboard routes (including companies)
-- `/profile` - User profile management
+- `/(dashboard)/*` - All dashboard routes (including companies)
 
 Public routes:
-- `/` - Home page
-- `/pricing` - Pricing page
+- `/` - Home page (marketing)
 - `/sign-in` - Sign in page
 - `/sign-up` - Sign up page
 
@@ -67,7 +64,31 @@ Public routes:
 
 The authentication is implemented using:
 
-1. **Layout-level protection**: Each protected route group has its own layout that checks authentication status
+1. **Layout-level protection**: The dashboard layout checks authentication status
 2. **Automatic redirects**: Unauthenticated users are automatically redirected to `/sign-in`
 3. **Loading states**: Shows loading indicators while checking authentication status
-4. **Access denied pages**: Displays appropriate messages for unauthorized access attempts 
+4. **Clerk integration**: Uses Clerk's built-in authentication components and hooks
+
+## File Structure
+
+```
+app/
+├── (auth)/
+│   ├── layout.tsx
+│   ├── sign-in/[[...sign-in]]/page.tsx
+│   └── sign-up/[[...sign-up]]/page.tsx
+├── (dashboard)/
+│   ├── layout.tsx
+│   └── companies/page.tsx
+├── (marketing)/
+│   └── page.tsx
+├── layout.tsx
+└── provider.tsx
+```
+
+## Next Steps
+
+1. Replace the placeholder Clerk keys in `.env.local` with your actual keys
+2. Customize the Clerk appearance to match your design
+3. Add more protected routes as needed
+4. Implement user profile management features 

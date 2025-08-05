@@ -785,7 +785,7 @@ class ToastCrawler:
 
     def extract_links(self, soup: BeautifulSoup, base_url: str) -> List[str]:
         """Extract links from HTML."""
-        links = []
+        links: List[str] = []
 
         for link in soup.find_all("a", href=True):
             if hasattr(link, "get"):
@@ -802,9 +802,9 @@ class ToastCrawler:
                     links.append(normalized_url)
 
         # Remove duplicates and log discovered links
-        unique_links = list(set(links))
+        unique_links: List[str] = list(set(links))
         logger.debug(f"🔗 Discovered {len(unique_links)} unique links from {base_url}")
-        for link in unique_links[:10]:  # Log first 10 links
+        for link in unique_links[:10]:  # type: ignore
             logger.debug(f"  - {link}")
         if len(unique_links) > 10:
             logger.debug(f"  ... and {len(unique_links) - 10} more links")
