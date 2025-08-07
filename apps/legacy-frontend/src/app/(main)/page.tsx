@@ -108,7 +108,7 @@ export default function Home() {
                       variant="secondary"
                       prefixIcon="users"
                     >
-                      Sign In
+                      Login
                     </Button>
                   </SignInButton>
                 </>

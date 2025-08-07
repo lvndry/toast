@@ -8,6 +8,7 @@ from motor.core import AgnosticDatabase
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from src.company import Company
+from src.conversation import Conversation, Message
 from src.document import Document, DocumentAnalysis
 
 load_dotenv()
@@ -155,6 +156,58 @@ async def store_company_meta_summary(company_slug: str, meta_summary: DocumentAn
     except Exception as e:
         logger.error(f"Error storing meta summary for {company_slug}: {e}")
         raise e
+
+
+###########
+
+
+####### Conversations #######
+async def create_conversation(conversation: Conversation) -> Conversation:
+    """Create a new conversation in the database."""
+    await mongo.db.conversations.insert_one(conversation.model_dump(mode="json"))
+    return conversation
+
+
+async def get_conversation_by_id(conversation_id: str) -> Conversation | None:
+    """Get a conversation by its ID."""
+    conversation_doc = await mongo.db.conversations.find_one({"id": conversation_id})
+    return Conversation(**conversation_doc) if conversation_doc else None
+
+
+async def get_user_conversations(user_id: str) -> list[Conversation]:
+    """Get all conversations for a user."""
+    conversations = await mongo.db.conversations.find({"user_id": user_id}).to_list(
+        length=None
+    )
+    return [Conversation(**conversation) for conversation in conversations]
+
+
+async def update_conversation(conversation: Conversation):
+    """Update a conversation in the database."""
+    conversation.updated_at = datetime.now()
+    await mongo.db.conversations.update_one(
+        {"id": conversation.id},
+        {"$set": conversation.model_dump(mode="json")},
+    )
+
+
+async def add_message_to_conversation(conversation_id: str, message: Message):
+    """Add a message to a conversation."""
+    await mongo.db.conversations.update_one(
+        {"id": conversation_id},
+        {
+            "$push": {"messages": message.model_dump(mode="json")},
+            "$set": {"updated_at": datetime.now()},
+        },
+    )
+
+
+async def add_document_to_conversation(conversation_id: str, document_id: str):
+    """Add a document to a conversation."""
+    await mongo.db.conversations.update_one(
+        {"id": conversation_id},
+        {"$push": {"documents": document_id}, "$set": {"updated_at": datetime.now()}},
+    )
 
 
 ###########

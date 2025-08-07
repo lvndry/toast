@@ -1,20 +1,20 @@
 "use client";
 
-import { Features } from "@components/features";
-import { FiBookOpen, FiCheck, FiCode, FiFlag, FiGrid, FiSearch, FiShield, FiSmile, FiThumbsUp, FiTrendingUp } from "react-icons/fi";
 import { Link } from "@chakra-ui/react";
+import { Features } from "@components/features";
+import { FiBookOpen, FiCheck, FiCode, FiFlag, FiGrid, FiSearch, FiShield, FiSmile, FiTrendingUp } from "react-icons/fi";
 
 export default function FeaturesSection() {
   return (
     <Features
       id="features"
       title={
-        <>Not your standard<br /> dashboard template.</>
+        <>AI-powered legal<br /> document analysis.</>
       }
       description={
         <>
-          Saas UI Pro includes everything you need to build modern frontends.<br />
-          Use it as a template for your next product or foundation for your design system.
+          Toast AI transforms complex legal documents into clear insights.<br />
+          Upload documents, ask questions, and get instant analysis powered by advanced AI.
         </>
       }
       align="left"

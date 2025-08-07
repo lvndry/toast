@@ -88,7 +88,7 @@ export function Header() {
                 size="m"
                 variant="secondary"
               >
-                Sign In
+                Login
               </Button>
             </SignInButton>
             <Button

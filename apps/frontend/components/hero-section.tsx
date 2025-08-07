@@ -19,8 +19,8 @@ export default function HeroSection() {
             px="0"
             title={
               <FallInPlace>
-                Understand Legal Documents in
-                <br /> Seconds, Not Hours
+                Terms of services were not written for you...
+                <br /> Until now.
               </FallInPlace>
             }
             description={

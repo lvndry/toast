@@ -1,6 +1,6 @@
 import { Link } from "@chakra-ui/react";
 import { NextSeoProps } from "next-seo";
-import { FaGithub, FaTwitter } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa";
 import { FiCheck } from "react-icons/fi";
 
 import { Logo } from "./logo";
@@ -28,11 +28,11 @@ const siteConfig = {
         label: "FAQ",
       },
       {
-        label: "Sign In",
+        label: "Login",
         href: "/sign-in",
       },
       {
-        label: "Sign Up",
+        label: "Sign up",
         href: "/sign-up",
         variant: "primary",
       },
@@ -51,40 +51,36 @@ const siteConfig = {
         label: "Contact",
       },
       {
-        href: "https://x.com/lvndry",
-        label: <FaTwitter size="14" />,
-      },
-      {
         href: "https://github.com/lvndry",
         label: <FaGithub size="14" />,
       },
     ],
   },
   signup: {
-    title: "Terms of service made easy",
+    title: "AI-powered legal document analysis",
     features: [
       {
         icon: FiCheck,
-        title: "Accessible",
-        description: "All components strictly follow WAI-ARIA standards.",
+        title: "Smart Analysis",
+        description: "AI-powered extraction and analysis of legal documents with high accuracy.",
       },
       {
         icon: FiCheck,
-        title: "Themable",
+        title: "PDF Processing",
         description:
-          "Fully customize all components to your brand with theme support and style props.",
+          "Upload your legal documents and let our AI analyze them for you.",
       },
       {
         icon: FiCheck,
-        title: "Composable",
+        title: "Company Intelligence",
         description:
-          "Compose components to fit your needs and mix them together to create new ones.",
+          "Build comprehensive company profiles with extracted legal information and insights.",
       },
       {
         icon: FiCheck,
-        title: "Productive",
+        title: "Secure & Compliant",
         description:
-          "Designed to reduce boilerplate and fully typed, build your product at speed.",
+          "Enterprise-grade security with data encryption and compliance with legal standards.",
       },
     ],
   },

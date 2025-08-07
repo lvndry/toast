@@ -1,7 +1,7 @@
 "use client";
 
+import { ChakraProvider } from "@chakra-ui/react";
 import { ClerkProvider } from "@clerk/nextjs";
-import { ChakraProvider } from '@chakra-ui/react'
 
 import { theme } from "@theme";
 

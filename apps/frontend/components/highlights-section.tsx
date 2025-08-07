@@ -1,8 +1,6 @@
 import {
-  Tag,
   Text,
-  VStack,
-  Wrap
+  VStack
 } from "@chakra-ui/react";
 
 import {
@@ -47,37 +45,6 @@ export function HighlightsSection() {
         <Text color="muted" fontSize="lg">
           We&apos;ve made legal document analysis accessible to everyone through AI-powered insights.
         </Text>
-        <Wrap mt="8">
-          {[
-            "instant search",
-            "pre-analyzed data",
-            "ai assistant",
-            "legal summaries",
-            "terms of service",
-            "privacy policies",
-            "legal agreements",
-            "document analysis",
-            "company research",
-            "legal insights",
-            "compliance checking",
-            "risk assessment",
-            "legal jargon",
-            "document comparison",
-            "legal questions",
-            "regulatory compliance",
-            "contract analysis",
-          ].map((value) => (
-            <Tag
-              key={value}
-              variant="subtle"
-              colorScheme="purple"
-              rounded="full"
-              px="3"
-            >
-              {value}
-            </Tag>
-          ))}
-        </Wrap>
       </HighlightsItem>
     </Highlights>
   );
