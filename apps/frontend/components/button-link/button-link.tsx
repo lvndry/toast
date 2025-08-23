@@ -1,12 +1,18 @@
-import { Button, ButtonProps } from "@chakra-ui/react";
-import NextLink, { LinkProps } from "next/link";
+import { Button } from "@chakra-ui/react";
+import Link from "next/link";
 
-export type ButtonLinkProps = LinkProps & ButtonProps;
+export interface ButtonLinkProps {
+  href: string;
+  children: React.ReactNode;
+  [key: string]: any;
+}
 
-export function ButtonLink({ href, children, ...rest }: ButtonLinkProps) {
+export function ButtonLink({ href, children, ...props }: ButtonLinkProps) {
   return (
-    <NextLink href={href} passHref>
-      <Button {...rest}>{children}</Button>
-    </NextLink>
+    <Link href={href} style={{ textDecoration: 'none' }}>
+      <Button {...props}>
+        {children}
+      </Button>
+    </Link>
   );
 }

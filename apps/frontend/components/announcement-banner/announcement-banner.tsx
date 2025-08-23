@@ -1,39 +1,34 @@
 import {
-  Box,
   Button,
   Container,
   Flex,
   HStack,
-  Icon,
-  LinkBox,
-  LinkOverlay,
-  useColorModeValue,
-} from "@chakra-ui/react"
+  Icon
+} from "@chakra-ui/react";
 import {
   Banner,
   BannerActions,
-  BannerContent,
   BannerDescription,
   BannerTitle,
-} from "@saas-ui/react"
-import NextLink from "next/link"
-import { FiArrowRight } from "react-icons/fi"
+} from "@saas-ui/react";
+import NextLink from "next/link";
+import { FiArrowRight } from "react-icons/fi";
 
-import { FallInPlace } from "../motion/fall-in-place"
+import { FallInPlace } from "../motion/fall-in-place";
 
 export interface AnnouncementBannerProps {
-  title: string
-  description: string
-  href: string
-  action?: string
+  title: string;
+  description: string;
+  href: string;
+  action?: string;
 }
 
 export const AnnouncementBanner: React.FC<AnnouncementBannerProps> = (
   props,
 ) => {
-  const { title, description, href, action } = props
+  const { title, description, href, action } = props;
   if (!title) {
-    return null
+    return null;
   }
 
   return (
@@ -119,5 +114,5 @@ export const AnnouncementBanner: React.FC<AnnouncementBannerProps> = (
         </FallInPlace>
       </Container>
     </Flex>
-  )
-}
+  );
+};

@@ -1,11 +1,11 @@
 "use client";
 
-import { HStack, useDisclosure, useUpdateEffect } from "@chakra-ui/react";
+import { HStack, IconButton, useDisclosure, useUpdateEffect } from "@chakra-ui/react";
 import { useScrollSpy } from "hooks/use-scrollspy";
 import { usePathname } from "next/navigation";
 import { useRef } from "react";
 
-import { MobileNavButton, MobileNavContent } from "@components/mobile-nav";
+import { MobileNav } from "@components/mobile-nav";
 import { NavLink } from "@components/nav-link";
 import siteConfig from "@data/config";
 
@@ -52,13 +52,30 @@ function Navigation() {
 
       <ThemeToggle />
 
-      <MobileNavButton
+      <IconButton
         ref={mobileNavBtnRef}
         aria-label="Open Menu"
         onClick={mobileNav.onOpen}
+        display={["block", null, "none"]}
       />
 
-      <MobileNavContent isOpen={mobileNav.isOpen} onClose={mobileNav.onClose} />
+      <MobileNav isOpen={mobileNav.isOpen} onClose={mobileNav.onClose}>
+        {siteConfig.header.links.map(({ href, id, ...props }, i) => (
+          <NavLink
+            key={i}
+            href={href || `/#${id}`}
+            isActive={
+              !!(
+                (id && activeId === id) ||
+                (href && !!path?.match(new RegExp(href)))
+              )
+            }
+            {...props}
+          >
+            {props.label}
+          </NavLink>
+        ))}
+      </MobileNav>
     </HStack>
   );
 }

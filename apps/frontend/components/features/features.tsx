@@ -5,14 +5,10 @@ import {
   Circle,
   Heading,
   Icon,
-  ResponsiveValue,
   SimpleGrid,
   Stack,
-  SystemProps,
   Text,
-  ThemingProps,
   VStack,
-  useMultiStyleConfig,
 } from "@chakra-ui/react";
 import { Section, SectionTitle, SectionTitleProps } from "components/section";
 
@@ -20,18 +16,17 @@ function Revealer({ children }: any) {
   return children;
 }
 
-export interface FeaturesProps
-  extends Omit<SectionTitleProps, "title" | "variant">,
-  ThemingProps<"Features"> {
+export interface FeaturesProps extends Omit<SectionTitleProps, "title"> {
+  id?: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   features: Array<FeatureProps>;
-  columns?: ResponsiveValue<number>;
+  columns?: number | number[];
   spacing?: string | number;
   aside?: React.ReactNode;
   reveal?: React.FC<any>;
-  iconSize?: SystemProps["boxSize"];
-  innerWidth?: SystemProps["maxW"];
+  iconSize?: number;
+  innerWidth?: string;
 }
 
 export interface FeatureProps {
@@ -39,7 +34,7 @@ export interface FeatureProps {
   description?: React.ReactNode;
   icon?: any;
   iconPosition?: "left" | "top";
-  iconSize?: SystemProps["boxSize"];
+  iconSize?: number;
   ip?: "left" | "top";
   variant?: string;
   delay?: number;
@@ -53,23 +48,21 @@ export function Feature(props: FeatureProps) {
     iconPosition,
     iconSize = 8,
     ip,
-    variant,
   } = props;
-  const styles = useMultiStyleConfig("Feature", { variant });
 
   const pos = iconPosition || ip;
   const direction = pos === "left" ? "row" : "column";
 
   return (
-    <Stack sx={styles.container} direction={direction}>
+    <Stack direction={direction} gap={4}>
       {icon && (
-        <Circle sx={styles.icon}>
+        <Circle size="12" bg="blue.500" color="white">
           <Icon as={icon} boxSize={iconSize} />
         </Circle>
       )}
       <Box>
-        <Heading sx={styles.title}>{title}</Heading>
-        <Text sx={styles.description}>{description}</Text>
+        <Heading size="md" mb={2}>{title}</Heading>
+        <Text color="gray.600">{description}</Text>
       </Box>
     </Stack>
   );
@@ -96,7 +89,7 @@ export function Features(props: FeaturesProps) {
   return (
     <Section {...rest}>
       <Stack direction="row" height="full" align="flex-start">
-        <VStack flex="1" spacing={[4, null, 8]} alignItems="stretch">
+        <VStack flex="1" gap={[4, null, 8]} alignItems="stretch">
           {(title || description) && (
             <Wrap>
               <SectionTitle
@@ -106,7 +99,7 @@ export function Features(props: FeaturesProps) {
               />
             </Wrap>
           )}
-          <SimpleGrid columns={columns} spacing={spacing}>
+          <SimpleGrid columns={columns} gap={spacing}>
             {features.map((feature, i) => {
               return (
                 <Wrap key={i} delay={feature.delay}>

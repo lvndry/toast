@@ -3,12 +3,10 @@
 import {
   Box,
   Heading,
-  StackProps,
   VStack,
-  useMultiStyleConfig,
 } from "@chakra-ui/react";
 
-export interface SectionTitleProps extends Omit<StackProps, "title"> {
+export interface SectionTitleProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   align?: "left" | "center";
@@ -16,21 +14,29 @@ export interface SectionTitleProps extends Omit<StackProps, "title"> {
 }
 
 export function SectionTitle(props: SectionTitleProps) {
-  const { title, description, align, variant, ...rest } = props;
-  const styles = useMultiStyleConfig("SectionTitle", { variant });
+  const { title, description, align, ...rest } = props;
 
   return (
     <VStack
-      sx={styles.wrapper}
       alignItems={align === "left" ? "flex-start" : "center"}
-      spacing={4}
+      gap={4}
       {...rest}
     >
-      <Heading sx={styles.title} as="h2">
+      <Heading
+        as="h2"
+        size="xl"
+        fontWeight="bold"
+        textAlign={align}
+      >
         {title}
       </Heading>
       {description && (
-        <Box sx={styles.description} textAlign={align}>
+        <Box
+          textAlign={align}
+          color="gray.600"
+          fontSize="lg"
+          maxW="2xl"
+        >
           {description}
         </Box>
       )}

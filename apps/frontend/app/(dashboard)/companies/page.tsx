@@ -3,10 +3,6 @@
 import {
   Box,
   Button,
-  Card,
-  CardBody,
-  FormControl,
-  FormLabel,
   Grid,
   GridItem,
   Heading,
@@ -15,13 +11,6 @@ import {
   Image,
   Input,
   InputGroup,
-  InputLeftElement,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
   Spinner,
   Text,
   Textarea,
@@ -139,13 +128,7 @@ export default function CompaniesPage() {
 
   async function handleUpload() {
     if (!selectedFile || !companyName.trim()) {
-      toast({
-        title: "Missing information",
-        description: "Please provide a company name and select a file to upload.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      // Show error message
       return;
     }
 
@@ -188,13 +171,7 @@ export default function CompaniesPage() {
         const errorMessage = errorData.detail || 'Failed to upload document';
 
         if (uploadResponse.status === 400) {
-          toast({
-            title: "Invalid Document",
-            description: errorMessage,
-            status: "error",
-            duration: 5000,
-            isClosable: true,
-          });
+          // Show error message
         } else {
           throw new Error(errorMessage);
         }
@@ -203,14 +180,6 @@ export default function CompaniesPage() {
 
       const uploadResult = await uploadResponse.json();
 
-      toast({
-        title: "Upload successful",
-        description: `Your ${uploadResult.classification} document has been uploaded and processed.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
       // Navigate to the conversation
       router.push(`/q/${conversation.id}`);
 
@@ -218,16 +187,8 @@ export default function CompaniesPage() {
       setCompanyName("");
       setCompanyDescription("");
       setSelectedFile(null);
-      onClose();
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: "There was an error uploading your document. Please try again.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
     } finally {
       setUploadLoading(false);
     }
@@ -277,17 +238,17 @@ export default function CompaniesPage() {
             </Box>
             <HStack spacing={4}>
               <Button
-                leftIcon={<FiPlus />}
                 colorScheme="blue"
-                onClick={onOpen}
+                onClick={() => onOpen()}
               >
+                <FiPlus style={{ marginRight: '8px' }} />
                 Upload My Own Documents
               </Button>
               <Button
-                leftIcon={<FiLogOut />}
                 variant="outline"
                 onClick={() => signOut()}
               >
+                <FiLogOut style={{ marginRight: '8px' }} />
                 Sign Out
               </Button>
             </HStack>
@@ -299,9 +260,9 @@ export default function CompaniesPage() {
       <Box maxW="7xl" mx="auto" px={6} py={8}>
         <Box maxW="2xl" mx="auto">
           <InputGroup size="lg">
-            <InputLeftElement>
+            <Box position="absolute" left={3} top="50%" transform="translateY(-50%)" zIndex={1}>
               <FiSearch color="gray.400" />
-            </InputLeftElement>
+            </Box>
             <Input
               placeholder="Search companies by name, description, or industry..."
               value={searchTerm}
@@ -309,6 +270,7 @@ export default function CompaniesPage() {
               bg="white"
               borderColor="gray.300"
               _focus={{ borderColor: "blue.500", boxShadow: "outline" }}
+              pl={10}
             />
           </InputGroup>
         </Box>
@@ -333,90 +295,83 @@ export default function CompaniesPage() {
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((company) => (
                 <GridItem key={company.id}>
-                  <Card
+                  <Box
+                    bg="white"
+                    p={6}
+                    borderRadius="lg"
+                    shadow="sm"
                     cursor="pointer"
                     transition="all 0.2s"
                     _hover={{ transform: "translateY(-4px)", shadow: "lg" }}
                     onClick={() => router.push(`/q/${company.slug}`)}
                   >
-                    <CardBody>
-                      <VStack spacing={4} align="center">
-                        {/* Company Logo */}
-                        <Box position="relative" w="16" h="16">
-                          {logoLoadingStates[company.id] ? (
-                            <Box
-                              w="16"
-                              h="16"
-                              bg="gray.200"
-                              borderRadius="xl"
-                              display="flex"
-                              alignItems="center"
-                              justifyContent="center"
-                            >
-                              <Spinner size="sm" />
-                            </Box>
-                          ) : company.logo ? (
-                            <Image
-                              src={company.logo}
-                              alt={`${company.name} logo`}
-                              w="16"
-                              h="16"
-                              borderRadius="xl"
-                              objectFit="contain"
-                              bg="white"
-                              border="1px"
-                              borderColor="gray.200"
-                              fallback={
-                                <Box
-                                  w="16"
-                                  h="16"
-                                  bg="blue.500"
-                                  borderRadius="xl"
-                                  display="flex"
-                                  alignItems="center"
-                                  justifyContent="center"
-                                  color="white"
-                                  fontWeight="bold"
-                                >
-                                  {company.name.charAt(0).toUpperCase()}
-                                </Box>
-                              }
-                            />
-                          ) : (
-                            <Box
-                              w="16"
-                              h="16"
-                              bg="blue.500"
-                              borderRadius="xl"
-                              display="flex"
-                              alignItems="center"
-                              justifyContent="center"
-                              color="white"
-                              fontWeight="bold"
-                            >
-                              {company.name.charAt(0).toUpperCase()}
-                            </Box>
-                          )}
-                        </Box>
+                    <VStack spacing={4} align="center">
+                      {/* Company Logo */}
+                      <Box position="relative" w="16" h="16">
+                        {logoLoadingStates[company.id] ? (
+                          <Box
+                            w="16"
+                            h="16"
+                            bg="gray.200"
+                            borderRadius="xl"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                          >
+                            <Spinner size="sm" />
+                          </Box>
+                        ) : company.logo ? (
+                          <Image
+                            src={company.logo}
+                            alt={`${company.name} logo`}
+                            w="16"
+                            h="16"
+                            borderRadius="xl"
+                            objectFit="contain"
+                            bg="white"
+                            border="1px"
+                            borderColor="gray.200"
+                          />
+                        ) : (
+                          <Box
+                            w="16"
+                            h="16"
+                            bg="blue.500"
+                            borderRadius="xl"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                            color="white"
+                            fontWeight="bold"
+                          >
+                            {company.name.charAt(0).toUpperCase()}
+                          </Box>
+                        )}
+                      </Box>
 
-                        <VStack spacing={2} align="center">
-                          <Heading size="md" textAlign="center">
-                            {company.name}
-                          </Heading>
-                          {company.description && (
-                            <Text
-                              fontSize="sm"
-                              color="gray.600"
-                              textAlign="center"
-                              noOfLines={3}
-                            >
-                              {company.description}
-                            </Text>
-                          )}
-                        </VStack>
+                      <VStack spacing={2} align="center">
+                        <Heading size="md" textAlign="center">
+                          {company.name}
+                        </Heading>
+                        {company.description && (
+                          <Text
+                            fontSize="sm"
+                            color="gray.600"
+                            textAlign="center"
+                            overflow="hidden"
+                            textOverflow="ellipsis"
+                            display="-webkit-box"
+                            css={{
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: "vertical"
+                            }}
+                          >
+                            {company.description}
+                          </Text>
+                        )}
                       </VStack>
-                    </CardBody>
-                  </Card>
+                    </VStack>
+                  </Box>
                 </GridItem>
               ))}
           </Grid>
@@ -424,33 +379,52 @@ export default function CompaniesPage() {
       </Box>
 
       {/* Upload Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Upload Your Own Documents</ModalHeader>
-          <ModalBody>
+      {isOpen && (
+        <Box
+          position="fixed"
+          top="0"
+          left="0"
+          right="0"
+          bottom="0"
+          bg="blackAlpha.600"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          zIndex="modal"
+          onClick={() => onClose()}
+        >
+          <Box
+            bg="white"
+            borderRadius="lg"
+            shadow="xl"
+            p={6}
+            w="lg"
+            maxW="lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Heading size="md" mb={4}>Upload Your Own Documents</Heading>
             <VStack spacing={6}>
-              <FormControl isRequired>
-                <FormLabel>Company Name</FormLabel>
+              <Box w="full">
+                <Text fontWeight="semibold" mb={2}>Company Name *</Text>
                 <Input
                   placeholder="Enter company name"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                 />
-              </FormControl>
+              </Box>
 
-              <FormControl>
-                <FormLabel>Company Description (Optional)</FormLabel>
+              <Box w="full">
+                <Text fontWeight="semibold" mb={2}>Company Description (Optional)</Text>
                 <Textarea
                   placeholder="Brief description of the company"
                   value={companyDescription}
                   onChange={(e) => setCompanyDescription(e.target.value)}
                   rows={3}
                 />
-              </FormControl>
+              </Box>
 
-              <FormControl isRequired>
-                <FormLabel>Upload Document</FormLabel>
+              <Box w="full">
+                <Text fontWeight="semibold" mb={2}>Upload Document *</Text>
                 <Box
                   border="2px dashed"
                   borderColor="gray.300"
@@ -488,31 +462,32 @@ export default function CompaniesPage() {
                     </Text>
                     <IconButton
                       size="sm"
-                      icon={<FiX />}
                       aria-label="Remove file"
                       onClick={() => setSelectedFile(null)}
-                    />
+                    >
+                      <FiX />
+                    </IconButton>
                   </HStack>
                 )}
-              </FormControl>
+              </Box>
             </VStack>
-          </ModalBody>
 
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              colorScheme="blue"
-              onClick={handleUpload}
-              isLoading={uploadLoading}
-              loadingText="Uploading..."
-            >
-              Upload & Start Conversation
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+            <HStack spacing={3} mt={6} justify="flex-end">
+              <Button variant="ghost" onClick={() => onClose()}>
+                Cancel
+              </Button>
+              <Button
+                colorScheme="blue"
+                onClick={handleUpload}
+                isLoading={uploadLoading}
+                loadingText="Uploading..."
+              >
+                Upload & Start Conversation
+              </Button>
+            </HStack>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 }

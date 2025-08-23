@@ -3,21 +3,11 @@
 import {
   Box,
   Button,
-  Card,
-  CardBody,
-  FormControl,
-  FormLabel,
   Grid,
   GridItem,
   Heading,
   HStack,
   Input,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
   Spinner,
   Text,
   useColorModeValue,
@@ -273,25 +263,13 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
         const errorData = await uploadResponse.json().catch(() => ({}));
         const errorMessage = errorData.detail || 'Failed to upload document';
 
-        toast({
-          title: "Upload Failed",
-          description: errorMessage,
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
+        // Removed toast as per edit hint
         return;
       }
 
       const uploadResult = await uploadResponse.json();
 
-      toast({
-        title: "Upload successful",
-        description: `Your ${uploadResult.classification} document has been uploaded and processed.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      // Removed toast as per edit hint
 
       // Refresh the conversation to get updated data
       const conversationResponse = await fetch(`/api/conversations/${conversation.id}`);
@@ -301,16 +279,10 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
         setMessages(updatedConversation.messages || []);
       }
 
-      onClose();
+      onClose(); // Close modal after successful upload
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: "There was an error uploading your document. Please try again.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      // Removed toast as per edit hint
     } finally {
       setUploadLoading(false);
     }
@@ -319,18 +291,16 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
   if (error) {
     return (
       <Box minH="100vh" bg={bgColor} display="flex" alignItems="center" justifyContent="center" p={6}>
-        <Card maxW="md" w="full">
-          <CardBody textAlign="center">
-            <VStack spacing={4}>
-              <Box w="16" h="16" bg="red.100" borderRadius="full" display="flex" alignItems="center" justifyContent="center">
-                <FiX size={24} color="red.500" />
-              </Box>
-              <Heading size="md" color="red.500">Oops! Something went wrong</Heading>
-              <Text color="gray.600">{error}</Text>
-              <Button onClick={() => router.back()}>Go Back</Button>
-            </VStack>
-          </CardBody>
-        </Card>
+        <Box maxW="md" w="full" bg={cardBg} p={6} borderRadius="lg" shadow="md">
+          <VStack spacing={4} textAlign="center">
+            <Box w="16" h="16" bg="red.100" borderRadius="full" display="flex" alignItems="center" justifyContent="center">
+              <FiX size={24} color="red.500" />
+            </Box>
+            <Heading size="md" color="red.500">Oops! Something went wrong</Heading>
+            <Text color="gray.600">{error}</Text>
+            <Button onClick={() => router.back()}>Go Back</Button>
+          </VStack>
+        </Box>
       </Box>
     );
   }
@@ -364,22 +334,22 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
             <HStack spacing={3}>
               {conversation && (
                 <Button
-                  leftIcon={uploadLoading ? <Spinner size="sm" /> : <FiUpload />}
                   size="sm"
                   variant="outline"
-                  onClick={onOpen}
+                  onClick={() => onOpen()}
                   isLoading={uploadLoading}
                   loadingText="Uploading..."
                 >
+                  <FiUpload style={{ marginRight: '8px' }} />
                   Upload More Documents
                 </Button>
               )}
               <Button
-                leftIcon={<FiArrowLeft />}
                 size="sm"
                 variant="outline"
                 onClick={() => router.back()}
               >
+                <FiArrowLeft style={{ marginRight: '8px' }} />
                 Back
               </Button>
             </HStack>
@@ -401,28 +371,30 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
                     const isExpanded = expandedScores.has(key);
                     return (
                       <GridItem key={key}>
-                        <Card
+                        <Box
+                          bg={cardBg}
+                          p={6}
+                          borderRadius="lg"
+                          shadow="sm"
                           cursor="pointer"
                           transition="all 0.2s"
                           _hover={{ transform: "translateY(-2px)", shadow: "md" }}
                           onClick={() => toggleScoreExpansion(key)}
                         >
-                          <CardBody>
-                            <VStack spacing={3}>
-                              <Text fontSize="sm" fontWeight="semibold" color="gray.600">
-                                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          <VStack spacing={3}>
+                            <Text fontSize="sm" fontWeight="semibold" color="gray.600">
+                              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </Text>
+                            <Text fontSize="2xl" fontWeight="bold" color="blue.500">
+                              {score.score}/10
+                            </Text>
+                            {isExpanded && (
+                              <Text fontSize="sm" color="gray.600" textAlign="center">
+                                {score.justification}
                               </Text>
-                              <Text fontSize="2xl" fontWeight="bold" color="blue.500">
-                                {score.score}/10
-                              </Text>
-                              {isExpanded && (
-                                <Text fontSize="sm" color="gray.600" textAlign="center">
-                                  {score.justification}
-                                </Text>
-                              )}
-                            </VStack>
-                          </CardBody>
-                        </Card>
+                            )}
+                          </VStack>
+                        </Box>
                       </GridItem>
                     );
                   })}
@@ -433,39 +405,35 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
               <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={8}>
                 <Box>
                   <Heading size="md" mb={4}>Key Points</Heading>
-                  <Card>
-                    <CardBody>
-                      <VStack spacing={3} align="stretch">
-                        {(showAllKeyPoints ? metaSummary.keypoints : metaSummary.keypoints.slice(0, 5)).map((point, index) => (
-                          <HStack key={index} align="start" spacing={3}>
-                            <Box w="2" h="2" bg="blue.500" borderRadius="full" mt={2} flexShrink={0} />
-                            <Text fontSize="sm" color="gray.700">{point}</Text>
-                          </HStack>
-                        ))}
-                      </VStack>
-                      {metaSummary.keypoints.length > 5 && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setShowAllKeyPoints(!showAllKeyPoints)}
-                          mt={4}
-                        >
-                          {showAllKeyPoints ? 'Show Less' : `Show All ${metaSummary.keypoints.length} Points`}
-                        </Button>
-                      )}
-                    </CardBody>
-                  </Card>
+                  <Box bg={cardBg} p={6} borderRadius="lg" shadow="sm">
+                    <VStack spacing={3} align="stretch">
+                      {(showAllKeyPoints ? metaSummary.keypoints : metaSummary.keypoints.slice(0, 5)).map((point, index) => (
+                        <HStack key={index} align="start" spacing={3}>
+                          <Box w="2" h="2" bg="blue.500" borderRadius="full" mt={2} flexShrink={0} />
+                          <Text fontSize="sm" color="gray.700">{point}</Text>
+                        </HStack>
+                      ))}
+                    </VStack>
+                    {metaSummary.keypoints.length > 5 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setShowAllKeyPoints(!showAllKeyPoints)}
+                        mt={4}
+                      >
+                        {showAllKeyPoints ? 'Show Less' : `Show All ${metaSummary.keypoints.length} Points`}
+                      </Button>
+                    )}
+                  </Box>
                 </Box>
 
                 <Box>
                   <Heading size="md" mb={4}>Summary</Heading>
-                  <Card>
-                    <CardBody>
-                      <Box color="gray.700">
-                        <ReactMarkdown>{metaSummary.summary}</ReactMarkdown>
-                      </Box>
-                    </CardBody>
-                  </Card>
+                  <Box bg={cardBg} p={6} borderRadius="lg" shadow="sm">
+                    <Box color="gray.700">
+                      <ReactMarkdown>{metaSummary.summary}</ReactMarkdown>
+                    </Box>
+                  </Box>
                 </Box>
               </Grid>
             </Box>
@@ -513,7 +481,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
               <Box display="flex" justifyContent="flex-start" mb={4}>
                 <Box bg={cardBg} p={4} borderRadius="lg" shadow="sm">
                   <HStack spacing={3}>
-                    <HStack spacing={1}>
+                    <HStack gap={1}>
                       <Box w="2" h="2" bg="blue.500" borderRadius="full" animation="bounce 1s infinite" />
                       <Box w="2" h="2" bg="blue.500" borderRadius="full" animation="bounce 1s infinite" style={{ animationDelay: '0.1s' }} />
                       <Box w="2" h="2" bg="blue.500" borderRadius="full" animation="bounce 1s infinite" style={{ animationDelay: '0.2s' }} />
@@ -552,58 +520,73 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
       </Box>
 
       {/* Upload Modal for Conversations */}
-      {conversation && (
-        <Modal isOpen={isOpen} onClose={onClose} size="lg">
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Upload Additional Documents</ModalHeader>
-            <ModalBody>
-              <VStack spacing={4}>
-                <FormControl>
-                  <FormLabel>Upload Document</FormLabel>
-                  <Box
-                    border="2px dashed"
-                    borderColor="gray.300"
-                    borderRadius="md"
-                    p={6}
-                    textAlign="center"
-                    cursor="pointer"
-                    _hover={{ borderColor: "blue.500" }}
-                    onClick={() => document.getElementById('file-upload-modal')?.click()}
-                  >
-                    <VStack spacing={3}>
-                      <FiUpload size={24} color="gray.400" />
-                      <Text color="gray.600">Click to upload or drag and drop</Text>
-                      <Text fontSize="sm" color="gray.500">
-                        PDF, DOC, DOCX, TXT files supported
-                      </Text>
-                      <Text fontSize="xs" color="gray.400">
-                        Only legal documents will be processed
-                      </Text>
-                    </VStack>
-                    <input
-                      id="file-upload-modal"
-                      type="file"
-                      accept=".pdf,.doc,.docx,.txt"
-                      style={{ display: 'none' }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleFileUpload(file);
-                        }
-                      }}
-                    />
-                  </Box>
-                </FormControl>
-              </VStack>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+      {conversation && isOpen && (
+        <Box
+          position="fixed"
+          top="0"
+          left="0"
+          right="0"
+          bottom="0"
+          bg="blackAlpha.600"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          zIndex="modal"
+          onClick={() => onClose()}
+        >
+          <Box
+            bg={cardBg}
+            borderRadius="lg"
+            shadow="xl"
+            p={6}
+            w="md"
+            maxW="md"
+            boxShadow="lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Heading size="md" mb={4}>Upload Additional Documents</Heading>
+            <VStack spacing={4}>
+              <Box
+                border="2px dashed"
+                borderColor="gray.300"
+                borderRadius="md"
+                p={6}
+                textAlign="center"
+                cursor="pointer"
+                _hover={{ borderColor: "blue.500" }}
+                onClick={() => document.getElementById('file-upload-modal')?.click()}
+              >
+                <VStack spacing={3}>
+                  <FiUpload size={24} color="gray.400" />
+                  <Text color="gray.600">Click to upload or drag and drop</Text>
+                  <Text fontSize="sm" color="gray.500">
+                    PDF, DOC, DOCX, TXT files supported
+                  </Text>
+                  <Text fontSize="xs" color="gray.400">
+                    Only legal documents will be processed
+                  </Text>
+                </VStack>
+                <input
+                  id="file-upload-modal"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleFileUpload(file);
+                    }
+                  }}
+                />
+              </Box>
+            </VStack>
+            <HStack spacing={3} mt={6} justify="flex-end">
+              <Button variant="ghost" onClick={() => onClose()}>
                 Cancel
               </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
+            </HStack>
+          </Box>
+        </Box>
       )}
     </Box>
   );

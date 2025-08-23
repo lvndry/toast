@@ -1,62 +1,25 @@
-import {
-  Box,
-  BoxProps,
-  Container,
-  Flex,
-  useColorModeValue,
-} from "@chakra-ui/react";
-import { useScroll } from "framer-motion";
+"use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Logo } from "./logo";
-import Navigation from "./navigation";
+import { Box, Container, Flex, HStack, Text } from "@chakra-ui/react";
 
-export interface HeaderProps extends Omit<BoxProps, "children"> { }
+export interface HeaderProps {
+  children?: React.ReactNode;
+  [key: string]: any;
+}
 
 export function Header(props: HeaderProps) {
-  const ref = useRef<HTMLHeadingElement>(null);
-  const [y, setY] = useState(0);
-  const { height = 0 } = ref.current?.getBoundingClientRect() ?? {};
-
-  const { scrollY } = useScroll();
-  useEffect(() => {
-    return scrollY.on("change", () => setY(scrollY.get()));
-  }, [scrollY]);
-
-  const bg = useColorModeValue("whiteAlpha.700", "rgba(29, 32, 37, 0.7)");
+  const { children, ...rest } = props;
 
   return (
-    <Box
-      ref={ref}
-      as="header"
-      top="0"
-      w="full"
-      position="fixed"
-      backdropFilter="blur(5px)"
-      zIndex="sticky"
-      borderColor="whiteAlpha.100"
-      transitionProperty="common"
-      transitionDuration="normal"
-      bg={y > height ? bg : ""}
-      boxShadow={y > height ? "md" : ""}
-      borderBottomWidth={y > height ? "1px" : ""}
-      {...props}
-    >
-      <Container maxW="container.2xl" px="8" py="4">
-        <Flex width="full" align="center" justify="space-between">
-          <Logo
-            onClick={(e) => {
-              if (window.location.pathname === "/") {
-                e.preventDefault();
-
-                window.scrollTo({
-                  top: 0,
-                  behavior: "smooth",
-                });
-              }
-            }}
-          />
-          <Navigation />
+    <Box as="header" bg="white" borderBottom="1px" borderColor="gray.200" {...rest}>
+      <Container maxW="container.xl">
+        <Flex justify="space-between" align="center" py={4}>
+          <Text fontSize="xl" fontWeight="bold">
+            Toast AI
+          </Text>
+          <HStack gap={6}>
+            {children}
+          </HStack>
         </Flex>
       </Container>
     </Box>

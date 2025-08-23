@@ -1,51 +1,74 @@
 import {
+  Avatar,
+  Box,
+  Flex,
+  SimpleGrid,
   Text,
   VStack
 } from "@chakra-ui/react";
 
-import {
-  Highlights,
-  HighlightsItem,
-  HighlightsTestimonialItem,
-} from "@components/highlights";
-import { Em } from "@components/typography";
+import { Highlight } from "@components/highlights";
 
 export function HighlightsSection() {
   return (
-    <Highlights>
-      <HighlightsItem colSpan={[1, null, 2]} title="AI-Powered Legal Analysis">
-        <VStack alignItems="flex-start" spacing="8">
-          <Text color="muted" fontSize="xl">
-            Get started with <Em>instant legal document analysis</Em>.
-            Our AI has already analyzed thousands of companies&apos; terms of service,
-            privacy policies, and legal agreements. Search and understand complex
-            legal documents in seconds, not hours.
-          </Text>
-        </VStack>
-      </HighlightsItem>
-      <HighlightsItem title="Pre-analyzed Database">
-        <Text color="muted" fontSize="lg">
-          We&apos;ve done the heavy lifting - our AI has already scraped and analyzed legal documents
-          from thousands of websites. No more manual document reading or legal jargon confusion.
-        </Text>
-      </HighlightsItem>
-      <HighlightsTestimonialItem
-        name="Sarah Chen"
-        description="General Counsel"
-        avatar="/static/images/avatar.jpg"
-        gradient={["pink.200", "purple.500"]}
-      >
-        &quot;ToastAI saved our team hours of work. What used to take days now takes minutes.
-        Finally, a tool that makes legal documents actually readable.&quot;
-      </HighlightsTestimonialItem>
-      <HighlightsItem
-        colSpan={[1, null, 2]}
-        title="Start analyzing legal documents in three simple steps"
-      >
-        <Text color="muted" fontSize="lg">
-          We&apos;ve made legal document analysis accessible to everyone through AI-powered insights.
-        </Text>
-      </HighlightsItem>
-    </Highlights>
+    <Box py={16}>
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
+        <Highlight
+          title="AI-Powered Legal Analysis"
+          description={
+            <VStack alignItems="flex-start" spacing="4">
+              <Text color="gray.600" fontSize="lg">
+                Get started with <Text as="span" fontWeight="bold">instant legal document analysis</Text>.
+                Our AI has already analyzed thousands of companies&apos; terms of service,
+                privacy policies, and legal agreements. Search and understand complex
+                legal documents in seconds, not hours.
+              </Text>
+            </VStack>
+          }
+        />
+
+        <Highlight
+          title="Pre-analyzed Database"
+          description={
+            <Text color="gray.600" fontSize="lg">
+              We&apos;ve done the heavy lifting - our AI has already scraped and analyzed legal documents
+              from thousands of websites. No more manual document reading or legal jargon confusion.
+            </Text>
+          }
+        />
+
+        <Box
+          p={6}
+          bg="white"
+          borderRadius="lg"
+          shadow="md"
+          bgGradient="linear(to-br, pink.200, purple.500)"
+          color="white"
+        >
+          <VStack align="flex-start" spacing="4">
+            <Flex align="center" gap={3}>
+              <Avatar size="sm" src="/static/images/avatar.jpg" />
+              <Box>
+                <Text fontWeight="semibold">Sarah Chen</Text>
+                <Text fontSize="sm" opacity={0.8}>General Counsel</Text>
+              </Box>
+            </Flex>
+            <Text fontSize="lg" fontStyle="italic">
+              &quot;ToastAI saved our team hours of work. What used to take days now takes minutes.
+              Finally, a tool that makes legal documents actually readable.&quot;
+            </Text>
+          </VStack>
+        </Box>
+
+        <Highlight
+          title="Start analyzing legal documents in three simple steps"
+          description={
+            <Text color="gray.600" fontSize="lg">
+              We&apos;ve made legal document analysis accessible to everyone through AI-powered insights.
+            </Text>
+          }
+        />
+      </SimpleGrid>
+    </Box>
   );
 }

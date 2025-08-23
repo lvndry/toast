@@ -54,5 +54,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
 # Pre-commit reports
 bandit-report.json

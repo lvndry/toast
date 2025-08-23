@@ -1,52 +1,37 @@
-import {
-  Avatar,
-  Card,
-  CardBody,
-  CardHeader,
-  CardProps,
-  Heading,
-  Stack,
-  Text,
-  Link,
-} from "@chakra-ui/react"
-import { FaTwitter } from "react-icons/fa"
+"use client";
 
-export interface TestimonialProps extends CardProps {
-  name: string
-  description: React.ReactNode
-  avatar: string
-  href?: string
-  children?: React.ReactNode
+import { Avatar, Heading, Text, VStack } from "@chakra-ui/react";
+
+export interface TestimonialProps {
+  name: string;
+  description?: React.ReactNode;
+  avatar?: string;
+  [key: string]: any;
 }
 
-export const Testimonial = ({
-  name,
-  description,
-  avatar,
-  href,
-  children,
-  ...rest
-}: TestimonialProps) => {
+export function Testimonial(props: TestimonialProps) {
+  const { name, description, avatar, ...rest } = props;
+
   return (
-    <Card position="relative" {...rest}>
-      <CardHeader display="flex" flexDirection="row" alignItems="center">
-        <Avatar name={name} src={avatar} size="sm" bg="transparent" />
-        <Stack spacing="1" ms="4">
-          <Heading size="sm">{name}</Heading>
-          <Text color="muted" size="xs">
+    <VStack
+      p={6}
+      bg="white"
+      borderRadius="lg"
+      shadow="md"
+      gap={4}
+      {...rest}
+    >
+      {avatar && <Avatar src={avatar} size="lg" />}
+      <VStack gap={2}>
+        <Heading size="md" fontWeight="semibold">
+          {name}
+        </Heading>
+        {description && (
+          <Text color="gray.600" textAlign="center">
             {description}
           </Text>
-        </Stack>
-      </CardHeader>
-      <CardBody>
-        {children}
-
-        {href && (
-          <Link href={href} position="absolute" top="4" right="4">
-            <FaTwitter />
-          </Link>
         )}
-      </CardBody>
-    </Card>
-  )
+      </VStack>
+    </VStack>
+  );
 }

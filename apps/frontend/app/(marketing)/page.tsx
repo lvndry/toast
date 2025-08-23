@@ -2,8 +2,12 @@
 
 import {
   Box,
+  Heading,
+  Link,
+  SimpleGrid,
   Stack,
-  Text
+  Text,
+  VStack
 } from "@chakra-ui/react";
 
 import { Faq } from "@components/faq";
@@ -69,11 +73,35 @@ function TestimonialsSection() {
 
 function PricingSection() {
   return (
-    <Pricing {...pricing}>
-      <Text p="8" textAlign="center" color="muted">
-        Free tier includes 10 company searches per month. VAT may be applicable depending on your location.
-      </Text>
-    </Pricing>
+    <Box py={16}>
+      <VStack spacing={8}>
+        <VStack spacing={4}>
+          <Heading size="2xl" textAlign="center">
+            {pricing.title}
+          </Heading>
+          <Text color="gray.600" textAlign="center" fontSize="lg">
+            {pricing.description}
+          </Text>
+        </VStack>
+
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8} w="full">
+          {pricing.plans.map((plan) => (
+            <Pricing
+              key={plan.id}
+              title={plan.title}
+              description={plan.description}
+              price={plan.price}
+              features={plan.features.map(f => f.title)}
+              action={<Link href={plan.action.href}>Get Started</Link>}
+            />
+          ))}
+        </SimpleGrid>
+
+        <Text p="8" textAlign="center" color="gray.500">
+          Free tier includes 10 company searches per month. VAT may be applicable depending on your location.
+        </Text>
+      </VStack>
+    </Box>
   );
 }
 

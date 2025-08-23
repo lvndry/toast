@@ -1,32 +1,38 @@
 "use client";
 
-import { Container, Flex, FlexProps, Text, VStack } from "@chakra-ui/react";
+import { Box, Flex, Heading, Text, VStack } from "@chakra-ui/react";
 
-interface HeroProps extends Omit<FlexProps, "title"> {
-  title: string | React.ReactNode;
-  description?: string | React.ReactNode;
+export interface HeroProps {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  image?: React.ReactNode;
+  [key: string]: any;
 }
 
-export function Hero({ title, description, children, ...rest }: HeroProps) {
+export function Hero(props: HeroProps) {
+  const { title, description, action, image, ...rest } = props;
+
   return (
-    <Flex py="20" alignItems="center" {...rest}>
-      <Container>
-        <VStack spacing={[4, null, 8]} alignItems="flex-start">
-          <Text as="h1" textStyle="h1" textAlign="left">
-            {title}
-          </Text>
-          <Text
-            as="div"
-            textStyle="subtitle"
-            align="left"
-            color="gray.500"
-            _dark={{ color: "gray.400" }}
-          >
+    <Flex
+      direction={{ base: "column", lg: "row" }}
+      align="center"
+      justify="space-between"
+      gap={8}
+      {...rest}
+    >
+      <VStack align="flex-start" flex="1" gap={6}>
+        <Heading size="2xl" fontWeight="bold">
+          {title}
+        </Heading>
+        {description && (
+          <Text fontSize="xl" color="gray.600" maxW="2xl">
             {description}
           </Text>
-        </VStack>
-        {children}
-      </Container>
+        )}
+        {action && <Box>{action}</Box>}
+      </VStack>
+      {image && <Box flex="1">{image}</Box>}
     </Flex>
   );
 }
