@@ -11,7 +11,6 @@ from src.db import (
     get_user_conversations,
     update_conversation,
 )
-from src.document import Document
 from src.document_processor import DocumentProcessor
 from src.rag import get_answer
 
@@ -122,19 +121,19 @@ async def upload_document(
             file_content=content,
             filename=file.filename,
             content_type=file.content_type,
-            company_id=conversation.id
+            company_id=conversation.id,
         )
 
         if not result.success:
             if not result.is_legal_document:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="Document is not classified as a legal document. Please upload a legal document such as a privacy policy, terms of service, or similar legal document."
+                    status_code=400,
+                    detail="Document is not classified as a legal document. Please upload a legal document such as a privacy policy, terms of service, or similar legal document.",
                 )
             else:
                 raise HTTPException(
-                    status_code=500, 
-                    detail=f"Document processing failed: {result.error_message}"
+                    status_code=500,
+                    detail=f"Document processing failed: {result.error_message}",
                 )
 
         # Add document to conversation
@@ -149,10 +148,10 @@ async def upload_document(
             await update_conversation(conversation)
 
         return {
-            "message": "Document uploaded and processed successfully", 
+            "message": "Document uploaded and processed successfully",
             "document_id": result.document.id,
             "classification": result.document.doc_type,
-            "analysis_available": result.analysis is not None
+            "analysis_available": result.analysis is not None,
         }
     except HTTPException:
         raise

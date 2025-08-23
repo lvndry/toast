@@ -4,18 +4,19 @@ const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "http://localhost:8000"
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string; }>; }
 ) {
+  const { id } = await params;
   try {
     const body = await request.json();
-    
-    const response = await fetch(`${BACKEND_BASE_URL}/conversations/${params.id}/messages`, {
+
+    const response = await fetch(`${BACKEND_BASE_URL}/conversations/${id}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        conversation_id: params.id,
+        conversation_id: id,
         message: body.message,
       }),
     });
@@ -33,4 +34,4 @@ export async function POST(
       { status: 500 }
     );
   }
-} 
+}

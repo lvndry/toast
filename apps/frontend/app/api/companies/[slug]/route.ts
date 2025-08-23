@@ -4,10 +4,11 @@ const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "http://localhost:8000"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string; }>; }
 ) {
+  const { slug } = await params;
   try {
-    const response = await fetch(`${BACKEND_BASE_URL}/companies/slug/${params.slug}`, {
+    const response = await fetch(`${BACKEND_BASE_URL}/companies/slug/${slug}`, {
       headers: {
         "Content-Type": "application/json",
       },
@@ -26,4 +27,4 @@ export async function GET(
       { status: 500 }
     );
   }
-} 
+}

@@ -5,7 +5,7 @@ const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "http://localhost:8000"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     const response = await fetch(`${BACKEND_BASE_URL}/q`, {
       method: "POST",
       headers: {
@@ -27,4 +27,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

@@ -129,4 +129,3 @@ const schema = {
 };
 
 export { baseURL, dataStyle, effects, fonts, meta, schema, style };
-

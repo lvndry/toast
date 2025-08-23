@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const domain = searchParams.get('domain');
-    
+
     if (!domain) {
       return NextResponse.json({ error: "Domain parameter is required" }, { status: 400 });
     }
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     // For now, we'll return a placeholder logo URL
     // In the future, this could call a logo service or use a default logo
     const logoUrl = `https://logo.clearbit.com/${domain}`;
-    
+
     return NextResponse.json({ logo: logoUrl });
   } catch (error) {
     console.error("Error fetching logo:", error);
@@ -23,4 +23,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

@@ -91,4 +91,4 @@ app/
 1. Replace the placeholder Clerk keys in `.env.local` with your actual keys
 2. Customize the Clerk appearance to match your design
 3. Add more protected routes as needed
-4. Implement user profile management features 
+4. Implement user profile management features

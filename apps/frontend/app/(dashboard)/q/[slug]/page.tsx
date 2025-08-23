@@ -27,7 +27,7 @@ import {
 } from "@chakra-ui/react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { FiArrowLeft, FiSend, FiUpload, FiX } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
 
@@ -66,7 +66,8 @@ interface MetaSummary {
   keypoints: string[];
 }
 
-export default function QPage({ params }: { params: { slug: string; }; }) {
+export default function QPage({ params }: { params: Promise<{ slug: string; }>; }) {
+  const { slug } = use(params);
   const { user } = useUser();
   const router = useRouter();
   const toast = useToast();
@@ -113,11 +114,11 @@ export default function QPage({ params }: { params: { slug: string; }; }) {
         setInitialLoading(true);
 
         // Check if this is a conversation ID (UUID format) or company slug
-        const isConversationId = /^[a-zA-Z0-9]{22}$/.test(params.slug);
+        const isConversationId = /^[a-zA-Z0-9]{22}$/.test(slug);
 
         if (isConversationId) {
           // Fetch conversation
-          const conversationResponse = await fetch(`/api/conversations/${params.slug}`);
+          const conversationResponse = await fetch(`/api/conversations/${slug}`);
           if (!conversationResponse.ok) {
             throw new Error("Conversation not found");
           }
@@ -126,7 +127,7 @@ export default function QPage({ params }: { params: { slug: string; }; }) {
           setMessages(conversationData.messages || []);
         } else {
           // Fetch company data
-          const companyResponse = await fetch(`/api/companies/${params.slug}`);
+          const companyResponse = await fetch(`/api/companies/${slug}`);
           if (!companyResponse.ok) {
             throw new Error("Company not found");
           }
@@ -134,7 +135,7 @@ export default function QPage({ params }: { params: { slug: string; }; }) {
           setCompany(companyData);
 
           // Fetch meta summary
-          const metaResponse = await fetch(`/api/meta-summary/${params.slug}`);
+          const metaResponse = await fetch(`/api/meta-summary/${slug}`);
           if (metaResponse.ok) {
             const metaData: MetaSummary = await metaResponse.json();
             setMetaSummary(metaData);
@@ -149,7 +150,7 @@ export default function QPage({ params }: { params: { slug: string; }; }) {
     }
 
     fetchData();
-  }, [params.slug]);
+  }, [slug]);
 
   async function handleSendMessage() {
     if (!inputValue.trim() || loading) return;

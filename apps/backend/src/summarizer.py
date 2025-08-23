@@ -231,7 +231,7 @@ Expected output:
    - Any red flags, surprises, or safeguards worth highlighting
    - Notable user rights, obligations, or risks
    - 15 bullet points max ordered by importance
-   
+
 {{
   "summary": "...",
   "scores": {{

@@ -20,11 +20,11 @@ The migration system allows you to:
    ```bash
    # Create the .streamlit directory
    mkdir -p .streamlit
-   
+
    # Copy the template and edit it
    cp .streamlit/secrets.toml .streamlit/secrets.toml
    ```
-   
+
    Then edit `.streamlit/secrets.toml` with your database URIs:
    ```toml
    MONGO_URI = "mongodb://localhost:27017/toast"
@@ -56,7 +56,7 @@ The migration system allows you to:
 
 ### 1. Configuration
 - **Local Database URI**: Your local MongoDB connection string
-- **Production Database URI**: Your production MongoDB connection string  
+- **Production Database URI**: Your production MongoDB connection string
 - **API Base URL**: The URL where your Toast API is running (default: http://localhost:8000)
 
 **Note**: If you've set up the `.streamlit/secrets.toml` file, these fields will be pre-populated with your configuration. Otherwise, you'll need to enter them manually each time.
@@ -159,4 +159,4 @@ If you encounter issues:
 1. Check the error logs in the migration interface
 2. Verify your database connections
 3. Ensure all prerequisites are met
-4. Review the migration results for specific error details 
+4. Review the migration results for specific error details

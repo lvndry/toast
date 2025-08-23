@@ -29,3 +29,8 @@ routes = [
 
 for route in routes:
     app.include_router(route)
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

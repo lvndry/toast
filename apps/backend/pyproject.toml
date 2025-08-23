@@ -34,3 +34,13 @@ dependencies = [
     "uvicorn>=0.34.2",
     "watchdog>=6.0.0",
 ]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.8.6",
+    "isort>=6.0.1",
+    "pre-commit>=4.3.0",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=1.1.0",
+    "ruff>=0.12.10",
+]

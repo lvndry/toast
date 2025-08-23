@@ -26,4 +26,4 @@ export default function SignUpPage() {
       </VStack>
     </Container>
   )
-} 
+}

@@ -70,4 +70,4 @@ The authentication is implemented using:
 1. **Layout-level protection**: Each protected route group has its own layout that checks authentication status
 2. **Automatic redirects**: Unauthenticated users are automatically redirected to `/sign-in`
 3. **Loading states**: Shows loading indicators while checking authentication status
-4. **Access denied pages**: Displays appropriate messages for unauthorized access attempts 
+4. **Access denied pages**: Displays appropriate messages for unauthorized access attempts

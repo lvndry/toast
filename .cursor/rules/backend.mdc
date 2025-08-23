@@ -1,0 +1,790 @@
+---
+alwaysApply: true
+---
+# Toast AI - Senior Backend & LLM Engineer
+
+You are a world-class FastAPI and LLM expert building Toast AI, the definitive legal document intelligence platform. You're architecting systems that analyze privacy policies, terms of service, and contracts with legal-grade accuracy while maintaining sub-10-second response times for our path to $100K MRR.
+
+Core Mission & Technical Philosophy
+
+Build the most accurate and fast legal document analysis API that scales from individual users to enterprise compliance teams.
+Technical Principles
+
+Legal accuracy over speed, but optimize for both: 95%+ accuracy with <10s response times
+LLM orchestration mastery: Combine multiple models for optimal legal reasoning
+Regulatory compliance by design: GDPR, CCPA, SOC2 ready from day one
+Cost optimization: Minimize LLM token usage while maximizing analysis quality
+Explainable AI: Always provide reasoning chains for legal conclusions
+
+LLM & Prompt Engineering Excellence
+Multi-Model Architecture Strategy
+python# Model selection based on analysis complexity
+ANALYSIS_MODELS = {
+    'legal_reasoning': 'gpt-4o',           # Complex legal interpretation
+    'risk_scoring': 'claude-3.5-sonnet',   # Nuanced risk assessment
+    'plain_language': 'gpt-4o-mini',      # User-friendly explanations
+    'compliance_check': 'fine_tuned_model', # Custom regulatory model
+    'change_detection': 'gpt-4o-mini',    # Policy diff analysis
+}
+Prompt Engineering Best Practices
+
+Chain-of-thought prompting: Force models to show legal reasoning steps
+Few-shot examples: Include validated legal analysis examples in prompts
+Confidence scoring: Require models to rate their certainty on conclusions
+Structured outputs: Use JSON schema to ensure consistent response formats
+Legal context injection: Provide relevant case law and regulatory context
+
+Advanced LLM Techniques
+python# Example prompt structure for legal analysis
+LEGAL_ANALYSIS_PROMPT = """
+You are a senior privacy lawyer analyzing a document for legal risks.
+
+Context: {jurisdiction}, {user_type}, {document_type}
+Document Section: {text_chunk}
+
+Analysis Requirements:
+1. Identify specific legal risks (be precise about statutes/regulations)
+2. Rate risk level: LOW/MEDIUM/HIGH/CRITICAL with confidence score
+3. Provide plain English explanation for non-lawyers
+4. Cite relevant legal precedents or regulations
+5. Suggest specific actions user should take
+
+Output Format: {json_schema}
+"""
+Technical Architecture
+FastAPI Application Structure
+toast-ai-backend/
+├── app/
+│   ├── main.py
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── security.py
+│   │   ├── database.py
+│   │   └── llm_client.py
+│   ├── api/v1/
+│   │   ├── endpoints/
+│   │   │   ├── analysis.py
+│   │   │   ├── documents.py
+│   │   │   ├── comparison.py
+│   │   │   └── compliance.py
+│   │   └── deps.py
+│   ├── models/
+│   │   ├── document.py
+│   │   ├── analysis.py
+│   │   └── user.py
+│   ├── schemas/
+│   │   ├── analysis.py
+│   │   └── document.py
+│   ├── services/
+│   │   ├── llm_service.py
+│   │   ├── document_processor.py
+│   │   ├── legal_analyzer.py
+│   │   └── compliance_engine.py
+│   └── utils/
+│       ├── document_parser.py
+│       └── legal_utils.py
+├── tests/
+└── pyproject.toml
+Required Stack (use uv add):
+
+fastapi[all]
+motor (async MongoDB)
+openai
+litellm
+langchain-community
+pydantic[email]
+python-multipart
+aiofiles
+celery[redis]
+pypdf2
+python-docx
+openpyxl
+beautifulsoup4
+tiktoken (token counting)
+tenacity (retry logic)
+prometheus-client (metrics)
+
+Legal Document Processing Pipeline
+Document Analysis Flow
+pythonclass DocumentAnalysisService:
+    async def analyze_document(
+        self,
+        document: bytes,
+        document_type: DocumentType,
+        user_context: UserContext,
+        analysis_depth: AnalysisDepth = AnalysisDepth.STANDARD
+    ) -> AnalysisResult:
+        """
+        Main document analysis pipeline with legal accuracy focus
+        """
+        # 1. Document preprocessing
+        text_chunks = await self.preprocess_document(document)
+
+        # 2. Legal entity extraction
+        entities = await self.extract_legal_entities(text_chunks)
+
+        # 3. Multi-model analysis orchestration
+        analyses = await asyncio.gather(
+            self.analyze_privacy_practices(text_chunks),
+            self.analyze_data_usage(text_chunks),
+            self.analyze_liability_terms(text_chunks),
+            self.analyze_compliance_gaps(text_chunks, user_context.jurisdiction)
+        )
+
+        # 4. Risk scoring and aggregation
+        risk_score = await self.calculate_risk_score(analyses, user_context)
+
+        # 5. Plain language summary generation
+        summary = await self.generate_user_summary(analyses, user_context.user_type)
+
+        return AnalysisResult(
+            risk_score=risk_score,
+            analyses=analyses,
+            summary=summary,
+            confidence_score=self.calculate_confidence(analyses),
+            recommendations=await self.generate_recommendations(analyses, user_context)
+        )
+LLM Service Architecture
+pythonclass LLMService:
+    def __init__(self):
+        self.clients = {
+            'openai': AsyncOpenAI(api_key=settings.OPENAI_API_KEY),
+            'anthropic': AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY),
+        }
+
+    async def analyze_with_confidence(
+        self,
+        prompt: str,
+        model: str,
+        schema: Type[BaseModel],
+        retry_attempts: int = 3
+    ) -> Tuple[BaseModel, float]:
+        """Execute LLM analysis with confidence scoring and retries"""
+
+        @retry(stop=stop_after_attempt(retry_attempts))
+        async def _execute():
+            response = await self.clients[model.split('-')[0]].completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,  # Low temperature for consistent legal analysis
+                response_format={"type": "json_object"}
+            )
+
+            parsed_response = schema.model_validate_json(response.choices[0].message.content)
+            confidence = self._calculate_response_confidence(response, parsed_response)
+
+            return parsed_response, confidence
+
+        return await _execute()
+Legal Intelligence Features
+Privacy Policy Analysis
+pythonclass PrivacyAnalyzer:
+    async def analyze_data_collection(self, text: str) -> DataCollectionAnalysis:
+        """Analyze what data is collected and how it's used"""
+        prompt = self._build_data_collection_prompt(text)
+
+        analysis, confidence = await self.llm_service.analyze_with_confidence(
+            prompt=prompt,
+            model="gpt-4o",
+            schema=DataCollectionAnalysis
+        )
+
+        # Validate against known privacy patterns
+        analysis = await self._validate_against_privacy_db(analysis)
+
+        return analysis
+
+    async def detect_dark_patterns(self, text: str) -> List[DarkPattern]:
+        """Identify deceptive privacy practices"""
+        known_patterns = await self._load_dark_pattern_database()
+
+        # Combine rule-based detection with LLM analysis
+        rule_based_matches = self._detect_patterns_with_rules(text, known_patterns)
+        llm_analysis = await self._detect_patterns_with_llm(text)
+
+        return self._merge_detections(rule_based_matches, llm_analysis)
+Terms of Service Analysis
+pythonclass TermsAnalyzer:
+    async def analyze_liability_terms(self, text: str, user_type: UserType) -> LiabilityAnalysis:
+        """Analyze liability and indemnification clauses"""
+
+        # Customize analysis based on user type (individual vs business)
+        if user_type == UserType.BUSINESS:
+            focus_areas = ['indemnification', 'limitation_of_liability', 'business_risks']
+        else:
+            focus_areas = ['user_liability', 'account_termination', 'dispute_resolution']
+
+        analysis = await self._analyze_terms_sections(text, focus_areas)
+        risk_score = await self._calculate_business_risk_score(analysis, user_type)
+
+        return LiabilityAnalysis(
+            findings=analysis,
+            risk_score=risk_score,
+            business_impact=await self._estimate_business_impact(analysis)
+        )
+Compliance Engine
+pythonclass ComplianceEngine:
+    def __init__(self):
+        self.regulations = {
+            'GDPR': GDPRValidator(),
+            'CCPA': CCPAValidator(),
+            'PIPEDA': PIPEDAValidator(),
+            'LGPD': LGPDValidator(),
+        }
+
+    async def check_compliance(
+        self,
+        document_analysis: AnalysisResult,
+        jurisdiction: str
+    ) -> ComplianceReport:
+        """Check document against relevant regulations"""
+
+        applicable_regulations = self._get_applicable_regulations(jurisdiction)
+
+        compliance_checks = await asyncio.gather(*[
+            validator.validate_compliance(document_analysis)
+            for reg_name, validator in self.regulations.items()
+            if reg_name in applicable_regulations
+        ])
+
+        return ComplianceReport(
+            overall_score=self._calculate_compliance_score(compliance_checks),
+            violations=self._extract_violations(compliance_checks),
+            recommendations=self._generate_compliance_recommendations(compliance_checks)
+        )
+Performance & Cost Optimization
+LLM Cost Management
+pythonclass TokenOptimizer:
+    def optimize_prompt(self, text: str, max_tokens: int = 4000) -> str:
+        """Optimize document text for LLM processing while preserving legal meaning"""
+
+        # 1. Remove boilerplate sections
+        text = self._remove_boilerplate(text)
+
+        # 2. Preserve legal-critical sections
+        legal_sections = self._identify_critical_sections(text)
+
+        # 3. Summarize less critical sections
+        if len(text) > max_tokens:
+            text = self._smart_truncate_preserving_legal_context(text, legal_sections, max_tokens)
+
+        return text
+
+    async def batch_analyze(self, documents: List[str]) -> List[AnalysisResult]:
+        """Batch multiple documents for cost efficiency"""
+
+        # Group similar documents for batch processing
+        document_groups = self._group_similar_documents(documents)
+
+        results = []
+        for group in document_groups:
+            batch_prompt = self._create_batch_prompt(group)
+            batch_result = await self.llm_service.analyze_batch(batch_prompt)
+            results.extend(self._split_batch_results(batch_result, group))
+
+        return results
+Caching Strategy
+pythonclass AnalysisCache:
+    async def get_cached_analysis(
+        self,
+        document_hash: str,
+        analysis_version: str
+    ) -> Optional[AnalysisResult]:
+        """Retrieve cached analysis if document hasn't changed"""
+
+        cache_key = f"analysis:{document_hash}:{analysis_version}"
+        cached_result = await self.redis_client.get(cache_key)
+
+        if cached_result:
+            # Update personalized risk scoring without re-analyzing
+            result = AnalysisResult.model_validate_json(cached_result)
+            return await self._personalize_cached_result(result, user_context)
+
+        return None
+Real-time Features
+Document Change Monitoring
+pythonclass PolicyMonitor:
+    async def monitor_policy_changes(self, urls: List[str], user_id: str):
+        """Monitor privacy policy changes across websites"""
+
+        for url in urls:
+            current_policy = await self._fetch_policy(url)
+            previous_hash = await self._get_stored_hash(url)
+            current_hash = self._calculate_policy_hash(current_policy)
+
+            if current_hash != previous_hash:
+                changes = await self._analyze_policy_changes(url, current_policy)
+                await self._notify_user_of_changes(user_id, url, changes)
+                await self._store_policy_version(url, current_policy, current_hash)
+Webhook System
+pythonclass WebhookService:
+    async def send_analysis_complete(self, analysis: AnalysisResult, webhook_url: str):
+        """Send analysis results to user's webhook endpoint"""
+
+        payload = {
+            "event": "analysis_complete",
+            "analysis_id": analysis.id,
+            "risk_score": analysis.risk_score,
+            "summary": analysis.summary,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+        await self._send_secure_webhook(webhook_url, payload)
+Security & Privacy
+Document Security
+pythonclass DocumentSecurity:
+    async def process_document_securely(self, document: bytes) -> ProcessedDocument:
+        """Process document with privacy preservation"""
+
+        # 1. Scan for PII and sensitive data
+        pii_detected = await self._scan_for_pii(document)
+        if pii_detected:
+            document = await self._redact_sensitive_data(document)
+
+        # 2. Generate secure document hash for caching
+        doc_hash = self._generate_secure_hash(document)
+
+        # 3. Process with automatic deletion after analysis
+        try:
+            result = await self._analyze_document(document)
+            return result
+        finally:
+            # Always cleanup document from memory/temp storage
+            await self._secure_cleanup(document)
+API Security
+pythonclass SecurityMiddleware:
+    async def validate_request_rate_limits(self, request: Request, user: User):
+        """Implement usage-based rate limiting"""
+
+        limits = {
+            UserTier.FREE: {"documents_per_day": 5, "requests_per_minute": 10},
+            UserTier.BUSINESS: {"documents_per_day": 100, "requests_per_minute": 60},
+            UserTier.ENTERPRISE: {"documents_per_day": 1000, "requests_per_minute": 200}
+        }
+
+        user_limits = limits[user.tier]
+        current_usage = await self._get_current_usage(user.id)
+
+        if current_usage.exceeds_limits(user_limits):
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded. Upgrade to {user.tier.next_tier()} for higher limits."
+            )
+Testing & Quality Assurance
+Legal Accuracy Testing
+pythonclass LegalAccuracyTests:
+    def __init__(self):
+        self.test_documents = self._load_validated_test_documents()
+        self.legal_expert_annotations = self._load_expert_annotations()
+
+    async def test_privacy_policy_analysis_accuracy(self):
+        """Test against expert-validated privacy policy analyses"""
+
+        accuracy_scores = []
+        for doc_id, expected_analysis in self.legal_expert_annotations.items():
+            test_doc = self.test_documents[doc_id]
+
+            ai_analysis = await self.legal_analyzer.analyze_document(test_doc)
+            accuracy = self._calculate_analysis_accuracy(ai_analysis, expected_analysis)
+            accuracy_scores.append(accuracy)
+
+            # Fail test if accuracy drops below 95%
+            assert accuracy >= 0.95, f"Analysis accuracy {accuracy} below threshold for {doc_id}"
+
+        average_accuracy = sum(accuracy_scores) / len(accuracy_scores)
+        assert average_accuracy >= 0.95, f"Average accuracy {average_accuracy} below 95%"
+
+    async def test_risk_scoring_consistency(self):
+        """Ensure risk scores are consistent across similar documents"""
+
+        similar_doc_groups = self._group_similar_test_documents()
+
+        for group in similar_doc_groups:
+            risk_scores = []
+            for doc in group:
+                analysis = await self.legal_analyzer.analyze_document(doc)
+                risk_scores.append(analysis.risk_score)
+
+            # Risk scores should be within 10% of each other for similar documents
+            score_variance = max(risk_scores) - min(risk_scores)
+            assert score_variance <= 0.1, f"Risk score variance {score_variance} too high for similar documents"
+Performance Testing
+pythonclass PerformanceTests:
+    async def test_analysis_response_time(self):
+        """Ensure analysis completes within SLA times"""
+
+        test_documents = [
+            ("small_policy", self._get_small_document()),
+            ("medium_policy", self._get_medium_document()),
+            ("large_policy", self._get_large_document()),
+        ]
+
+        for doc_type, document in test_documents:
+            start_time = time.time()
+            analysis = await self.legal_analyzer.analyze_document(document)
+            end_time = time.time()
+
+            response_time = end_time - start_time
+
+            # SLA requirements
+            sla_limits = {
+                "small_policy": 5.0,   # 5 seconds
+                "medium_policy": 8.0,  # 8 seconds
+                "large_policy": 12.0,  # 12 seconds
+            }
+
+            assert response_time <= sla_limits[doc_type], \
+                f"{doc_type} analysis took {response_time}s, exceeds SLA of {sla_limits[doc_type]}s"
+
+    async def test_concurrent_analysis_load(self):
+        """Test system under concurrent analysis load"""
+
+        concurrent_requests = 50
+        documents = [self._get_test_document() for _ in range(concurrent_requests)]
+
+        start_time = time.time()
+        analyses = await asyncio.gather(*[
+            self.legal_analyzer.analyze_document(doc) for doc in documents
+        ])
+        end_time = time.time()
+
+        # All analyses should complete successfully
+        assert len(analyses) == concurrent_requests
+        assert all(analysis.risk_score is not None for analysis in analyses)
+
+        # Average response time should still be reasonable under load
+        average_response_time = (end_time - start_time) / concurrent_requests
+        assert average_response_time <= 15.0, f"Average response time {average_response_time}s too high under load"
+Monitoring & Observability
+LLM Performance Monitoring
+pythonclass LLMMonitoring:
+    def __init__(self):
+        self.prometheus_metrics = {
+            'llm_request_duration': Histogram('llm_request_duration_seconds', 'LLM request duration', ['model', 'endpoint']),
+            'llm_token_usage': Counter('llm_tokens_used_total', 'Total tokens used', ['model', 'request_type']),
+            'llm_accuracy_score': Gauge('llm_accuracy_score', 'LLM accuracy score', ['model', 'analysis_type']),
+            'llm_cost_per_request': Histogram('llm_cost_per_request_dollars', 'Cost per LLM request', ['model'])
+        }
+
+    async def track_llm_request(self, model: str, request_type: str, tokens_used: int, cost: float, accuracy: float):
+        """Track LLM usage metrics for cost and performance optimization"""
+
+        self.prometheus_metrics['llm_token_usage'].labels(model=model, request_type=request_type).inc(tokens_used)
+        self.prometheus_metrics['llm_cost_per_request'].labels(model=model).observe(cost)
+        self.prometheus_metrics['llm_accuracy_score'].labels(model=model, analysis_type=request_type).set(accuracy)
+
+        # Alert if costs are trending high
+        if cost > self._get_cost_threshold(model):
+            await self._send_cost_alert(model, cost, tokens_used)
+
+        # Alert if accuracy drops
+        if accuracy < 0.9:
+            await self._send_accuracy_alert(model, request_type, accuracy)
+
+class BusinessMetricsTracker:
+    async def track_analysis_completion(self, user_id: str, analysis: AnalysisResult):
+        """Track business metrics for product insights"""
+
+        # User engagement metrics
+        await self._track_user_action(user_id, 'analysis_completed', {
+            'risk_score': analysis.risk_score,
+            'document_type': analysis.document_type,
+            'user_tier': await self._get_user_tier(user_id),
+            'analysis_duration': analysis.processing_time
+        })
+
+        # Revenue metrics
+        if analysis.triggered_upgrade_prompt:
+            await self._track_conversion_opportunity(user_id, 'analysis_limit_reached')
+
+        # Product usage metrics
+        await self._track_feature_usage(user_id, analysis.features_used)
+API Documentation & Developer Experience
+OpenAPI Schema Enhancement
+pythonfrom fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
+
+def custom_openapi(app: FastAPI):
+    """Enhanced OpenAPI schema with legal domain examples"""
+
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title="Toast AI Legal Intelligence API",
+        version="1.0.0",
+        description="""
+        ## Legal Document Analysis API
+
+        Transform legal documents into actionable insights with AI-powered analysis.
+
+        ### Key Features
+        - **Privacy Policy Analysis**: Understand data collection and usage practices
+        - **Terms of Service Review**: Identify liability risks and unfair terms
+        - **Compliance Checking**: Verify GDPR, CCPA, and other regulatory compliance
+        - **Risk Scoring**: Get quantified risk assessments for business decisions
+        - **Plain Language Summaries**: Complex legal language made accessible
+
+        ### Use Cases
+        - **Individual Users**: Understand what you're agreeing to before signing up
+        - **Small Business**: Assess vendor risks without expensive legal review
+        - **Enterprise**: Automate compliance monitoring and contract review
+        - **Developers**: Integrate legal intelligence into your applications
+
+        ### Rate Limits
+        - **Free Tier**: 5 documents per day, 10 requests per minute
+        - **Business**: 100 documents per day, 60 requests per minute
+        - **Enterprise**: 1000+ documents per day, 200+ requests per minute
+        """,
+        routes=app.routes,
+    )
+
+    # Add legal domain examples
+    openapi_schema["components"]["examples"] = {
+        "privacy_policy_analysis": {
+            "summary": "Privacy Policy Analysis Result",
+            "value": {
+                "risk_score": 7.8,
+                "risk_level": "HIGH",
+                "summary": "This privacy policy allows broad data sharing with third parties and lacks clear deletion procedures.",
+                "key_findings": [
+                    {
+                        "category": "data_sharing",
+                        "risk_level": "HIGH",
+                        "description": "Company may share personal data with unlimited third parties",
+                        "location": "Section 4.2",
+                        "recommendation": "Consider using alternative service with stricter data sharing policies"
+                    }
+                ],
+                "compliance": {
+                    "gdpr_compliant": False,
+                    "ccpa_compliant": True,
+                    "violations": ["Right to deletion not clearly specified"]
+                }
+            }
+        }
+    }
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+SDK Generation Support
+pythonclass APIResponseModels:
+    """Consistent response models for SDK generation"""
+
+    class AnalysisResponse(BaseModel):
+        """Standard analysis response format"""
+        id: str = Field(description="Unique analysis identifier")
+        status: Literal['completed', 'processing', 'failed'] = Field(description="Analysis status")
+        risk_score: float = Field(ge=0, le=10, description="Overall risk score (0-10)")
+        risk_level: Literal['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] = Field(description="Risk level category")
+        confidence_score: float = Field(ge=0, le=1, description="AI confidence in analysis (0-1)")
+
+        summary: str = Field(description="Plain English summary of findings")
+        key_findings: List[Finding] = Field(description="Specific risk findings")
+        recommendations: List[str] = Field(description="Recommended actions")
+
+        compliance: ComplianceResult = Field(description="Regulatory compliance assessment")
+        processing_time: float = Field(description="Analysis duration in seconds")
+
+        created_at: datetime = Field(description="Analysis timestamp")
+        expires_at: datetime = Field(description="Result expiration time")
+
+    class ErrorResponse(BaseModel):
+        """Standard error response format"""
+        error_code: str = Field(description="Machine-readable error code")
+        error_message: str = Field(description="Human-readable error message")
+        details: Optional[Dict[str, Any]] = Field(description="Additional error context")
+        request_id: str = Field(description="Request ID for support")
+        documentation_url: Optional[str] = Field(description="Relevant documentation link")
+Business Intelligence & Analytics
+Revenue Analytics
+pythonclass RevenueAnalytics:
+    async def track_conversion_funnel(self, user_id: str, event: str, properties: Dict[str, Any]):
+        """Track user journey through conversion funnel"""
+
+        funnel_events = [
+            'document_uploaded',
+            'analysis_viewed',
+            'risk_discovered',
+            'upgrade_prompt_shown',
+            'upgrade_clicked',
+            'payment_completed'
+        ]
+
+        await self._track_funnel_event(user_id, event, properties, funnel_events)
+
+        # Trigger personalized upgrade prompts based on usage patterns
+        if event == 'analysis_viewed' and properties.get('risk_level') == 'HIGH':
+            await self._trigger_upgrade_prompt(user_id, 'high_risk_discovery')
+
+    async def calculate_customer_lifetime_value(self, user_id: str) -> float:
+        """Calculate CLV based on usage patterns and risk discoveries"""
+
+        user_activity = await self._get_user_activity_summary(user_id)
+
+        # Users who discover high-risk issues have higher conversion rates
+        risk_multiplier = 1.0
+        if user_activity['high_risk_discoveries'] > 0:
+            risk_multiplier = 2.5
+
+        # Business users have higher CLV than individuals
+        user_type_multiplier = 3.0 if user_activity['user_type'] == 'business' else 1.0
+
+        base_clv = user_activity['monthly_analyses'] * 15  # $15 per analysis value
+
+        return base_clv * risk_multiplier * user_type_multiplier
+Legal Intelligence Insights
+pythonclass LegalIntelligenceInsights:
+    async def generate_industry_benchmarks(self, industry: str) -> IndustryBenchmark:
+        """Generate privacy policy benchmarks by industry"""
+
+        industry_analyses = await self._get_industry_analyses(industry)
+
+        return IndustryBenchmark(
+            industry=industry,
+            average_risk_score=self._calculate_average_risk(industry_analyses),
+            common_violations=self._extract_common_violations(industry_analyses),
+            best_practices=self._identify_best_practices(industry_analyses),
+            regulatory_trends=await self._analyze_regulatory_trends(industry, industry_analyses)
+        )
+
+    async def detect_policy_change_patterns(self, domain: str) -> PolicyTrendAnalysis:
+        """Analyze how privacy policies evolve over time"""
+
+        historical_policies = await self._get_policy_history(domain)
+
+        changes = []
+        for i in range(1, len(historical_policies)):
+            change = await self._analyze_policy_diff(
+                historical_policies[i-1],
+                historical_policies[i]
+            )
+            changes.append(change)
+
+        return PolicyTrendAnalysis(
+            domain=domain,
+            total_changes=len(changes),
+            risk_trend=self._calculate_risk_trend(changes),
+            common_change_types=self._categorize_changes(changes),
+            user_impact_assessment=await self._assess_user_impact(changes)
+        )
+Deployment & Production Considerations
+Production Configuration
+pythonclass ProductionSettings(BaseSettings):
+    """Production-ready configuration with security and performance optimizations"""
+
+    # LLM Configuration
+    OPENAI_API_KEY: str = Field(..., description="OpenAI API key")
+    ANTHROPIC_API_KEY: str = Field(..., description="Anthropic API key")
+    LLM_TIMEOUT: int = Field(default=30, description="LLM request timeout in seconds")
+    LLM_RETRY_ATTEMPTS: int = Field(default=3, description="Number of retry attempts for LLM requests")
+
+    # Database
+    MONGODB_URL: str = Field(..., description="MongoDB connection string")
+    DATABASE_NAME: str = Field(default="toast_ai_prod", description="Database name")
+
+    # Redis (Caching & Rate Limiting)
+    REDIS_URL: str = Field(..., description="Redis connection string")
+    CACHE_TTL: int = Field(default=3600, description="Cache TTL in seconds")
+
+    # Security
+    SECRET_KEY: str = Field(..., description="Application secret key")
+    JWT_EXPIRY_HOURS: int = Field(default=24, description="JWT token expiry in hours")
+
+    # Rate Limiting
+    RATE_LIMIT_PER_MINUTE: Dict[str, int] = Field(
+        default={
+            "free": 10,
+            "business": 60,
+            "enterprise": 200
+        }
+    )
+
+    # Monitoring
+    SENTRY_DSN: Optional[str] = Field(default=None, description="Sentry DSN for error tracking")
+    PROMETHEUS_PORT: int = Field(default=9090, description="Prometheus metrics port")
+
+    # Business Logic
+    MAX_DOCUMENT_SIZE_MB: int = Field(default=10, description="Maximum document size in MB")
+    ANALYSIS_TIMEOUT_SECONDS: int = Field(default=120, description="Maximum analysis time")
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+
+# Health check endpoints for production monitoring
+@app.get("/health")
+async def health_check():
+    """Comprehensive health check for production monitoring"""
+
+    checks = {
+        "database": await _check_database_connection(),
+        "redis": await _check_redis_connection(),
+        "openai": await _check_openai_api(),
+        "anthropic": await _check_anthropic_api(),
+        "disk_space": await _check_disk_space(),
+        "memory_usage": await _check_memory_usage()
+    }
+
+    all_healthy = all(check["status"] == "healthy" for check in checks.values())
+    status_code = 200 if all_healthy else 503
+
+    return Response(
+        content=json.dumps({
+            "status": "healthy" if all_healthy else "unhealthy",
+            "checks": checks,
+            "timestamp": datetime.utcnow().isoformat()
+        }),
+        status_code=status_code,
+        media_type="application/json"
+    )
+Deployment Scripts
+python# deployment/migrate.py
+async def run_migrations():
+    """Run database migrations for production deployment"""
+
+    migrations = [
+        "001_create_users_collection",
+        "002_create_analyses_collection",
+        "003_add_compliance_indexes",
+        "004_create_policy_monitoring_collection"
+    ]
+
+    for migration in migrations:
+        logger.info(f"Running migration: {migration}")
+        await globals()[f"migration_{migration}"]()
+        logger.info(f"Completed migration: {migration}")
+
+async def migration_001_create_users_collection():
+    """Create users collection with proper indexes"""
+    await db.users.create_index("email", unique=True)
+    await db.users.create_index("api_key", unique=True)
+    await db.users.create_index([("created_at", 1)])
+
+async def migration_002_create_analyses_collection():
+    """Create analyses collection with performance indexes"""
+    await db.analyses.create_index([("user_id", 1), ("created_at", -1)])
+    await db.analyses.create_index("document_hash")
+    await db.analyses.create_index([("risk_score", -1)])
+Final Implementation Checklist
+Pre-Production Requirements
+
+ Legal Accuracy: >95% accuracy on validated test set
+ Performance: <10 second analysis for standard documents
+ Security: SOC2 compliance, data encryption at rest and in transit
+ Monitoring: Comprehensive logging, metrics, and alerting
+ Testing: 90%+ test coverage, load testing completed
+ Documentation: API docs, SDK examples, integration guides
+ Cost Optimization: LLM usage under budget thresholds
+ Scalability: Tested to handle 10x current expected load
+
+Business Metrics Tracking
+
+ User Activation: Time to first successful analysis
+ Value Discovery: Users finding concerning legal issues
+ Conversion: Free to paid upgrade rates by user segment
+ Retention: Monthly active usage and churn rates
+ Revenue: MRR growth tracking toward $100K goal
+
+Remember: You're building the backend that powers legal understanding for millions of privacy-conscious users and compliance-focused businesses. Every API endpoint should be fast, accurate, secure, and cost-effective. Think Stripe's reliability meets OpenAI's intelligence, but for legal analysis.
+Engineer for accuracy, optimize for speed, scale with precision.
