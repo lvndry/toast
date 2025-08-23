@@ -1,15 +1,22 @@
+from core.config import settings
+from core.logging import setup_logging
+from core.middleware import AuthMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.routes import company, conversation, crawler, list, migration, q
 
+setup_logging()
+
 app = FastAPI(title="Toast API", root_path="/toast")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors.origins,
+    allow_methods=settings.cors.methods,
+    allow_headers=settings.cors.headers,
+    allow_credentials=settings.cors.credentials,
 )
+app.add_middleware(AuthMiddleware)
 
 
 @app.get("/health")

@@ -1,20 +1,11 @@
+import { httpJson } from "@lib/http";
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "http://localhost:8000";
 
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${BACKEND_BASE_URL}/companies`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status} ${response.statusText}`);
-    }
-
-    const companies = await response.json();
+    const companies = await httpJson(`${BACKEND_BASE_URL}/companies`, { method: "GET" });
 
     // Return the companies with caching headers
     return NextResponse.json(companies, {

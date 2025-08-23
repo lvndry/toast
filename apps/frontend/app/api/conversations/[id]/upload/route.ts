@@ -1,3 +1,4 @@
+import { http } from "@lib/http";
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "http://localhost:8000";
@@ -10,14 +11,10 @@ export async function POST(
   try {
     const formData = await request.formData();
 
-    const response = await fetch(`${BACKEND_BASE_URL}/conversations/${id}/upload`, {
+    const response = await http(`${BACKEND_BASE_URL}/conversations/${id}/upload`, {
       method: "POST",
       body: formData,
     });
-
-    if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status} ${response.statusText}`);
-    }
 
     const result = await response.json();
     return NextResponse.json(result);

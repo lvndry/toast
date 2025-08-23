@@ -1,3 +1,4 @@
+import { httpJson } from "@lib/http";
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "http://localhost:8000";
@@ -8,17 +9,9 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const response = await fetch(`${BACKEND_BASE_URL}/conversations/${id}`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
+    const conversation = await httpJson(`${BACKEND_BASE_URL}/conversations/${id}`, {
+      method: "GET",
     });
-
-    if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status} ${response.statusText}`);
-    }
-
-    const conversation = await response.json();
     return NextResponse.json(conversation);
   } catch (error) {
     console.error("Error fetching conversation:", error);
