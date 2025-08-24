@@ -5,7 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { Header } from "../../components/layout/header";
+import { DashboardHeader } from "../../components/layout/dashboard-header";
 import { useAnalytics } from "../../hooks/useAnalytics";
 
 export default function DashboardLayout({
@@ -65,7 +65,7 @@ export default function DashboardLayout({
   return (
     <Box minH="100vh" bg="gray.50" _dark={{ bg: "gray.900" }}>
       <Container maxW="container.xl" py={8}>
-        <Header />
+        <DashboardHeader />
         {children}
       </Container>
     </Box>

@@ -13,8 +13,8 @@ import {
 
 import { ButtonLink } from "@components/button-link/button-link";
 import { Faq } from "@components/faq";
+import { FeaturesSection } from "@components/features-section";
 import HeroSection from "@components/hero-section";
-import { HighlightsSection } from "@components/highlights-section";
 import { Pricing } from "@components/pricing/pricing";
 import { Testimonial, Testimonials } from "@components/testimonials";
 import faq from "@data/faq";
@@ -45,7 +45,7 @@ function Home() {
       <HeroSection />
 
       <Box as="section" id="features">
-        <HighlightsSection />
+        <FeaturesSection />
       </Box>
 
       <Box as="section" id="pricing">

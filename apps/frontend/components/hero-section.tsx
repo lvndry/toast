@@ -6,9 +6,12 @@ import { ButtonLink } from "@components/button-link/button-link";
 import { BackgroundGradient } from "@components/gradients/background-gradient";
 import { Hero } from "@components/hero";
 import { FallInPlace } from "@components/motion/fall-in-place";
+import { useAuthStatus } from "@hooks/useAuthStatus";
 import { FiArrowRight, FiCheckCircle } from "react-icons/fi";
 
 export default function HeroSection() {
+  const { isSignedIn, isLoading } = useAuthStatus();
+
   return (
     <Box position="relative" overflow="hidden">
       <BackgroundGradient height="100%" zIndex="-1" />
@@ -34,9 +37,15 @@ export default function HeroSection() {
               <VStack align="flex-start" spacing={4}>
                 <FallInPlace delay={0.8}>
                   <Stack direction="row" spacing={4}>
-                    <ButtonLink colorScheme="primary" size="lg" href="#pricing">
-                      Get started free
-                    </ButtonLink>
+                    {!isLoading && isSignedIn ? (
+                      <ButtonLink colorScheme="primary" size="lg" href="/companies">
+                        Go to App
+                      </ButtonLink>
+                    ) : (
+                      <ButtonLink colorScheme="primary" size="lg" href="#pricing">
+                        Get started free
+                      </ButtonLink>
+                    )}
                     <ButtonLink
                       size="lg"
                       href="#features"
