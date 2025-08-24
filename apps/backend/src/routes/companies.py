@@ -18,6 +18,7 @@ async def get_companies(has_documents: bool = True, user=Depends(get_optional_us
     If has_documents is True, only return companies that have documents.
     """
     companies = await company_service.list_companies_with_documents(has_documents=has_documents)
+    logger.info(f"Found {len(companies)} companies")
     if user is None:
         companies = companies[:100]
     return companies

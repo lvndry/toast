@@ -59,7 +59,8 @@ class BaseService:
         try:
             await self._client.admin.command("ping")
             db_names = await self._client.list_database_names()
-            logger.info(f"db_names: {db_names}")
+            if "toast" not in db_names:
+                raise Exception("Toast database not found")
             logger.info("Connected to MongoDB")
         except Exception as e:
             logger.error(f"Error connecting to MongoDB: {e}")

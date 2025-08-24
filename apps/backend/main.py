@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.config import settings
 from core.logging import setup_logging
 from core.middleware import AuthMiddleware
-from src.routes import company, conversation, crawler, list, migration, q
+from src.routes import companies, conversation, crawler, list, migration, q
 from src.routes import user as user_routes
 from src.services.base_service import BaseService
 
@@ -45,7 +45,7 @@ async def healthcheck():
 routes = [
     crawler.router,
     q.router,
-    company.router,
+    companies.router,
     conversation.router,
     list.router,
     migration.router,

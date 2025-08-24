@@ -89,9 +89,9 @@ class CompanyService(BaseService):
         await self.update_company(company)
         return company
 
-    async def get_company_documents(self, company_slug: str) -> list[Document]:
+    async def get_company_documents(self, company_id: str) -> list[Document]:
         """Get all documents for a company."""
-        return await document_service.get_company_documents(company_slug)
+        return await document_service.get_company_documents(company_id)
 
     async def get_company_meta_summary(self, company_slug: str) -> DocumentAnalysis | None:
         """Get a meta summary for a company from the database."""
@@ -132,7 +132,7 @@ class CompanyService(BaseService):
         if has_documents:
             filtered = []
             for company in companies:
-                documents = await self.get_company_documents(company.slug)
+                documents = await self.get_company_documents(company.id)
                 if documents:
                     filtered.append(company)
             return filtered
