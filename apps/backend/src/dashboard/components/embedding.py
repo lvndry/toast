@@ -1,58 +1,8 @@
-import asyncio
-import concurrent.futures
-
 import streamlit as st
 
+from src.dashboard.dashboard_embedding import embed_companies, embed_company
 from src.dashboard.db_utils import get_all_companies_isolated
 from src.dashboard.utils import run_async
-from src.embedding import embed_company_documents
-
-
-def run_embedding_async(company_slug: str | list[str]):
-    """Run embedding in a completely isolated thread with its own event loop"""
-
-    def run_in_thread():
-        # Create a completely fresh event loop in this thread
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            if isinstance(company_slug, list):
-                results = []
-                for slug in company_slug:
-                    try:
-                        result = loop.run_until_complete(embed_company_documents(slug))
-                        results.append((slug, result))
-                    except Exception as e:
-                        results.append((slug, False))
-                        st.error(f"Error embedding {slug}: {str(e)}")
-                return results
-            else:
-                return loop.run_until_complete(embed_company_documents(company_slug))
-        finally:
-            # Cancel all pending tasks before closing the loop
-            pending_tasks = asyncio.all_tasks(loop)
-            for task in pending_tasks:
-                task.cancel()
-
-            # Wait for all tasks to be cancelled
-            if pending_tasks:
-                loop.run_until_complete(
-                    asyncio.gather(*pending_tasks, return_exceptions=True)
-                )
-
-            loop.close()
-
-    # Run in a separate thread to avoid any event loop conflicts
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(run_in_thread)
-        try:
-            return future.result(timeout=600)  # 10 minute timeout for embedding
-        except concurrent.futures.TimeoutError:
-            st.error("Embedding operation timed out (10 minutes)")
-            return False
-        except Exception as e:
-            st.error(f"Embedding error: {str(e)}")
-            return False
 
 
 def show_embedding():
@@ -70,9 +20,7 @@ def show_embedding():
         return
 
     # Create company dropdown options
-    company_options = {
-        f"{company.name} ({company.slug})": company for company in companies
-    }
+    company_options = {f"{company.name} ({company.slug})": company for company in companies}
 
     # Check if a company was preselected (from session state)
     preselected_company = st.session_state.get("selected_company_for_embedding", None)
@@ -144,7 +92,7 @@ def show_embedding():
                 progress_placeholder.info("🔍 Loading documents...")
 
                 # Run the embedding process
-                success = run_embedding_async(selected_company.slug)
+                success = embed_company(selected_company.slug)
 
                 progress_placeholder.empty()
 
@@ -161,7 +109,7 @@ def show_embedding():
                     st.error("Embedding failed. Please check the logs and try again.")
                     st.info("**Common issues:**")
                     st.write("• No documents found for this company")
-                    st.write("• API key issues (Mistral or Pinecone)")
+                    st.write("• API key issues (LLM or Pinecone)")
                     st.write("• Network connectivity problems")
 
     # Add Embed All button
@@ -179,14 +127,12 @@ def show_embedding():
                 company_slugs = [company.slug for company in companies]
 
                 # Run the embedding process for all companies
-                results = run_embedding_async(company_slugs)
+                results = embed_companies(company_slugs, max_concurrency=3)
 
                 progress_placeholder.empty()
 
                 if results:
-                    success_count = sum(
-                        1 for _, success in results if success is not False
-                    )
+                    success_count = sum(1 for _, success in results if success is not False)
                     st.success(
                         f"✅ Document embedding completed for {success_count} out of {len(companies)} companies!"
                     )
@@ -194,20 +140,30 @@ def show_embedding():
                     # Show detailed results
                     st.info("**Embedding Results:**")
                     for slug, success in results:
-                        company_name = next(
-                            (c.name for c in companies if c.slug == slug), slug
-                        )
+                        company_name = next((c.name for c in companies if c.slug == slug), slug)
                         if success is not False:
                             st.write(f"✅ {company_name}: Success")
                         else:
                             st.write(f"❌ {company_name}: Failed")
+
+                    # Show summary
+                    if success_count == len(companies):
+                        st.success("🎉 All companies processed successfully!")
+                    elif success_count > 0:
+                        st.warning(
+                            f"⚠️ {len(companies) - success_count} companies failed to process. Check the results above for details."
+                        )
+                    else:
+                        st.error(
+                            "❌ All companies failed to process. Please check the logs and try again."
+                        )
                 else:
                     st.error(
                         "Embedding failed for all companies. Please check the logs and try again."
                     )
                     st.info("**Common issues:**")
                     st.write("• No documents found for companies")
-                    st.write("• API key issues (Mistral or Pinecone)")
+                    st.write("• API key issues (LLM or Pinecone)")
                     st.write("• Network connectivity problems")
 
     # Back to companies button

@@ -1,3 +1,5 @@
+import warnings
+
 import streamlit as st
 
 from src.dashboard.components.company_creation import show_company_creation
@@ -7,6 +9,10 @@ from src.dashboard.components.embedding import show_embedding
 from src.dashboard.components.migration import show_migration
 from src.dashboard.components.rag import show_rag
 from src.dashboard.components.summarization import show_summarization
+
+# Suppress Streamlit ScriptRunContext warnings globally
+warnings.filterwarnings("ignore", message="missing ScriptRunContext")
+
 
 st.set_page_config(page_title="Toast Dashboard", page_icon="🍞", layout="wide")
 

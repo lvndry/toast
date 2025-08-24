@@ -6,7 +6,7 @@ from src.dashboard.db_utils import (
     get_all_companies_isolated,
     update_company_isolated,
 )
-from src.dashboard.utils import run_async
+from src.dashboard.utils import run_async_with_retry
 
 
 def show_edit_form(company: Company):
@@ -21,15 +21,11 @@ def show_edit_form(company: Company):
         # Convert lists to text for the text areas
         domains_text = "\n".join(company.domains) if company.domains else ""
         categories_text = "\n".join(company.categories) if company.categories else ""
-        crawl_urls_text = (
-            "\n".join(company.crawl_base_urls) if company.crawl_base_urls else ""
-        )
+        crawl_urls_text = "\n".join(company.crawl_base_urls) if company.crawl_base_urls else ""
 
         domains = st.text_area("Domains (one per line)", value=domains_text)
         categories = st.text_area("Categories (one per line)", value=categories_text)
-        crawl_base_urls = st.text_area(
-            "Crawl Base URLs (one per line)", value=crawl_urls_text
-        )
+        crawl_base_urls = st.text_area("Crawl Base URLs (one per line)", value=crawl_urls_text)
 
         col1, col2 = st.columns(2)
         with col1:
@@ -46,13 +42,9 @@ def show_edit_form(company: Company):
         if submitted:
             try:
                 # Parse the form data
-                domains_list = [
-                    domain.strip() for domain in domains.split("\n") if domain.strip()
-                ]
+                domains_list = [domain.strip() for domain in domains.split("\n") if domain.strip()]
                 categories_list = [
-                    category.strip()
-                    for category in categories.split("\n")
-                    if category.strip()
+                    category.strip() for category in categories.split("\n") if category.strip()
                 ]
                 crawl_base_urls_list = (
                     [url.strip() for url in crawl_base_urls.split("\n") if url.strip()]
@@ -70,8 +62,8 @@ def show_edit_form(company: Company):
                     crawl_base_urls=crawl_base_urls_list,
                 )
 
-                # Update in database
-                success = run_async(update_company_isolated(updated_company))
+                # Update in database with retry
+                success = run_async_with_retry(update_company_isolated(updated_company))
 
                 if success:
                     st.success(f"Company '{name}' updated successfully!")
@@ -80,7 +72,7 @@ def show_edit_form(company: Company):
                         del st.session_state[f"editing_company_{company.id}"]
                     st.rerun()
                 else:
-                    st.error("Failed to update company")
+                    st.error("Failed to update company. Please try again.")
 
             except Exception as e:
                 st.error(f"Error updating company: {str(e)}")
@@ -90,9 +82,7 @@ def show_delete_confirmation(company: Company):
     """Show delete confirmation dialog"""
     st.error(f"⚠️ **Delete Company: {company.name}**")
     st.write("**This action cannot be undone!**")
-    st.write(
-        "All data associated with this company will be permanently deleted, including:"
-    )
+    st.write("All data associated with this company will be permanently deleted, including:")
     st.write("• Company information")
     st.write("• Associated documents")
     st.write("• Crawl data")
@@ -102,11 +92,9 @@ def show_delete_confirmation(company: Company):
     col1, col2, col3 = st.columns([1, 1, 2])
 
     with col1:
-        if st.button(
-            "🗑️ **DELETE**", key=f"confirm_delete_{company.id}", type="primary"
-        ):
-            # Perform the deletion
-            success = run_async(delete_company_isolated(company.id))
+        if st.button("🗑️ **DELETE**", key=f"confirm_delete_{company.id}", type="primary"):
+            # Perform the deletion with retry
+            success = run_async_with_retry(delete_company_isolated(company.id))
 
             if success:
                 st.success(f"Company '{company.name}' has been deleted successfully!")
@@ -116,7 +104,7 @@ def show_delete_confirmation(company: Company):
                     del st.session_state[delete_confirm_key]
                 st.rerun()
             else:
-                st.error("Failed to delete company")
+                st.error("Failed to delete company. Please try again.")
 
     with col2:
         if st.button("Cancel", key=f"cancel_delete_{company.id}"):
@@ -130,24 +118,34 @@ def show_delete_confirmation(company: Company):
 def show_company_view():
     st.title("All Companies")
 
+    # Add a refresh button
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        if st.button("🔄 Refresh", type="secondary"):
+            st.rerun()
+
     try:
-        st.write("Loading companies...")
-        companies = run_async(get_all_companies_isolated())
+        with st.spinner("Loading companies..."):
+            companies = run_async_with_retry(get_all_companies_isolated())
 
         if companies is None:
-            st.error("Failed to load companies from database")
+            st.error(
+                "Failed to load companies from database. Please check your connection and try again."
+            )
+            st.info("💡 **Troubleshooting tips:**")
+            st.write("• Make sure your MongoDB connection is working")
+            st.write("• Check that the MONGO_URI environment variable is set correctly")
+            st.write("• Try refreshing the page")
             return
 
         if not companies:
             st.info("No companies found. Create your first company!")
             return
 
-        st.write(f"Total companies: {len(companies)}")
+        st.success(f"✅ Loaded {len(companies)} companies successfully")
 
         # Create search/filter functionality
-        search_term = st.text_input(
-            "Search companies", placeholder="Enter company name or slug..."
-        )
+        search_term = st.text_input("Search companies", placeholder="Enter company name or slug...")
 
         # Filter companies based on search term
         if search_term:
@@ -156,13 +154,8 @@ def show_company_view():
                 for company in companies
                 if search_term.lower() in company.name.lower()
                 or search_term.lower() in company.slug.lower()
-                or any(
-                    search_term.lower() in domain.lower() for domain in company.domains
-                )
-                or any(
-                    search_term.lower() in category.lower()
-                    for category in company.categories
-                )
+                or any(search_term.lower() in domain.lower() for domain in company.domains)
+                or any(search_term.lower() in category.lower() for category in company.categories)
             ]
         else:
             filtered_companies = companies
@@ -172,7 +165,7 @@ def show_company_view():
             return
 
         # Display companies in a grid/card layout
-        for i, company in enumerate(filtered_companies):
+        for _i, company in enumerate(filtered_companies):
             # Check if this company is being edited or deleted
             edit_key = f"editing_company_{company.id}"
             delete_confirm_key = f"delete_confirm_{company.id}"
@@ -279,3 +272,7 @@ def show_company_view():
     except Exception as e:
         st.error(f"Error loading companies: {str(e)}")
         st.write("Please try refreshing the page or check your database connection.")
+        st.info("💡 **Troubleshooting tips:**")
+        st.write("• Check that your MongoDB connection is working")
+        st.write("• Verify your environment variables are set correctly")
+        st.write("• Try restarting the Streamlit application")

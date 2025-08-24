@@ -6,38 +6,40 @@ import streamlit as st
 from src.company import Company
 from src.crawling import LegalDocumentPipeline
 from src.dashboard.db_utils import get_all_companies_isolated
-from src.dashboard.utils import run_async
+from src.dashboard.utils import run_async, suppress_streamlit_warnings
 
 
 def run_crawl_async(company: Company):
     """Run crawling using LegalDocumentPipeline in a completely isolated thread with its own event loop"""
 
     def run_in_thread():
-        # Create a completely fresh event loop in this thread
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            # Create pipeline instance for single company processing
-            pipeline = LegalDocumentPipeline(
-                max_depth=4,
-                max_pages=500,
-                crawler_strategy="bfs",
-                concurrent_limit=5,  # Reduced for single company
-                delay_between_requests=1.0,
-            )
+        # Suppress Streamlit ScriptRunContext warnings in worker threads
+        with suppress_streamlit_warnings():
+            # Create a completely fresh event loop in this thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                # Create pipeline instance for single company processing
+                pipeline = LegalDocumentPipeline(
+                    max_depth=4,
+                    max_pages=500,
+                    crawler_strategy="bfs",
+                    concurrent_limit=5,  # Reduced for single company
+                    delay_between_requests=1.0,
+                )
 
-            # Process single company and return documents
-            result = loop.run_until_complete(pipeline.run([company]))
+                # Process single company and return documents
+                result = loop.run_until_complete(pipeline.run([company]))
 
-            # Wait for any remaining tasks to complete
-            pending_tasks = asyncio.all_tasks(loop)
-            if pending_tasks:
-                loop.run_until_complete(asyncio.gather(*pending_tasks))
+                # Wait for any remaining tasks to complete
+                pending_tasks = asyncio.all_tasks(loop)
+                if pending_tasks:
+                    loop.run_until_complete(asyncio.gather(*pending_tasks))
 
-            return result
-        finally:
-            # Only close the loop after all tasks are done
-            loop.close()
+                return result
+            finally:
+                # Only close the loop after all tasks are done
+                loop.close()
 
     # Run in a separate thread to avoid any event loop conflicts
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -118,9 +120,7 @@ def show_crawling():
 
     st.write("**Categories:**")
     st.write(
-        ", ".join(selected_company.categories)
-        if selected_company.categories
-        else "No categories"
+        ", ".join(selected_company.categories) if selected_company.categories else "No categories"
     )
 
     # Crawling section
@@ -145,9 +145,7 @@ def show_crawling():
                 del st.session_state["selected_company_for_crawl"]
 
             # Start crawling
-            with st.spinner(
-                f"Crawling {selected_company.name}... This may take several minutes."
-            ):
+            with st.spinner(f"Crawling {selected_company.name}... This may take several minutes."):
                 # Show progress info
                 progress_placeholder = st.empty()
                 progress_placeholder.info("🔍 Starting crawler...")
@@ -171,9 +169,7 @@ def show_crawling():
                         st.info("This could mean:")
                         st.write("• The websites don't have legal documents")
                         st.write("• The documents aren't accessible")
-                        st.write(
-                            "• The classification didn't identify them as legal documents"
-                        )
+                        st.write("• The classification didn't identify them as legal documents")
                 else:
                     progress_placeholder.empty()
                     st.error("Crawling failed. Please check the logs and try again.")
