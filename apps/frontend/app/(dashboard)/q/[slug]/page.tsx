@@ -3,10 +3,7 @@
 import {
   Box,
   Button,
-  Grid,
-  GridItem,
   Heading,
-  HStack,
   Spinner,
   Text,
   useColorModeValue,
@@ -16,9 +13,12 @@ import {
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
-import { FiArrowLeft, FiUpload, FiX } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
 import ChatInput from "../../../../components/chat/chat-input";
-import MarkdownRenderer from "../../../../components/markdown/markdown-renderer";
+import CompanyMetaSummary from "../../../../components/q/CompanyMetaSummary";
+import ConversationsList from "../../../../components/q/ConversationsList";
+import QHeader from "../../../../components/q/QHeader";
+import UploadModal from "../../../../components/q/UploadModal";
 
 import { useAnalytics } from "../../../../hooks/useAnalytics";
 
@@ -82,8 +82,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metaSummary, setMetaSummary] = useState<MetaSummary | null>(null);
-  const [showAllKeyPoints, setShowAllKeyPoints] = useState(false);
-  const [expandedScores, setExpandedScores] = useState<Set<string>>(new Set());
+
   const [uploadLoading, setUploadLoading] = useState(false);
   const [conversationsList, setConversationsList] = useState<Conversation[]>([]);
   const [convosLoading, setConvosLoading] = useState(false);
@@ -409,17 +408,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
     }
   }
 
-  function toggleScoreExpansion(scoreKey: string) {
-    setExpandedScores(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(scoreKey)) {
-        newSet.delete(scoreKey);
-      } else {
-        newSet.add(scoreKey);
-      }
-      return newSet;
-    });
-  }
+
 
   async function handleFileUpload(file: File) {
     if (!conversation) return;
@@ -511,249 +500,61 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
 
   return (
     <Box minH="100vh" bg={bgColor} display="flex" flexDirection="column">
-      {/* Header */}
-      <Box bg={cardBg} shadow="sm" borderBottom="1px" borderColor="gray.200" flexShrink={0}>
-        <Box maxW="7xl" mx="auto" px={6} py={4}>
-          <HStack justify="space-between">
-            <Box>
-              <Heading size="lg">{displayName}</Heading>
-              <Text color="gray.600" mt={1}>
-                {conversation ? "Document Analysis & Chat" : "Privacy Analysis & Chat"}
-              </Text>
-              {conversation && (
-                <HStack spacing={2} mt={2}>
-                  <Button
-                    size="xs"
-                    variant={conversation.pinned ? "solid" : "outline"}
-                    onClick={async () => {
-                      try {
-                        await fetch(`/api/conversations/${conversation.id}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ pinned: !conversation.pinned }),
-                        });
-                        setConversation({ ...conversation, pinned: !conversation.pinned });
-                      } catch { }
-                    }}
-                  >
-                    {conversation.pinned ? "Unpin" : "Pin"}
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant={conversation.archived ? "solid" : "outline"}
-                    onClick={async () => {
-                      try {
-                        await fetch(`/api/conversations/${conversation.id}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ archived: !conversation.archived }),
-                        });
-                        setConversation({ ...conversation, archived: !conversation.archived });
-                      } catch { }
-                    }}
-                  >
-                    {conversation.archived ? "Unarchive" : "Archive"}
-                  </Button>
-                </HStack>
-              )}
-            </Box>
-            <HStack spacing={3}>
-              {conversation && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onOpen()}
-                  isLoading={uploadLoading}
-                  loadingText="Uploading..."
-                >
-                  <FiUpload style={{ marginRight: '8px' }} />
-                  Upload More Documents
-                </Button>
-              )}
-              {conversation && (
-                <Button
-                  size="sm"
-                  colorScheme="red"
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      await fetch(`/api/conversations/${conversation.id}`, { method: "DELETE" });
-                      router.push(`/q/${conversation.company_slug}`);
-                    } catch { }
-                  }}
-                >
-                  Delete
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => router.back()}
-              >
-                <FiArrowLeft style={{ marginRight: '8px' }} />
-                Back
-              </Button>
-            </HStack>
-          </HStack>
-        </Box>
-      </Box>
+      <QHeader
+        title={displayName || ""}
+        subtitle={conversation ? "Document Analysis & Chat" : "Privacy Analysis & Chat"}
+        conversation={conversation ? { id: conversation.id, pinned: conversation.pinned, archived: conversation.archived } : null}
+        onBack={() => router.back()}
+        onUploadClick={conversation ? () => onOpen() : undefined}
+        onDeleteClick={conversation ? async () => {
+          try {
+            await fetch(`/api/conversations/${conversation.id}`, { method: "DELETE" });
+            router.push(`/q/${conversation.company_slug}`);
+          } catch { }
+        } : undefined}
+        onTogglePinned={conversation ? async () => {
+          try {
+            await fetch(`/api/conversations/${conversation.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ pinned: !conversation.pinned }),
+            });
+            setConversation({ ...conversation, pinned: !conversation.pinned });
+          } catch { }
+        } : undefined}
+        onToggleArchived={conversation ? async () => {
+          try {
+            await fetch(`/api/conversations/${conversation.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ archived: !conversation.archived }),
+            });
+            setConversation({ ...conversation, archived: !conversation.archived });
+          } catch { }
+        } : undefined}
+        uploadLoading={uploadLoading}
+      />
 
       {/* Main Content */}
       <Box flex="1" overflowY="auto" ref={chatContainerRef}>
         {company && (
-          <Box p={6}>
-            <Box maxW="7xl" mx="auto">
-              <HStack justify="space-between" mb={4}>
-                <Heading size="md">Your Conversations</Heading>
-                <HStack>
-                  <Button size="sm" variant="outline" onClick={refreshConversationsList} isLoading={convosLoading}>
-                    Refresh
-                  </Button>
-                  <Button size="sm" colorScheme="blue" onClick={createConversation}>
-                    Ask questions to {company.name} documents
-                  </Button>
-                </HStack>
-              </HStack>
-              <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", xl: "repeat(3, 1fr)" }} gap={4}>
-                {conversationsList.map((c) => (
-                  <GridItem key={c.id}>
-                    <Box
-                      bg={cardBg}
-                      p={4}
-                      borderRadius="lg"
-                      shadow="sm"
-                      border="1px"
-                      borderColor="gray.200"
-                    >
-                      <VStack align="stretch" spacing={3}>
-                        <HStack justify="space-between">
-                          <Heading size="sm" noOfLines={1}>{c.title || c.company_name}</Heading>
-                          <HStack spacing={2}>
-                            <Button size="xs" variant={c.pinned ? "solid" : "outline"} onClick={() => updateConversationMeta(c.id, { pinned: !c.pinned })}>
-                              {c.pinned ? "Unpin" : "Pin"}
-                            </Button>
-                            <Button size="xs" variant={c.archived ? "solid" : "outline"} onClick={() => updateConversationMeta(c.id, { archived: !c.archived })}>
-                              {c.archived ? "Unarchive" : "Archive"}
-                            </Button>
-                          </HStack>
-                        </HStack>
-                        <HStack spacing={3}>
-                          <Button size="sm" onClick={() => router.push(`/q/${c.id}`)}>Open</Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={async () => {
-                              const newName = window.prompt("Rename conversation", c.title || "");
-                              if (newName !== null) await updateConversationMeta(c.id, { title: newName });
-                            }}
-                          >
-                            Rename
-                          </Button>
-                          <Button size="sm" colorScheme="red" variant="outline" onClick={() => deleteConversationById(c.id)}>Delete</Button>
-                        </HStack>
-                        <Text fontSize="xs" color="gray.500">
-                          Updated {new Date(c.last_message_at || c.updated_at).toLocaleString()} • {c.message_count || c.messages?.length || 0} messages
-                        </Text>
-                      </VStack>
-                    </Box>
-                  </GridItem>
-                ))}
-                {conversationsList.length === 0 && !convosLoading && (
-                  <GridItem>
-                    <Box bg={cardBg} p={6} borderRadius="lg" shadow="sm" textAlign="center">
-                      <VStack spacing={3}>
-                        <Heading size="sm">No conversations yet</Heading>
-                        <Text color="gray.600">Create your first conversation for {company.name}</Text>
-                        <Button size="sm" colorScheme="blue" onClick={createConversation}>Ask questions to {company.name} documents</Button>
-                      </VStack>
-                    </Box>
-                  </GridItem>
-                )}
-              </Grid>
-            </Box>
-          </Box>
+          <ConversationsList
+            companyName={company.name}
+            conversations={conversationsList}
+            onOpenConversation={(id) => router.push(`/q/${id}`)}
+            onRefresh={refreshConversationsList}
+            onCreate={createConversation}
+            onRename={async (id, newName) => { await updateConversationMeta(id, { title: newName }); }}
+            onTogglePinned={(id, newVal) => updateConversationMeta(id, { pinned: newVal })}
+            onToggleArchived={(id, newVal) => updateConversationMeta(id, { archived: newVal })}
+            onDelete={deleteConversationById}
+            isRefreshing={convosLoading}
+          />
         )}
-        {/* Meta Summary for Companies */}
+
         {metaSummary && company && (
-          <Box p={6}>
-            <Box maxW="7xl" mx="auto">
-              {/* Scores Section */}
-              <Box mb={8}>
-                <Heading size="md" mb={4}>Privacy Analysis Scores</Heading>
-                <Grid templateColumns="repeat(auto-fit, minmax(250px, 1fr))" gap={4}>
-                  {Object.entries(metaSummary.scores).map(([key, score]) => {
-                    const isExpanded = expandedScores.has(key);
-                    return (
-                      <GridItem key={key}>
-                        <Box
-                          bg={cardBg}
-                          p={6}
-                          borderRadius="lg"
-                          shadow="sm"
-                          cursor="pointer"
-                          transition="all 0.2s"
-                          _hover={{ transform: "translateY(-2px)", shadow: "md" }}
-                          onClick={() => toggleScoreExpansion(key)}
-                        >
-                          <VStack spacing={3}>
-                            <Text fontSize="sm" fontWeight="semibold" color="gray.600">
-                              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </Text>
-                            <Text fontSize="2xl" fontWeight="bold" color="blue.500">
-                              {score.score}/10
-                            </Text>
-                            {isExpanded && (
-                              <Text fontSize="sm" color="gray.600" textAlign="center">
-                                {score.justification}
-                              </Text>
-                            )}
-                          </VStack>
-                        </Box>
-                      </GridItem>
-                    );
-                  })}
-                </Grid>
-              </Box>
-
-              {/* Key Points and Summary */}
-              <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={8}>
-                <Box>
-                  <Heading size="md" mb={4}>Key Points</Heading>
-                  <Box bg={cardBg} p={6} borderRadius="lg" shadow="sm">
-                    <VStack spacing={3} align="stretch">
-                      {(showAllKeyPoints ? metaSummary.keypoints : metaSummary.keypoints.slice(0, 5)).map((point, index) => (
-                        <HStack key={index} align="start" spacing={3}>
-                          <Box w="2" h="2" bg="blue.500" borderRadius="full" mt={2} flexShrink={0} />
-                          <Text fontSize="sm" color="gray.700">{point}</Text>
-                        </HStack>
-                      ))}
-                    </VStack>
-                    {metaSummary.keypoints.length > 5 && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setShowAllKeyPoints(!showAllKeyPoints)}
-                        mt={4}
-                      >
-                        {showAllKeyPoints ? 'Show Less' : `Show All ${metaSummary.keypoints.length} Points`}
-                      </Button>
-                    )}
-                  </Box>
-                </Box>
-
-                <Box>
-                  <Heading size="md" mb={4}>Summary</Heading>
-                  <Box bg={cardBg} p={6} borderRadius="lg" shadow="sm">
-                    <Box color="gray.700">
-                      <MarkdownRenderer>{metaSummary.summary}</MarkdownRenderer>
-                    </Box>
-                  </Box>
-                </Box>
-              </Grid>
-            </Box>
-          </Box>
+          <CompanyMetaSummary metaSummary={metaSummary} />
         )}
-
 
       </Box>
 
@@ -773,73 +574,12 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
       )}
 
       {/* Upload Modal for Conversations */}
-      {conversation && isOpen && (
-        <Box
-          position="fixed"
-          top="0"
-          left="0"
-          right="0"
-          bottom="0"
-          bg="blackAlpha.600"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          zIndex="modal"
-          onClick={() => onClose()}
-        >
-          <Box
-            bg={cardBg}
-            borderRadius="lg"
-            shadow="xl"
-            p={6}
-            w="md"
-            maxW="md"
-            boxShadow="lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Heading size="md" mb={4}>Upload Additional Documents</Heading>
-            <VStack spacing={4}>
-              <Box
-                border="2px dashed"
-                borderColor="gray.300"
-                borderRadius="md"
-                p={6}
-                textAlign="center"
-                cursor="pointer"
-                _hover={{ borderColor: "blue.500" }}
-                onClick={() => document.getElementById('file-upload-modal')?.click()}
-              >
-                <VStack spacing={3}>
-                  <FiUpload size={24} color="gray.400" />
-                  <Text color="gray.600">Click to upload or drag and drop</Text>
-                  <Text fontSize="sm" color="gray.500">
-                    PDF, DOC, DOCX, TXT files supported
-                  </Text>
-                  <Text fontSize="xs" color="gray.400">
-                    Only legal documents will be processed
-                  </Text>
-                </VStack>
-                <input
-                  id="file-upload-modal"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  style={{ display: 'none' }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleFileUpload(file);
-                    }
-                  }}
-                />
-              </Box>
-            </VStack>
-            <HStack spacing={3} mt={6} justify="flex-end">
-              <Button variant="ghost" onClick={() => onClose()}>
-                Cancel
-              </Button>
-            </HStack>
-          </Box>
-        </Box>
+      {conversation && (
+        <UploadModal
+          isOpen={isOpen}
+          onClose={onClose}
+          onFileSelected={(file) => handleFileUpload(file)}
+        />
       )}
 
       {/* Create Conversation Modal removed in favor of immediate create */}
