@@ -2,15 +2,15 @@ name: Frontend CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'apps/frontend/**'
-      - '.github/workflows/frontend.yml'
+      - "apps/frontend/**"
+      - ".github/workflows/frontend.yml"
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'apps/frontend/**'
-      - '.github/workflows/frontend.yml'
+      - "apps/frontend/**"
+      - ".github/workflows/frontend.yml"
 
 jobs:
   test:
@@ -24,38 +24,42 @@ jobs:
         node-version: ["18", "20"]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
-    - name: Run ESLint
-      run: npm run lint
+      - name: Install dependencies
+        run: bun install
 
-    - name: Run TypeScript type checking
-      run: npm run type-check
+      - name: Run ESLint
+        run: bun run lint
 
-    - name: Run Prettier check
-      run: |
-        npx prettier --check .
+      - name: Run TypeScript type checking
+        run: bun run type-check
 
-    - name: Build application
-      run: npm run build
+      - name: Run Prettier check
+        run: |
+          bunx prettier --check .
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: build-artifacts-${{ matrix.node-version }}
-        path: apps/frontend/.next/
-        retention-days: 7
+      - name: Build application
+        run: bun run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-artifacts-${{ matrix.node-version }}
+          path: apps/frontend/.next/
+          retention-days: 7
 
   security:
     runs-on: ubuntu-latest
@@ -64,25 +68,29 @@ jobs:
         working-directory: apps/frontend
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
-    - name: Run npm audit
-      run: npm audit --audit-level=moderate
+      - name: Install dependencies
+        run: bun install
 
-    - name: Run security scan with Snyk
-      uses: snyk/actions/node@master
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      with:
-        args: --severity-threshold=high
-      continue-on-error: true
+      - name: Run npm audit (via Bun)
+        run: bunx npm audit --audit-level=moderate
+
+      - name: Run security scan with Snyk
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+        continue-on-error: true
