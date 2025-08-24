@@ -44,7 +44,7 @@ function Home() {
     <Box>
       <HeroSection />
 
-      <Box as="section" id="highlights">
+      <Box as="section" id="features">
         <HighlightsSection />
       </Box>
 

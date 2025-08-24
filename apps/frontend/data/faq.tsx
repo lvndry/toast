@@ -1,7 +1,7 @@
 
 const faq = {
   title: "Frequently asked questions",
-  // description: '',
+  description: "We're here to help you understand how Toast AI works and answer any questions you may have.",
   items: [
     {
       q: "How many companies can I search per month?",

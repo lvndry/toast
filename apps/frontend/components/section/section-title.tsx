@@ -20,6 +20,7 @@ export function SectionTitle(props: SectionTitleProps) {
     <VStack
       alignItems={align === "left" ? "flex-start" : "center"}
       gap={4}
+      py={4}
       {...rest}
     >
       <Heading
