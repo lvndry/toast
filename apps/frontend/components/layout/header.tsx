@@ -3,7 +3,7 @@
 import { Box, Button, Link as ChakraLink, Container, Flex, HStack } from "@chakra-ui/react";
 import siteConfig from "@data/config";
 import { useAuthStatus } from "@hooks/useAuthStatus";
-import NextLink from "next/link";
+import Link from "next/link";
 import { Logo } from "./logo";
 
 export interface HeaderProps {
@@ -22,15 +22,15 @@ export function Header(props: HeaderProps) {
         const isPrimary = item.variant === "primary";
         if (isPrimary) {
           return (
-            <NextLink key={item.label} href={href} passHref legacyBehavior>
+            <Link key={item.label} href={href}>
               <Button as="a" colorScheme="primary" size="sm">
                 {item.label}
               </Button>
-            </NextLink>
+            </Link>
           );
         }
         return (
-          <ChakraLink as={NextLink} key={item.label ?? href} href={href} color="gray.700" _hover={{ color: "gray.900" }}>
+          <ChakraLink as={Link} key={item.label ?? href} href={href} color="gray.700" _hover={{ color: "gray.900" }}>
             {item.label}
           </ChakraLink>
         );
@@ -40,11 +40,11 @@ export function Header(props: HeaderProps) {
 
   const authenticatedNav = (
     <HStack gap={6}>
-      <NextLink href="/companies" passHref legacyBehavior>
+      <Link href="/companies">
         <Button as="a" colorScheme="primary" size="sm">
           Go to App
         </Button>
-      </NextLink>
+      </Link>
     </HStack>
   );
 
