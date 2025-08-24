@@ -6,6 +6,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Next.js 15](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
+[![Contributing](https://img.shields.io/badge/Contributing-Welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ## 🎯 Mission
 
@@ -290,26 +291,25 @@ POST /api/v1/webhooks/analysis-complete
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions from developers, legal experts, and anyone passionate about making legal documents more accessible!
 
-### Development Setup
+### Quick Start for Contributors
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Set up development environment: `./dev.sh`
-4. Make your changes
-5. Run tests and linting: `pre-commit run --all-files`
-6. Commit your changes: `git commit -m "feat: add amazing feature"`
-7. Push to the branch: `git push origin feature/amazing-feature`
-8. Open a Pull Request
+1. **Fork the repository** and clone your fork
+2. **Set up development environment**: `make setup`
+3. **Start development servers**: `make dev`
+4. **Make your changes** and test them
+5. **Submit a pull request** with clear description
 
-### Code Standards
+### Special Areas for Contribution
 
-- **Python**: Follow PEP 8, use type hints, write docstrings
-- **TypeScript**: Use strict mode, prefer interfaces over types
-- **React**: Use functional components with hooks
-- **Testing**: Aim for 90%+ test coverage
-- **Documentation**: Update docs for all new features
+- **Legal Analysis**: Improve AI accuracy for specific jurisdictions
+- **UI/UX**: Make legal insights more accessible and user-friendly
+- **Performance**: Optimize analysis speed and cost efficiency
+- **Documentation**: Help users understand legal concepts better
+- **Testing**: Validate legal accuracy and edge cases
+
+For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 📄 License
 
@@ -317,10 +317,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Documentation**: [docs.toast.ai](https://docs.toast.ai)
-- **API Reference**: [api.toast.ai](https://api.toast.ai)
-- **Community**: [Discord](https://discord.gg/toast-ai)
-- **Email**: support@toast.ai
+<!-- - **Documentation**: [docs.toast.ai](https://docs.toast.ai) -->
+<!-- - **API Reference**: [api.toast.ai](https://api.toast.ai) -->
+<!-- - **Community**: [Discord](https://discord.gg/toast-ai) -->
+
+- **Email**: lvndry@proton.me
 
 ---
 
