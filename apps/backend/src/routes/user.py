@@ -1,10 +1,16 @@
-from core.jwt import get_current_user
 from fastapi import APIRouter, Depends, HTTPException
-from models.clerkUser import ClerkUser
 from pydantic import BaseModel
 
-from src.services.user_service import complete_onboarding, create_or_update_user, get_me
-from src.user import User
+from core.jwt import get_current_user
+from models.clerkUser import ClerkUser
+from src.services.usage_service import UsageService
+from src.services.user_service import (
+    complete_onboarding,
+    create_or_update_user,
+    get_me,
+    upgrade_user_tier,
+)
+from src.user import User, UserTier
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -13,6 +19,10 @@ class CreateUserRequest(BaseModel):
     email: str
     first_name: str | None = None
     last_name: str | None = None
+
+
+class UpgradeTierRequest(BaseModel):
+    tier: UserTier
 
 
 @router.post("")
@@ -47,6 +57,32 @@ async def me(current: ClerkUser = Depends(get_current_user)):
         await create_or_update_user(new_user)
         return new_user
     return user
+
+
+@router.get("/usage")
+async def get_usage(current: ClerkUser = Depends(get_current_user)):
+    """Get current user's usage information and limits"""
+    if not current.user_id:
+        raise HTTPException(status_code=401, detail="Invalid user")
+
+    usage_summary = await UsageService.get_usage_summary(current.user_id)
+    return usage_summary
+
+
+@router.post("/upgrade-tier")
+async def upgrade_tier(
+    req: UpgradeTierRequest,
+    current: ClerkUser = Depends(get_current_user),
+):
+    """Upgrade user's tier"""
+    if not current.user_id:
+        raise HTTPException(status_code=401, detail="Invalid user")
+
+    result = await upgrade_user_tier(current.user_id, req.tier)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    return result
 
 
 class CompleteOnboardingRequest(BaseModel):

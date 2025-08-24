@@ -1,11 +1,13 @@
 import os
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 import certifi
 from dotenv import load_dotenv
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient
+
+from src.user import UserTier
 
 load_dotenv()
 
@@ -63,13 +65,11 @@ class MigrationManager:
             self.production_client.close()
         logger.info("Closed database connections")
 
-    async def get_collection_stats(self, collection_name: str) -> Dict[str, int]:
+    async def get_collection_stats(self, collection_name: str) -> dict[str, int]:
         """Get statistics for a collection in both databases."""
         try:
             local_count = await self.local_db[collection_name].count_documents({})
-            production_count = await self.production_db[
-                collection_name
-            ].count_documents({})
+            production_count = await self.production_db[collection_name].count_documents({})
 
             return {
                 "local_count": local_count,
@@ -84,7 +84,7 @@ class MigrationManager:
                 "collection": collection_name,
             }
 
-    async def migrate_companies(self, dry_run: bool = True) -> Dict[str, Any]:
+    async def migrate_companies(self, dry_run: bool = True) -> dict[str, Any]:
         """Migrate companies from local to production."""
         try:
             companies = await self.local_db.companies.find().to_list(length=None)
@@ -101,40 +101,34 @@ class MigrationManager:
 
                     if existing:
                         skipped_count += 1
-                        logger.info(
-                            f"Company {company_data.get('name', 'Unknown')} already exists in production"
-                        )
                         continue
 
                     if not dry_run:
                         await self.production_db.companies.insert_one(company_data)
-                        migrated_count += 1
-                        logger.info(
-                            f"Migrated company: {company_data.get('name', 'Unknown')}"
-                        )
-                    else:
-                        migrated_count += 1
-                        logger.info(
-                            f"Would migrate company: {company_data.get('name', 'Unknown')}"
-                        )
+                    migrated_count += 1
 
                 except Exception as e:
-                    error_msg = f"Error migrating company {company_data.get('name', 'Unknown')}: {e}"
-                    errors.append(error_msg)
-                    logger.error(error_msg)
+                    errors.append(
+                        f"Error migrating company {company_data.get('id', 'unknown')}: {str(e)}"
+                    )
 
             return {
-                "migrated_count": migrated_count,
-                "skipped_count": skipped_count,
+                "migrated": migrated_count,
+                "skipped": skipped_count,
                 "errors": errors,
                 "dry_run": dry_run,
             }
 
         except Exception as e:
-            logger.error(f"Error in migrate_companies: {e}")
-            raise e
+            logger.error(f"Error migrating companies: {e}")
+            return {
+                "migrated": 0,
+                "skipped": 0,
+                "errors": [str(e)],
+                "dry_run": dry_run,
+            }
 
-    async def migrate_documents(self, dry_run: bool = True) -> Dict[str, Any]:
+    async def migrate_documents(self, dry_run: bool = True) -> dict[str, Any]:
         """Migrate documents from local to production."""
         try:
             documents = await self.local_db.documents.find().to_list(length=None)
@@ -142,103 +136,168 @@ class MigrationManager:
             skipped_count = 0
             errors = []
 
-            for doc_data in documents:
+            for document_data in documents:
                 try:
                     # Check if document already exists in production
                     existing = await self.production_db.documents.find_one(
-                        {"id": doc_data["id"]}
+                        {"id": document_data["id"]}
                     )
 
                     if existing:
                         skipped_count += 1
-                        logger.info(
-                            f"Document {doc_data.get('url', 'Unknown')} already exists in production"
-                        )
                         continue
 
                     if not dry_run:
-                        await self.production_db.documents.insert_one(doc_data)
-                        migrated_count += 1
-                        logger.info(
-                            f"Migrated document: {doc_data.get('url', 'Unknown')}"
-                        )
-                    else:
-                        migrated_count += 1
-                        logger.info(
-                            f"Would migrate document: {doc_data.get('url', 'Unknown')}"
-                        )
+                        await self.production_db.documents.insert_one(document_data)
+                    migrated_count += 1
 
                 except Exception as e:
-                    error_msg = f"Error migrating document {doc_data.get('url', 'Unknown')}: {e}"
-                    errors.append(error_msg)
-                    logger.error(error_msg)
+                    errors.append(
+                        f"Error migrating document {document_data.get('id', 'unknown')}: {str(e)}"
+                    )
 
             return {
-                "migrated_count": migrated_count,
-                "skipped_count": skipped_count,
+                "migrated": migrated_count,
+                "skipped": skipped_count,
                 "errors": errors,
                 "dry_run": dry_run,
             }
 
         except Exception as e:
-            logger.error(f"Error in migrate_documents: {e}")
-            raise e
+            logger.error(f"Error migrating documents: {e}")
+            return {
+                "migrated": 0,
+                "skipped": 0,
+                "errors": [str(e)],
+                "dry_run": dry_run,
+            }
 
-    async def migrate_meta_summaries(self, dry_run: bool = True) -> Dict[str, Any]:
+    async def migrate_meta_summaries(self, dry_run: bool = True) -> dict[str, Any]:
         """Migrate meta summaries from local to production."""
         try:
-            meta_summaries = await self.local_db.meta_summaries.find().to_list(
-                length=None
-            )
+            meta_summaries = await self.local_db.meta_summaries.find().to_list(length=None)
             migrated_count = 0
             skipped_count = 0
             errors = []
 
-            for summary_data in meta_summaries:
+            for meta_summary_data in meta_summaries:
                 try:
                     # Check if meta summary already exists in production
                     existing = await self.production_db.meta_summaries.find_one(
-                        {"company_id": summary_data["company_id"]}
+                        {"company_id": meta_summary_data["company_id"]}
                     )
 
                     if existing:
                         skipped_count += 1
-                        logger.info(
-                            f"Meta summary for company {summary_data.get('company_slug', 'Unknown')} already exists in production"
-                        )
                         continue
 
                     if not dry_run:
-                        await self.production_db.meta_summaries.insert_one(summary_data)
-                        migrated_count += 1
-                        logger.info(
-                            f"Migrated meta summary for company: {summary_data.get('company_slug', 'Unknown')}"
-                        )
-                    else:
-                        migrated_count += 1
-                        logger.info(
-                            f"Would migrate meta summary for company: {summary_data.get('company_slug', 'Unknown')}"
-                        )
+                        await self.production_db.meta_summaries.insert_one(meta_summary_data)
+                    migrated_count += 1
 
                 except Exception as e:
-                    error_msg = f"Error migrating meta summary for company {summary_data.get('company_slug', 'Unknown')}: {e}"
-                    errors.append(error_msg)
-                    logger.error(error_msg)
+                    errors.append(
+                        f"Error migrating meta summary for company {meta_summary_data.get('company_id', 'unknown')}: {str(e)}"
+                    )
 
             return {
-                "migrated_count": migrated_count,
-                "skipped_count": skipped_count,
+                "migrated": migrated_count,
+                "skipped": skipped_count,
                 "errors": errors,
                 "dry_run": dry_run,
             }
 
         except Exception as e:
-            logger.error(f"Error in migrate_meta_summaries: {e}")
-            raise e
+            logger.error(f"Error migrating meta summaries: {e}")
+            return {
+                "migrated": 0,
+                "skipped": 0,
+                "errors": [str(e)],
+                "dry_run": dry_run,
+            }
 
-    async def get_migration_summary(self) -> Dict[str, Any]:
-        """Get a summary of what would be migrated."""
-        collections = ["companies", "documents", "meta_summaries"]
+    async def migrate_users_to_tier_system(self, dry_run: bool = True) -> dict[str, Any]:
+        """Migrate existing users to include tier and monthly_usage fields."""
+        try:
+            logger.info("Starting user tier migration...")
+
+            # Get all users that don't have tier field
+            users_without_tier = await self.local_db.users.find(
+                {
+                    "$or": [
+                        {"tier": {"$exists": False}},
+                        {"monthly_usage": {"$exists": False}},
+                    ]
+                }
+            ).to_list(length=None)
+
+            logger.info(f"Found {len(users_without_tier)} users to migrate")
+
+            migrated_count = 0
+            skipped_count = 0
+            errors = []
+
+            for user_doc in users_without_tier:
+                try:
+                    user_id = user_doc.get("id")
+                    if not user_id:
+                        skipped_count += 1
+                        continue
+
+                    # Set default values for missing fields
+                    update_data = {}
+
+                    if "tier" not in user_doc:
+                        update_data["tier"] = UserTier.FREE.value
+                        logger.info(f"Setting tier to FREE for user {user_id}")
+
+                    if "monthly_usage" not in user_doc:
+                        update_data["monthly_usage"] = {}
+                        logger.info(f"Setting empty monthly_usage for user {user_id}")
+
+                    if update_data:
+                        update_data["updated_at"] = datetime.now()
+
+                        if not dry_run:
+                            await self.local_db.users.update_one(
+                                {"id": user_id}, {"$set": update_data}
+                            )
+                        migrated_count += 1
+                    else:
+                        skipped_count += 1
+
+                except Exception as e:
+                    error_msg = f"Error migrating user {user_doc.get('id', 'unknown')}: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(error_msg)
+
+            logger.info("User tier migration completed successfully")
+
+            return {
+                "migrated": migrated_count,
+                "skipped": skipped_count,
+                "errors": errors,
+                "dry_run": dry_run,
+            }
+
+        except Exception as e:
+            logger.error(f"Error during user tier migration: {e}")
+            return {
+                "migrated": 0,
+                "skipped": 0,
+                "errors": [str(e)],
+                "dry_run": dry_run,
+            }
+
+    async def get_migration_summary(self) -> dict[str, Any]:
+        """Get a summary of all collections in both databases."""
+        collections = [
+            "companies",
+            "documents",
+            "users",
+            "conversations",
+            "meta_summaries",
+        ]
         stats = {}
 
         for collection in collections:
@@ -255,7 +314,7 @@ class MigrationManager:
             else self.production_uri,
         }
 
-    async def run_full_migration(self, dry_run: bool = True) -> Dict[str, Any]:
+    async def run_full_migration(self, dry_run: bool = True) -> dict[str, Any]:
         """Run a full migration of all data."""
         try:
             await self.connect_databases()
@@ -264,12 +323,14 @@ class MigrationManager:
             companies_result = await self.migrate_companies(dry_run)
             documents_result = await self.migrate_documents(dry_run)
             meta_summaries_result = await self.migrate_meta_summaries(dry_run)
+            users_result = await self.migrate_users_to_tier_system(dry_run)
 
             return {
                 "summary": summary,
                 "companies": companies_result,
                 "documents": documents_result,
                 "meta_summaries": meta_summaries_result,
+                "users": users_result,
                 "dry_run": dry_run,
                 "timestamp": datetime.now().isoformat(),
             }

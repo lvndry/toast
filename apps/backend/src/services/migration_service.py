@@ -41,3 +41,12 @@ async def migrate_meta_summaries(dry_run: bool):
     result = await migration_manager.migrate_meta_summaries(dry_run=dry_run)
     await migration_manager.close_connections()
     return result
+
+
+async def migrate_users_to_tier_system(dry_run: bool):
+    """Migrate existing users to include tier and monthly_usage fields"""
+    migration_manager = MigrationManager()
+    await migration_manager.connect_databases()
+    result = await migration_manager.migrate_users_to_tier_system(dry_run=dry_run)
+    await migration_manager.close_connections()
+    return result

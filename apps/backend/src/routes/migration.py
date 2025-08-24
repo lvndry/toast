@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import APIRouter, HTTPException
 from loguru import logger
 from pydantic import BaseModel
@@ -16,8 +14,8 @@ class MigrationRequest(BaseModel):
 class MigrationResponse(BaseModel):
     success: bool
     message: str
-    data: Optional[dict] = None
-    error: Optional[str] = None
+    data: dict | None = None
+    error: str | None = None
 
 
 @router.get("/summary", response_model=MigrationResponse)
@@ -32,7 +30,7 @@ async def get_migration_summary():
         )
     except Exception as e:
         logger.error(f"Error getting migration summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/dry-run", response_model=MigrationResponse)
@@ -48,7 +46,7 @@ async def run_dry_migration():
         )
     except Exception as e:
         logger.error(f"Error in dry run migration: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/execute", response_model=MigrationResponse)
@@ -65,7 +63,7 @@ async def execute_migration(request: MigrationRequest):
         )
     except Exception as e:
         logger.error(f"Error in migration execution: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/migrate-companies", response_model=MigrationResponse)
@@ -82,7 +80,7 @@ async def migrate_companies_only(request: MigrationRequest):
         )
     except Exception as e:
         logger.error(f"Error in companies migration: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/migrate-documents", response_model=MigrationResponse)
@@ -99,7 +97,7 @@ async def migrate_documents_only(request: MigrationRequest):
         )
     except Exception as e:
         logger.error(f"Error in documents migration: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/migrate-meta-summaries", response_model=MigrationResponse)
@@ -116,4 +114,21 @@ async def migrate_meta_summaries_only(request: MigrationRequest):
         )
     except Exception as e:
         logger.error(f"Error in meta summaries migration: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.post("/migrate-users-to-tier-system", response_model=MigrationResponse)
+async def migrate_users_to_tier_system_only(request: MigrationRequest):
+    """Migrate existing users to include tier and monthly_usage fields."""
+    try:
+        result = await migration_service.migrate_users_to_tier_system(dry_run=request.dry_run)
+
+        action = "dry run" if request.dry_run else "actual"
+        return MigrationResponse(
+            success=True,
+            message=f"User tier system {action} migration completed successfully",
+            data=result,
+        )
+    except Exception as e:
+        logger.error(f"Error in user tier migration: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e

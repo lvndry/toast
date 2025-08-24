@@ -17,7 +17,6 @@ dependencies = [
     "loguru>=0.7.3",
     "markdown>=3.8",
     "markdownify>=1.1.0",
-    "mistralai>=1.8.1",
     "motor[zstd]>=3.7.0",
     "mypy>=1.15.0",
     "nanoid>=2.0.0",
@@ -47,3 +46,26 @@ dev = [
     "pytest-asyncio>=1.1.0",
     "ruff>=0.12.10",
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.params.Depends", "fastapi.Query", "fastapi.params.Query"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["E712"]  # Allow explicit boolean comparisons in tests for clarity
