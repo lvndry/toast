@@ -1,10 +1,10 @@
 """Dashboard database utilities using isolated database connections."""
 
 import certifi
-from core.config import settings
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from src.company import Company
+from src.core.config import settings
 from src.core.logging import get_logger
 from src.document import Document
 
