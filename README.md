@@ -78,6 +78,7 @@ toast/
 
 - **OpenAI GPT-4**: Complex legal reasoning
 - **Anthropic Claude**: Nuanced risk assessment
+- **Voyage Law**: Law focused embedding model
 - **LangChain**: LLM orchestration
 - **Pinecone**: Vector database for embeddings
 
@@ -97,15 +98,37 @@ toast/
 - **MongoDB** (local or cloud)
 - **OpenAI API key** and **Anthropic API key**
 
-### 1. Clone & Setup
+### 1 Development Setup
+
+We provide a comprehensive Makefile for easy development setup and workflow:
 
 ```bash
 git clone https://github.com/your-org/toast.git
-cd toast
 
-# Set up development environment
-./dev.sh
+# Complete project setup (recommended for new developers)
+make setup
+
+# Start development servers
+make dev
+
+# Or run individual components
+make run-backend    # Backend only
+make run-frontend   # Frontend only
 ```
+
+**Available Make Commands:**
+
+```bash
+make help           # Show all available commands
+make setup          # Complete project setup
+make dev            # Start development environment
+make test           # Run tests
+make lint           # Run linting
+make format         # Format code
+make clean          # Clean up temporary files
+```
+
+For a complete list of commands, run `make help`.
 
 ### 2. Environment Configuration
 

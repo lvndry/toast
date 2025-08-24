@@ -6,6 +6,7 @@ from typing import ClassVar
 from core.logging import get_logger
 from src.company import Company
 from src.document import Document, DocumentAnalysis
+from src.exceptions import CompanyNotFoundError
 from src.services.base_service import BaseService
 from src.services.document_service import document_service
 
@@ -26,14 +27,14 @@ class CompanyService(BaseService):
         """Get a company by its ID."""
         company = await self.db.companies.find_one({"id": company_id})
         if not company:
-            raise ValueError(f"Company with id {company_id} not found")
+            raise CompanyNotFoundError(company_id=company_id)
         return Company(**company)
 
     async def get_company_by_slug(self, slug: str) -> Company:
         """Get a company by its slug."""
         company = await self.db.companies.find_one({"slug": slug})
         if not company:
-            raise ValueError(f"Company with slug {slug} not found")
+            raise CompanyNotFoundError(slug=slug)
         return Company(**company)
 
     async def get_all_companies(self) -> list[Company]:

@@ -67,14 +67,10 @@ class CorsConfig:
         # In production, we should not allow "*" for security
         env: str = os.getenv("ENVIRONMENT", "development")
         if env.lower() == "production" and cors_origins_env == "*":
-            logger.warning(
-                "CORS_ORIGINS is set to '*' in production - this is a security risk!"
-            )
+            logger.warning("CORS_ORIGINS is set to '*' in production - this is a security risk!")
             self.origins = ["*"]
         else:
-            self.origins = (
-                cors_origins_env.split(",") if cors_origins_env != "*" else ["*"]
-            )
+            self.origins = cors_origins_env.split(",") if cors_origins_env != "*" else ["*"]
 
         self.methods: list[str] = ["*"]
         self.headers: list[str] = ["*"]
@@ -97,6 +93,22 @@ class ApiConfig:
 
     def __init__(self) -> None:
         self.v1_prefix: str = ""
+
+
+class EmbeddingConfig:
+    """Embedding configuration"""
+
+    def __init__(self) -> None:
+        # Maximum text size for embedding (4MB limit with buffer)
+        self.max_text_size_bytes: int = int(os.getenv("EMBEDDING_MAX_TEXT_SIZE_BYTES", "3500000"))
+        # Batch size for processing chunks
+        self.batch_size: int = int(os.getenv("EMBEDDING_BATCH_SIZE", "50"))
+        # Pinecone upsert batch size
+        self.upsert_batch_size: int = int(os.getenv("EMBEDDING_UPSERT_BATCH_SIZE", "100"))
+        # Chunk size for text splitting
+        self.chunk_size: int = int(os.getenv("EMBEDDING_CHUNK_SIZE", "1200"))
+        # Chunk overlap for text splitting
+        self.chunk_overlap: int = int(os.getenv("EMBEDDING_CHUNK_OVERLAP", "200"))
 
 
 class TrackingConfig:
@@ -127,6 +139,7 @@ class Settings:
         self.security = SecurityConfig()
         self.cors = CorsConfig()
         self.api = ApiConfig()
+        self.embedding = EmbeddingConfig()
         self.tracking = TrackingConfig()
 
         logger.info(f"Tracking enabled: {self.tracking.tracking_enabled}")

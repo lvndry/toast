@@ -44,6 +44,13 @@ class DocumentService(BaseService):
         documents = await self.db.documents.find({"company_id": company_id}).to_list(length=None)
         return [Document(**document) for document in documents]
 
+    async def get_company_documents_by_slug(self, company_slug: str) -> list[Document]:
+        """Get all documents for a specific company."""
+        documents = await self.db.documents.find({"company_slug": company_slug}).to_list(
+            length=None
+        )
+        return [Document(**document) for document in documents]
+
     async def store_document(self, document: Document) -> Document:
         """Store a document in the database."""
         try:

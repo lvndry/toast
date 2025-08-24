@@ -1,7 +1,11 @@
 import asyncio
 from collections.abc import Iterable
 
+from core.logging import get_logger
 from src.embedding import embed_company_documents
+from src.services.company_service import company_service
+
+logger = get_logger(__name__)
 
 
 class EmbeddingService:
@@ -21,10 +25,11 @@ class EmbeddingService:
             True if successful, False if failed
         """
         try:
-            await embed_company_documents(company_slug)
+            company = await company_service.get_company_by_slug(company_slug)
+            await embed_company_documents(company.id, company_slug)
             return True
         except Exception as e:
-            print(f"Error embedding {company_slug}: {str(e)}")
+            logger.error(f"Error embedding {company_slug}: {str(e)}", exc_info=True)
             return False
 
     async def embed_multiple_companies(
