@@ -35,12 +35,15 @@ async def embed_query(query: str) -> list[float]:
         raise
 
 
-async def search_query(query: str, company_slug: str, top_k: int = 12):
+async def search_query(
+    query: str, company_slug: str, top_k: int = 12, *, namespace: str | None = None
+):
     # Convert text query to vector embedding
     query_vector = await embed_query(query)
     index = pc.Index(INDEX_NAME)
+    ns = namespace or company_slug
     search_results = index.query(
-        namespace=company_slug,
+        namespace=ns,
         top_k=top_k,
         vector=query_vector,
         include_metadata=True,
@@ -91,7 +94,9 @@ Important Behavioral Guidelines:
 """
 
 
-async def get_answer(question: str, company_slug: str) -> str:
+async def get_answer(
+    question: str, company_slug: str, *, namespace: str | None = None
+) -> str:
     """
     Get an answer to a question using RAG with LiteLLM and Pinecone.
 
@@ -103,7 +108,7 @@ async def get_answer(question: str, company_slug: str) -> str:
         str: The answer to the question
     """
     # Search for relevant documents in Pinecone
-    search_results = await search_query(question, company_slug)
+    search_results = await search_query(question, company_slug, namespace=namespace)
     logger.debug(f"Search results: {search_results}")
 
     if len(search_results["matches"]) == 0:
@@ -111,11 +116,22 @@ async def get_answer(question: str, company_slug: str) -> str:
 
     # Extract the relevant chunks from the search results with metadata
     formatted_chunks = []
+    citations = []
     for match in search_results["matches"]:
         chunk = f"""Document type: {match["metadata"]["document_type"]}
 Document URL: {match["metadata"]["url"]}
 {match["metadata"]["chunk_text"]}"""
         formatted_chunks.append(chunk)
+        citations.append(
+            {
+                "url": match["metadata"].get("url"),
+                "title": match["metadata"].get("title"),
+                "document_type": match["metadata"].get("document_type"),
+                "chunk_index": match["metadata"].get("chunk_index"),
+                "start": match["metadata"].get("chunk_start"),
+                "end": match["metadata"].get("chunk_end"),
+            }
+        )
 
     context = "\n\n---\n\n".join(formatted_chunks)
     logger.info(f"Context: {context}")
@@ -134,8 +150,19 @@ Document URL: {match["metadata"]["url"]}
             messages=messages,
             temperature=0.3,
         )
-
-        return response.choices[0].message.content
+        answer_text = response.choices[0].message.content
+        # Append lightweight citation block for UI until structured response is added end-to-end
+        try:
+            if citations:
+                citation_lines = []
+                for c in citations[:5]:
+                    citation_lines.append(
+                        f"- {c.get('document_type')}: {c.get('title') or ''} ({c.get('url')})"
+                    )
+                answer_text += "\n\nSources:\n" + "\n".join(citation_lines)
+        except Exception:
+            pass
+        return answer_text
     except Exception as e:
         logger.error(f"Error getting completion from LiteLLM: {str(e)}")
         return "I apologize, but I encountered an error while trying to generate an answer."

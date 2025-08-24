@@ -4,6 +4,7 @@ from core.middleware import AuthMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.routes import company, conversation, crawler, list, migration, q
+from src.routes import user as user_routes
 
 setup_logging()
 
@@ -32,6 +33,7 @@ routes = [
     conversation.router,
     list.router,
     migration.router,
+    user_routes.router,
 ]
 
 for route in routes:

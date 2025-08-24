@@ -10,6 +10,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from src.company import Company
 from src.conversation import Conversation, Message
 from src.document import Document, DocumentAnalysis
+from src.user import User
 
 load_dotenv()
 
@@ -115,6 +116,28 @@ async def update_document(document: Document):
         {"id": document.id},
         {"$set": document.model_dump(mode="json")},
     )
+
+
+###########
+
+
+####### Users #######
+async def upsert_user(user: User) -> User:
+    existing = await mongo.db.users.find_one({"id": user.id})
+    now = datetime.now()
+    doc = user.model_dump(mode="json")
+    doc["updated_at"] = now
+    if existing:
+        await mongo.db.users.update_one({"id": user.id}, {"$set": doc})
+    else:
+        doc["created_at"] = now
+        await mongo.db.users.insert_one(doc)
+    return user
+
+
+async def get_user_by_id(user_id: str) -> User | None:
+    doc = await mongo.db.users.find_one({"id": user_id})
+    return User(**doc) if doc else None
 
 
 ###########

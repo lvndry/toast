@@ -140,7 +140,20 @@ Document content:
             temperature=0.5,
         )
         summary_data = response.choices[0].message.content
-        return DocumentAnalysis.model_validate_json(summary_data, strict=False)
+        # Ensure required keys exist; add defaults when missing
+        try:
+            parsed = DocumentAnalysis.model_validate_json(summary_data, strict=False)
+        except Exception:
+            # Fallback: wrap minimal structure if malformed
+            parsed = DocumentAnalysis(
+                summary="",
+                scores={
+                    "transparency": {"score": 0, "justification": ""},
+                    "data_usage": {"score": 0, "justification": ""},
+                },
+                keypoints=[],
+            )
+        return parsed
     except Exception as e:
         logger.error(f"Error summarizing document: {str(e)}")
         return None

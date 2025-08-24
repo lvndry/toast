@@ -1,5 +1,5 @@
-import { SignUp } from "@clerk/nextjs"
-import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react"
+import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react";
+import { SignUp } from "@clerk/nextjs";
 
 export default function SignUpPage() {
   return (
@@ -21,9 +21,11 @@ export default function SignUpPage() {
                 headerSubtitle: "hidden",
               }
             }}
+            signInUrl="/sign-in"
+            afterSignUpUrl="/onboarding"
           />
         </Box>
       </VStack>
     </Container>
-  )
+  );
 }

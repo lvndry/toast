@@ -12,6 +12,7 @@ from src.db import (
     update_conversation,
 )
 from src.document_processor import DocumentProcessor
+from src.embedding import embed_document
 from src.rag import get_answer
 
 router = APIRouter(prefix="/conversations")
@@ -85,7 +86,10 @@ async def send_message(request: SendMessageRequest):
 
         # Generate AI response using RAG
         # For now, we'll use a simple response. In the future, this should use the documents in the conversation
-        ai_response = await get_answer(request.message, conversation.company_name)
+        # Use conversation namespace for uploaded docs
+        ai_response = await get_answer(
+            request.message, conversation.company_name, namespace=conversation.id
+        )
 
         # Add AI message
         ai_message = Message(role="assistant", content=ai_response)
@@ -136,8 +140,12 @@ async def upload_document(
                     detail=f"Document processing failed: {result.error_message}",
                 )
 
-        # Add document to conversation
+        # Add document to conversation and embed into conversation namespace
         await add_document_to_conversation(conversation_id, result.document.id)
+        try:
+            await embed_document(result.document, namespace=conversation.id)
+        except Exception as e:
+            logger.warning(f"Embedding uploaded document failed: {e}")
 
         # Update conversation with company info if provided
         if company_name or company_description:

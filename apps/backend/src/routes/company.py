@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from core.jwt import get_optional_user
+from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 
 from src.db import (
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/companies")
 
 
 @router.get("")
-async def get_companies(has_documents: bool = True):
+async def get_companies(has_documents: bool = True, user=Depends(get_optional_user)):
     """
     Get all companies.
 
@@ -29,6 +30,8 @@ async def get_companies(has_documents: bool = True):
             if await get_company_documents(company.slug)
         ]
 
+    if user is None:
+        companies = companies[:100]
     return companies
 
 
@@ -43,7 +46,7 @@ async def get_company(slug: str):
 
 
 @router.get("/meta-summary/{company_slug}")
-async def get_company_meta_summary(company_slug: str):
+async def get_company_meta_summary(company_slug: str, user=Depends(get_optional_user)):
     """Get a meta-summary of all documents for a company."""
     # First verify the company exists
     try:
