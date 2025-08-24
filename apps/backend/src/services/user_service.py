@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from src.core.logging import get_logger
 from src.services.base_service import BaseService
@@ -13,13 +14,6 @@ logger = get_logger(__name__)
 
 class UserService(BaseService):
     """Service for user-related database operations."""
-
-    _instance: UserService | None = None
-
-    def __new__(cls) -> UserService:
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
 
     async def upsert_user(self, user: User) -> User:
         """Create or update a user in the database."""
@@ -102,7 +96,7 @@ class UserService(BaseService):
             logger.error(f"Error getting all users: {e}")
             raise e
 
-    async def update_user_profile(self, user_id: str, profile_data: dict) -> bool:
+    async def update_user_profile(self, user_id: str, profile_data: dict[str, Any]) -> bool:
         """Update a user's profile information."""
         try:
             now = datetime.now()

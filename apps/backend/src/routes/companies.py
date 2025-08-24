@@ -5,6 +5,7 @@ from src.core.jwt import get_optional_user
 from src.core.logging import get_logger
 from src.document import Document, DocumentAnalysis
 from src.models.clerkUser import ClerkUser
+from src.services import document_service
 from src.services.company_service import company_service
 from src.summarizer import MetaSummary, generate_company_meta_summary
 
@@ -65,9 +66,7 @@ async def update_logo(company_id: str, logo_url: str) -> Company:
 
 
 @router.get("/{company_slug}/meta-summary")
-async def get_meta_summary(
-    company_slug: str, user: ClerkUser | None = Depends(get_optional_user)
-) -> DocumentAnalysis:
+async def get_meta_summary(company_slug: str) -> DocumentAnalysis:
     """Get or generate a meta summary for a company."""
     try:
         # 1) Try cache first
@@ -110,19 +109,17 @@ async def get_meta_summary(
             company_slug, DocumentAnalysis(**analysis_like)
         )
 
-        return analysis_like
+        return DocumentAnalysis(**analysis_like)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.get("/{company_id}/sources")
-async def get_sources_for_company(
-    company_id: str, user: ClerkUser | None = Depends(get_optional_user)
-) -> list[Document]:
+async def get_sources_for_company(company_id: str) -> list[Document]:
     """Get sources for a company."""
     try:
         company = await company_service.get_company_by_id(company_id)
-        sources: list[Document] = await company_service.get_company_documents(company.slug)
+        sources: list[Document] = await document_service.get_company_documents_by_slug(company.slug)
         return sources
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e

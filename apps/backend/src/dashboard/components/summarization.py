@@ -174,8 +174,8 @@ def show_summarization() -> None:
     analyzed_count = 0
 
     for doc in documents:
-        doc_type = doc.doc_type
-        doc_type_counts[doc_type] = doc_type_counts.get(doc_type, 0) + 1
+        doc_type = str(doc.doc_type)
+        doc_type_counts[str(doc_type)] = doc_type_counts.get(str(doc_type), 0) + 1
         if hasattr(doc, "analysis") and doc.analysis:
             analyzed_count += 1
 

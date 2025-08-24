@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from src.core.logging import get_logger
 from src.rag import get_answer
 from src.services.base_service import BaseService
@@ -11,13 +13,6 @@ logger = get_logger(__name__)
 
 class RAGService(BaseService):
     """Service for RAG-related operations."""
-
-    _instance: RAGService | None = None
-
-    def __new__(cls) -> RAGService:
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
 
     async def get_answer(
         self, question: str, company_name: str, namespace: str | None = None
@@ -31,7 +26,7 @@ class RAGService(BaseService):
             logger.error(f"Error getting RAG answer for company {company_name}: {e}")
             raise e
 
-    async def get_company_context(self, company_name: str) -> dict:
+    async def get_company_context(self, company_name: str) -> dict[str, Any]:
         """Get context information for a company."""
         try:
             # This could be expanded to include more context gathering

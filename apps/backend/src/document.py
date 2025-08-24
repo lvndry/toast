@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 import shortuuid
 from pydantic import BaseModel, Field
@@ -63,8 +63,8 @@ class Document(BaseModel):
     doc_type: DocType
     markdown: str
     text: str
-    metadata: dict
-    versions: list[dict] = []
+    metadata: dict[str, Any]
+    versions: list[dict[str, Any]] = []
     analysis: DocumentAnalysis | None = None
     locale: str | None = None
     regions: list[Region] = []

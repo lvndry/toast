@@ -11,7 +11,7 @@ import time
 import tracemalloc
 from typing import Any
 
-from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
+from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CrawlResult
 from crawl4ai.async_configs import BrowserConfig
 from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy
 from crawl4ai.deep_crawling import (
@@ -253,7 +253,7 @@ class LegalDocumentCrawler:
             url = url.split(char)[0]
         return url
 
-    async def crawl(self, urls: list[str]) -> list:
+    async def crawl(self, urls: list[str]) -> list[CrawlResult]:
         """
         Crawl the given URLs for legal documents.
 
@@ -733,15 +733,13 @@ async def store_documents(documents: list[Document]) -> None:
                 # Update existing document if content is different
                 logger.info(f"Updating document with URL: {document.url}")
                 document.id = existing_doc.id  # Preserve the original ID
-                await document_service.update_document(
-                    {"url": document.url}, {"$set": document.model_dump()}
-                )
+                await document_service.update_document(document)
             else:
                 logger.info(f"Skipping document with URL: {document.url} (no changes)")
         else:
             # Create new document if URL doesn't exist
             logger.info(f"Creating new document with URL: {document.url}")
-            await document_service.create_document(document)
+            await document_service.store_document(document)
 
 
 async def process_company(company: Company) -> list[Document]:

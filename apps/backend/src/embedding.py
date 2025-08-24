@@ -1,3 +1,5 @@
+from typing import Any
+
 import shortuuid
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -109,7 +111,7 @@ async def embed_company_documents(company_id: str, namespace: str | None = None,
         chunk_overlap=settings.embedding.chunk_overlap,
         separators=["\n\n", "\n", ".", ";", " ", ""],
     )
-    all_vectors: list[dict] = []
+    all_vectors: list[dict[str, Any]] = []
 
     for doc in documents:
         # Log document size information
@@ -192,7 +194,7 @@ async def embed_company_documents(company_id: str, namespace: str | None = None,
         logger.warning("No vectors were created to upsert to Pinecone namespace '%s'", namespace)
 
 
-async def embed_document(document: Document, namespace: str, /) -> None:
+async def embed_document(document: Document, namespace: str) -> None:
     """Embed a single document into the specified namespace."""
     index = pc.Index(INDEX_NAME)
     splitter = RecursiveCharacterTextSplitter(
@@ -210,7 +212,7 @@ async def embed_document(document: Document, namespace: str, /) -> None:
     chunks = splitter.split_text(truncated_text)
     offsets = _compute_chunk_offsets(truncated_text, chunks)
 
-    all_vectors: list[dict] = []
+    all_vectors: list[dict[str, Any]] = []
 
     # Process chunks in batches
     batch_size = settings.embedding.batch_size

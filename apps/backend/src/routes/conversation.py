@@ -98,7 +98,7 @@ async def get_user_conversations_route(
 
 
 @router.post("/{conversation_id}/messages")
-async def send_message(request: SendMessageRequest) -> dict:
+async def send_message(request: SendMessageRequest) -> dict[str, str]:
     """Send a message in a conversation."""
     try:
         try:
@@ -116,7 +116,9 @@ async def send_message(request: SendMessageRequest) -> dict:
 
 
 @router.patch("/{conversation_id}")
-async def patch_conversation(conversation_id: str, request: PatchConversationRequest) -> dict:
+async def patch_conversation(
+    conversation_id: str, request: PatchConversationRequest
+) -> dict[str, bool]:
     """Patch conversation metadata fields."""
     try:
         success = await conversation_service.patch_conversation(
@@ -138,7 +140,7 @@ async def upload_document(
     file: UploadFile = File(...),
     company_name: str = Form(...),
     company_description: str = Form(None),
-) -> dict:
+) -> dict[str, Any]:
     """Upload a document to a conversation."""
     try:
         # Read the uploaded file
@@ -185,7 +187,7 @@ async def upload_document(
 
 
 @router.delete("/{conversation_id}")
-async def delete_conversation(conversation_id: str) -> dict:
+async def delete_conversation(conversation_id: str) -> dict[str, bool]:
     """Delete a conversation."""
     try:
         success = await conversation_service.delete_conversation(conversation_id)

@@ -63,8 +63,8 @@ async def get_usage(current: ClerkUser = Depends(get_current_user)) -> dict[str,
     if not current.user_id:
         raise HTTPException(status_code=401, detail="Invalid user")
 
-    usage_summary = await UsageService.get_usage_summary(current.user_id)
-    return usage_summary  # type: ignore
+    usage_summary: dict[str, Any] = await UsageService.get_usage_summary(current.user_id)
+    return usage_summary
 
 
 @router.get("/tier-limits")

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from litellm import acompletion
 
@@ -25,7 +26,9 @@ class ConversationService(BaseService):
     def __new__(cls) -> ConversationService:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-        return cls._instance
+        instance = cls._instance
+        assert instance is not None
+        return instance
 
     async def create_conversation(
         self,
@@ -95,7 +98,7 @@ class ConversationService(BaseService):
             logger.error(f"Error updating conversation {conversation.id}: {e}")
             raise e
 
-    async def patch_conversation(self, conversation_id: str, data: dict) -> bool:
+    async def patch_conversation(self, conversation_id: str, data: dict[str, Any]) -> bool:
         """Patch conversation fields in the database."""
         try:
             allowed_fields = {
@@ -204,7 +207,7 @@ class ConversationService(BaseService):
             logger.error(f"Error getting all conversations: {e}")
             raise e
 
-    async def send_message(self, conversation_id: str, message_text: str) -> dict:
+    async def send_message(self, conversation_id: str, message_text: str) -> dict[str, str]:
         """Send a message in a conversation and get AI response."""
         conversation = await self.get_conversation_by_id(conversation_id)
         if not conversation:

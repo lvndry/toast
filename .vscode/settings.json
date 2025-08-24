@@ -6,9 +6,7 @@
     "typescript",
     "typescriptreact"
   ],
-  "eslint.workingDirectories": [
-    "apps/frontend"
-  ],
+  "eslint.workingDirectories": ["apps/frontend"],
   "eslint.format.enable": true,
   "eslint.lintTask.enable": true,
   "eslint.run": "onType",
@@ -29,5 +27,13 @@
   "typescript.preferences.includePackageJsonAutoImports": "on",
   "typescript.suggest.autoImports": true,
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.fixAll": "explicit"
+    }
+  }
 }

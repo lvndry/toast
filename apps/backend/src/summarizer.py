@@ -172,7 +172,7 @@ async def generate_company_meta_summary(company_slug: str) -> MetaSummary:
     Returns:
         MetaSummary: The generated meta-summary
     """
-    documents = await document_service.get_company_documents(company_slug)
+    documents = await document_service.get_company_documents_by_slug(company_slug)
     logger.info(f"Generating meta-summary for {company_slug} with {len(documents)} documents")
 
     summaries = []
@@ -188,10 +188,10 @@ async def generate_company_meta_summary(company_slug: str) -> MetaSummary:
 Summary: {summary}
 
 """
-
-            analysis_text += "\nKey Points:\n"
-            for point in keypoints:
-                analysis_text += f"  • {point}\n"
+            if keypoints:
+                analysis_text += "\nKey Points:\n"
+                for point in keypoints:
+                    analysis_text += f"  • {point}\n"
 
             summaries.append(analysis_text)
         else:

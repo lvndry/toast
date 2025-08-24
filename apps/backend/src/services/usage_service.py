@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from src.constants import TIER_LIMITS
 from src.core.logging import get_logger
@@ -66,7 +67,7 @@ class UsageService:
             return True  # Allow request on error to avoid blocking users
 
     @staticmethod
-    async def check_usage_limit(user_id: str) -> tuple[bool, dict]:
+    async def check_usage_limit(user_id: str) -> tuple[bool, dict[str, Any]]:
         """
         Check if user has exceeded their usage limit.
         Returns (allowed, usage_info)
@@ -96,7 +97,7 @@ class UsageService:
             return True, {"limit": 0, "used": 0, "remaining": 0, "tier": "unknown"}
 
     @staticmethod
-    async def get_usage_summary(user_id: str) -> dict:
+    async def get_usage_summary(user_id: str) -> dict[str, Any]:
         """Get detailed usage summary for a user"""
         try:
             user = await user_service.get_user_by_id(user_id)

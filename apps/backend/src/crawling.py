@@ -59,7 +59,7 @@ from pydantic import BaseModel
 from src.company import Company
 from src.core.logging import get_logger
 from src.document import Document, Region
-from src.models import SupportedModel, get_model
+from src.llm import SupportedModel, get_model
 from src.services.company_service import company_service
 from src.services.document_service import document_service
 from src.toast_crawler import CrawlResult, ToastCrawler
@@ -112,7 +112,7 @@ class DocumentAnalyzer:
 
     def __init__(
         self,
-        model: SupportedModel = "mistral-small",
+        model_name: SupportedModel = "mistral-small",
         temperature: float = 0.1,
         max_content_length: int = 5000,
     ):
@@ -125,7 +125,7 @@ class DocumentAnalyzer:
             max_content_length: Maximum content length to send to LLM
             api_key: API key for LLM service (loaded from env if not provided)
         """
-        model = get_model(model)
+        model = get_model(model_name)
 
         self.model = model.model
         self.api_key = model.api_key

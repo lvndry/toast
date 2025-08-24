@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Self, cast
+
 import certifi
 from dotenv import load_dotenv
 from motor.core import AgnosticDatabase
@@ -22,15 +24,16 @@ MONGO_URI = settings.database.mongodb_uri
 class BaseService:
     """Base service class that provides database connection and common functionality."""
 
-    _instance: BaseService | None = None
+    _instance: Self | None = None
     _client: AsyncIOMotorClient | None = None
     _db: AgnosticDatabase | None = None
 
-    def __new__(cls) -> BaseService:
+    def __new__(cls) -> Self:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialize_database()
-        return cls._instance
+        assert cls._instance is not None
+        return cast(Self, cls._instance)
 
     def _initialize_database(self) -> None:
         """Initialize the database connection."""

@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -16,7 +18,7 @@ class MigrationRequest(BaseModel):
 class MigrationResponse(BaseModel):
     success: bool
     message: str
-    data: dict | None = None
+    data: dict[str, Any] | None = None
     error: str | None = None
 
 
