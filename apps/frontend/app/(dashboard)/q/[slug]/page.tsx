@@ -7,19 +7,19 @@ import {
   GridItem,
   Heading,
   HStack,
-  Input,
   Spinner,
   Text,
   useColorModeValue,
   useDisclosure,
-  useToast,
   VStack
 } from "@chakra-ui/react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 import { FiArrowLeft, FiSend, FiUpload, FiX } from "react-icons/fi";
-import ReactMarkdown from "react-markdown";
+import ChatInput from "../../../../components/chat/chat-input";
+import MessageList from "../../../../components/chat/message-list";
+import MarkdownRenderer from "../../../../components/markdown/markdown-renderer";
 
 import { useAnalytics } from "../../../../hooks/useAnalytics";
 
@@ -62,7 +62,6 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
   const { slug } = use(params);
   const { user } = useUser();
   const router = useRouter();
-  const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { trackUserJourney, trackPageView } = useAnalytics();
 
@@ -500,7 +499,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
                   <Heading size="md" mb={4}>Summary</Heading>
                   <Box bg={cardBg} p={6} borderRadius="lg" shadow="sm">
                     <Box color="gray.700">
-                      <ReactMarkdown>{metaSummary.summary}</ReactMarkdown>
+                      <MarkdownRenderer>{metaSummary.summary}</MarkdownRenderer>
                     </Box>
                   </Box>
                 </Box>
@@ -526,40 +525,12 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
               </Box>
             )}
 
-            {messages.map((message) => (
-              <Box
-                key={message.id}
-                mb={4}
-                display="flex"
-                justifyContent={message.role === "user" ? "flex-end" : "flex-start"}
-              >
-                <Box
-                  maxW="70%"
-                  bg={message.role === "user" ? "blue.500" : cardBg}
-                  color={message.role === "user" ? "white" : "gray.800"}
-                  p={4}
-                  borderRadius="lg"
-                  shadow="sm"
-                >
-                  <Text fontSize="sm">{message.content}</Text>
-                </Box>
-              </Box>
-            ))}
-
-            {loading && (
-              <Box display="flex" justifyContent="flex-start" mb={4}>
-                <Box bg={cardBg} p={4} borderRadius="lg" shadow="sm">
-                  <HStack spacing={3}>
-                    <HStack gap={1}>
-                      <Box w="2" h="2" bg="blue.500" borderRadius="full" animation="bounce 1s infinite" />
-                      <Box w="2" h="2" bg="blue.500" borderRadius="full" animation="bounce 1s infinite" style={{ animationDelay: '0.1s' }} />
-                      <Box w="2" h="2" bg="blue.500" borderRadius="full" animation="bounce 1s infinite" style={{ animationDelay: '0.2s' }} />
-                    </HStack>
-                    <Text fontSize="sm" fontWeight="medium">Thinking...</Text>
-                  </HStack>
-                </Box>
-              </Box>
-            )}
+            <MessageList
+              messages={messages}
+              isLoading={loading}
+              assistantBubbleBg={cardBg}
+              userBubbleBg="blue.500"
+            />
           </Box>
         </Box>
       </Box>
@@ -567,24 +538,13 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
       {/* Chat Input */}
       <Box bg={cardBg} borderTop="1px" borderColor="gray.200" p={4} flexShrink={0}>
         <Box maxW="4xl" mx="auto">
-          <HStack spacing={3}>
-            <Input
-              placeholder="Ask about privacy practices, data collection, user rights..."
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={loading}
-              size="lg"
-            />
-            <Button
-              colorScheme="blue"
-              onClick={handleSendMessage}
-              disabled={loading || !inputValue.trim()}
-              size="lg"
-            >
-              <FiSend />
-            </Button>
-          </HStack>
+          <ChatInput
+            value={inputValue}
+            onChange={setInputValue}
+            onSend={handleSendMessage}
+            disabled={loading}
+            placeholder="Ask about privacy practices, data collection, user rights..."
+          />
         </Box>
       </Box>
 
