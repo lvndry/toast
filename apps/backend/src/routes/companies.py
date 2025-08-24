@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from core.jwt import get_optional_user
 from core.logging import get_logger
 from src.services.company_service import company_service
-from src.summarizer import generate_company_meta_summary
+from src.summarizer import MetaSummary, generate_company_meta_summary
 
 logger = get_logger(__name__)
 
@@ -61,9 +61,49 @@ async def update_logo(company_id: str, logo_url: str):
 async def get_meta_summary(company_slug: str, user=Depends(get_optional_user)):
     """Get or generate a meta summary for a company."""
     try:
+        # 1) Try cache first
+        cached = await company_service.get_company_meta_summary(company_slug)
+        if cached:
+            return cached
+
+        # 2) Generate fresh summary
         company = await company_service.get_company_by_slug(company_slug)
-        meta_summary = await generate_company_meta_summary(company.slug)
-        return meta_summary
+        generated: MetaSummary | None = await generate_company_meta_summary(company.slug)
+        if not generated:
+            raise HTTPException(status_code=500, detail="Failed to generate meta summary")
+
+        # 3) Convert to DocumentAnalysis shape for storage and clients expecting that schema
+        analysis_like = {
+            "summary": generated.summary,
+            "scores": {
+                "transparency": {
+                    "score": generated.scores.transparency.score,
+                    "justification": generated.scores.transparency.justification,
+                },
+                "data_usage": {
+                    "score": generated.scores.data_usage.score,
+                    "justification": generated.scores.data_usage.justification,
+                },
+                "control_and_rights": {
+                    "score": generated.scores.control_and_rights.score,
+                    "justification": generated.scores.control_and_rights.justification,
+                },
+                "third_party_sharing": {
+                    "score": generated.scores.third_party_sharing.score,
+                    "justification": generated.scores.third_party_sharing.justification,
+                },
+            },
+            "keypoints": generated.keypoints or [],
+        }
+
+        # 4) Store in DB for future requests
+        from src.document import DocumentAnalysis
+
+        await company_service.store_company_meta_summary(
+            company_slug, DocumentAnalysis(**analysis_like)
+        )
+
+        return analysis_like
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 

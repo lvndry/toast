@@ -3,10 +3,13 @@
 from datetime import datetime
 from typing import ClassVar
 
+from litellm import acompletion
+
 from core.logging import get_logger
 from src.conversation import Conversation, Message
 from src.document_processor import DocumentProcessor
 from src.embedding import embed_document
+from src.models import get_model
 from src.rag import get_answer
 from src.services.base_service import BaseService
 
@@ -24,13 +27,22 @@ class ConversationService(BaseService):
         return cls._instance
 
     async def create_conversation(
-        self, user_id: str, company_name: str, company_description: str | None = None
+        self,
+        user_id: str,
+        company_name: str,
+        company_slug: str,
+        company_description: str | None = None,
+        title: str | None = None,
+        mode: str = "qa",
     ) -> Conversation:
         """Create a new conversation."""
         conversation = Conversation(
             user_id=user_id,
             company_name=company_name,
+            company_slug=company_slug,
             company_description=company_description,
+            title=title,
+            mode=mode,  # type: ignore[arg-type]
         )
         return await self._create_conversation(conversation)
 
@@ -82,6 +94,36 @@ class ConversationService(BaseService):
             logger.error(f"Error updating conversation {conversation.id}: {e}")
             raise e
 
+    async def patch_conversation(self, conversation_id: str, data: dict) -> bool:
+        """Patch conversation fields in the database."""
+        try:
+            allowed_fields = {
+                "title",
+                "mode",
+                "archived",
+                "pinned",
+                "tags",
+                "company_name",
+                "company_description",
+            }
+            update_data = {k: v for k, v in data.items() if k in allowed_fields}
+            if not update_data:
+                return True
+            update_data["updated_at"] = datetime.now()
+            result = await self.db.conversations.update_one(
+                {"id": conversation_id},
+                {"$set": update_data},
+            )
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Patched conversation {conversation_id}")
+            else:
+                logger.warning(f"No conversation found with id {conversation_id} to patch")
+            return success
+        except Exception as e:
+            logger.error(f"Error patching conversation {conversation_id}: {e}")
+            raise e
+
     async def delete_conversation(self, conversation_id: str) -> bool:
         """Delete a conversation from the database."""
         try:
@@ -103,7 +145,8 @@ class ConversationService(BaseService):
                 {"id": conversation_id},
                 {
                     "$push": {"messages": message.model_dump(mode="json")},
-                    "$set": {"updated_at": datetime.now()},
+                    "$set": {"updated_at": datetime.now(), "last_message_at": datetime.now()},
+                    "$inc": {"message_count": 1},
                 },
             )
             success = result.modified_count > 0
@@ -166,16 +209,68 @@ class ConversationService(BaseService):
         if not conversation:
             raise ValueError("Conversation not found")
 
+        was_first_message = conversation.message_count == 0
+
         user_message = Message(role="user", content=message_text)
         await self.add_message_to_conversation(conversation_id, user_message)
 
-        ai_response = await get_answer(
-            message_text, conversation.company_name, namespace=conversation.id
-        )
+        ai_response = await get_answer(message_text, conversation.company_slug)
         ai_message = Message(role="assistant", content=ai_response)
         await self.add_message_to_conversation(conversation_id, ai_message)
 
+        # Auto-generate a conversation title after first exchange if needed
+        try:
+            if was_first_message and (
+                not conversation.title or conversation.title.lower() == "new conversation"
+            ):
+                new_title = await self._generate_conversation_title(
+                    company_name=conversation.company_name,
+                    user_prompt=message_text,
+                    ai_answer=ai_response,
+                )
+                if new_title:
+                    await self.patch_conversation(conversation_id, {"title": new_title})
+        except Exception as e:
+            logger.warning(f"Title generation failed for conversation {conversation_id}: {e}")
+
         return {"user_message": user_message, "ai_message": ai_message}
+
+    async def _generate_conversation_title(
+        self, company_name: str, user_prompt: str, ai_answer: str
+    ) -> str:
+        """Generate a short, descriptive conversation title using a lightweight model."""
+        system_prompt = (
+            "You create concise, descriptive conversation titles (4-7 words). "
+            "Avoid quotes, punctuation at the end, and company names unless essential."
+        )
+        user_content = (
+            f"Company: {company_name}\n"
+            f"User question: {user_prompt}\n"
+            f"Assistant answer (truncated): {ai_answer[:500]}\n\n"
+            "Title:"
+        )
+
+        model = get_model("mistral-small")
+        try:
+            resp = await acompletion(
+                model=model.model,
+                api_key=model.api_key,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                ],
+                temperature=0.2,
+            )
+            title = resp.choices[0].message.content.strip()
+            # Post-process length and cleanliness
+            if len(title) > 60:
+                title = title[:60].rstrip()
+            return title or "New Conversation"
+        except Exception as e:
+            logger.warning(f"LLM title generation error: {e}")
+            # Fallback: derive from user prompt
+            fallback = user_prompt.strip().split("\n")[0][:60].rstrip()
+            return fallback or "New Conversation"
 
     async def upload_document(
         self,
@@ -196,7 +291,7 @@ class ConversationService(BaseService):
             file_content=file_content,
             filename=filename,
             content_type=content_type,
-            company_id=conversation.id,
+            company_id=conversation.company_slug,
         )
 
         if not result.success:
@@ -204,7 +299,7 @@ class ConversationService(BaseService):
 
         await self.add_document_to_conversation(conversation_id, result.document.id)
         try:
-            await embed_document(result.document, namespace=conversation.id)
+            await embed_document(result.document, namespace=conversation.company_slug)
         except Exception as e:
             logger.warning(f"Embedding uploaded document failed: {e}")
 

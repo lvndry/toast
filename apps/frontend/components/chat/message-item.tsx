@@ -1,6 +1,7 @@
 "use client";
 
 import { Box } from "@chakra-ui/react";
+
 import MarkdownRenderer from "../markdown/markdown-renderer";
 
 export interface ChatMessage {
@@ -12,7 +13,6 @@ export interface ChatMessage {
 
 interface MessageItemProps {
   message: ChatMessage;
-  isCompact?: boolean;
   bubbleBgUser?: string;
   bubbleBgAssistant?: string;
   textColorUser?: string;
@@ -21,7 +21,6 @@ interface MessageItemProps {
 
 export function MessageItem({
   message,
-  isCompact = false,
   bubbleBgUser = "blue.500",
   bubbleBgAssistant = "white",
   textColorUser = "white",
@@ -39,9 +38,14 @@ export function MessageItem({
         maxW="70%"
         bg={isUser ? bubbleBgUser : bubbleBgAssistant}
         color={isUser ? textColorUser : textColorAssistant}
-        p={isCompact ? 3 : 4}
+        p={{ px: 3, py: 2 }}
         borderRadius="lg"
         shadow="sm"
+        display="flex"
+        flexDirection="column"
+        alignItems="flex-start"
+        justifyContent="center"
+        minH="fit-content"
       >
         <MarkdownRenderer>{message.content}</MarkdownRenderer>
       </Box>

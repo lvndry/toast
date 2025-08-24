@@ -12,12 +12,25 @@ router = APIRouter(prefix="/conversations")
 class CreateConversationRequest(BaseModel):
     user_id: str
     company_name: str
+    company_slug: str
     company_description: str | None = None
+    title: str | None = None
+    mode: str | None = None
 
 
 class SendMessageRequest(BaseModel):
     conversation_id: str
     message: str
+
+
+class PatchConversationRequest(BaseModel):
+    title: str | None = None
+    mode: str | None = None
+    archived: bool | None = None
+    pinned: bool | None = None
+    tags: list[str] | None = None
+    company_name: str | None = None
+    company_description: str | None = None
 
 
 @router.post("")
@@ -27,7 +40,10 @@ async def create_new_conversation(request: CreateConversationRequest):
         created_conversation = await conversation_service.create_conversation(
             user_id=request.user_id,
             company_name=request.company_name,
+            company_slug=request.company_slug,
             company_description=request.company_description,
+            title=request.title,
+            mode=request.mode or "qa",
         )
         return created_conversation
     except Exception as e:
@@ -51,10 +67,27 @@ async def get_conversation(conversation_id: str):
 
 
 @router.get("/user/{user_id}")
-async def get_user_conversations_route(user_id: str):
+async def get_user_conversations_route(
+    user_id: str,
+    company_slug: str | None = None,
+    archived: bool | None = None,
+    pinned: bool | None = None,
+):
     """Get all conversations for a user."""
     try:
-        conversations = await conversation_service.get_user_conversations(user_id)
+        query = {"user_id": user_id}
+        if company_slug is not None:
+            query["company_slug"] = company_slug
+        if archived is not None:
+            query["archived"] = archived
+        if pinned is not None:
+            query["pinned"] = pinned
+
+        conversations = (
+            await conversation_service.db.conversations.find(query)
+            .sort("last_message_at", -1)
+            .to_list(length=None)
+        )
         return conversations
     except Exception as e:
         logger.error(f"Error getting user conversations: {e}")
@@ -76,6 +109,23 @@ async def send_message(request: SendMessageRequest):
         raise
     except Exception as e:
         logger.error(f"Error sending message: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.patch("/{conversation_id}")
+async def patch_conversation(conversation_id: str, request: PatchConversationRequest):
+    """Patch conversation metadata fields."""
+    try:
+        success = await conversation_service.patch_conversation(
+            conversation_id, request.model_dump(exclude_none=True)
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error patching conversation: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -123,4 +173,19 @@ async def upload_document(
         raise
     except Exception as e:
         logger.error(f"Error uploading document: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.delete("/{conversation_id}")
+async def delete_conversation(conversation_id: str):
+    """Delete a conversation."""
+    try:
+        success = await conversation_service.delete_conversation(conversation_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting conversation: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e

@@ -16,9 +16,8 @@ import {
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
-import { FiArrowLeft, FiSend, FiUpload, FiX } from "react-icons/fi";
+import { FiArrowLeft, FiUpload, FiX } from "react-icons/fi";
 import ChatInput from "../../../../components/chat/chat-input";
-import MessageList from "../../../../components/chat/message-list";
 import MarkdownRenderer from "../../../../components/markdown/markdown-renderer";
 
 import { useAnalytics } from "../../../../hooks/useAnalytics";
@@ -38,9 +37,17 @@ interface Conversation {
   id: string;
   user_id: string;
   company_name: string;
+  company_slug?: string;
   company_description?: string;
   documents: string[];
   messages: Message[];
+  title?: string | null;
+  mode?: "qa" | "summary" | "compliance" | "custom";
+  archived?: boolean;
+  pinned?: boolean;
+  tags?: string[];
+  message_count?: number;
+  last_message_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -63,6 +70,8 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
   const { user } = useUser();
   const router = useRouter();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+  } = useDisclosure();
   const { trackUserJourney, trackPageView } = useAnalytics();
 
   const [company, setCompany] = useState<Company | null>(null);
@@ -76,6 +85,8 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
   const [showAllKeyPoints, setShowAllKeyPoints] = useState(false);
   const [expandedScores, setExpandedScores] = useState<Set<string>>(new Set());
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [conversationsList, setConversationsList] = useState<Conversation[]>([]);
+  const [convosLoading, setConvosLoading] = useState(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const bgColor = useColorModeValue("gray.50", "gray.900");
@@ -142,6 +153,26 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
             const metaData: MetaSummary = await metaResponse.json();
             setMetaSummary(metaData);
           }
+
+          // Fetch user's conversations for this company
+          if (user?.id) {
+            try {
+              setConvosLoading(true);
+              const listRes = await fetch(`/api/conversations?user_id=${user.id}&company_slug=${companyData.slug}`);
+              if (listRes.ok) {
+                const listData: Conversation[] = await listRes.json();
+                // Sort: most recent first (last_message_at desc, fallback to updated_at)
+                listData.sort((a, b) => {
+                  const ad = new Date(a.last_message_at || a.updated_at).getTime();
+                  const bd = new Date(b.last_message_at || b.updated_at).getTime();
+                  return bd - ad;
+                });
+                setConversationsList(listData);
+              }
+            } finally {
+              setConvosLoading(false);
+            }
+          }
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -153,6 +184,70 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
 
     fetchData();
   }, [slug, trackUserJourney]);
+
+  async function refreshConversationsList() {
+    if (!company || !user?.id) return;
+    try {
+      setConvosLoading(true);
+      const listRes = await fetch(`/api/conversations?user_id=${user.id}&company_slug=${company.slug}`);
+      if (listRes.ok) {
+        const listData: Conversation[] = await listRes.json();
+        listData.sort((a, b) => {
+          const ad = new Date(a.last_message_at || a.updated_at).getTime();
+          const bd = new Date(b.last_message_at || b.updated_at).getTime();
+          return bd - ad;
+        });
+        setConversationsList(listData);
+      }
+    } finally {
+      setConvosLoading(false);
+    }
+  }
+
+  async function createConversation() {
+    if (!company || !user?.id) return;
+    try {
+      const res = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          company_name: company.name,
+          company_slug: company.slug,
+          company_description: company.description,
+          title: "New Conversation",
+          mode: "qa",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create conversation");
+      const created: Conversation = await res.json();
+      router.push(`/q/${created.id}`);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function updateConversationMeta(id: string, data: Partial<Conversation>) {
+    try {
+      const res = await fetch(`/api/conversations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) await refreshConversationsList();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function deleteConversationById(id: string) {
+    try {
+      const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
+      if (res.ok) await refreshConversationsList();
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
   // Track page view
   useEffect(() => {
@@ -166,14 +261,15 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
   }, [initialLoading, conversation, company, trackPageView]);
 
   async function handleSendMessage() {
-    if (!inputValue.trim() || loading) return;
+    const message = inputValue.trim();
+    if (!message || loading) return;
 
     const startTime = Date.now();
     const questionLength = inputValue.length;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: inputValue,
+      content: message,
       role: "user",
       timestamp: new Date().toISOString()
     };
@@ -184,7 +280,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
 
     // Track question asked
     trackUserJourney.questionAsked(
-      inputValue,
+      message,
       questionLength,
       conversation?.id,
       company?.slug
@@ -199,7 +295,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            message: inputValue,
+            message,
           }),
         });
 
@@ -226,26 +322,51 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
           conversation.id
         );
       } else if (company) {
-        // Send message to company
-        const response = await fetch("/api/q", {
+        // Create a conversation on-the-fly, then send the message to it
+        const createResponse = await fetch("/api/conversations", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            query: inputValue,
-            company_slug: company.slug
+            user_id: user?.id,
+            company_name: company.name,
+            company_slug: company.slug,
+            company_description: company.description,
+            title: message.slice(0, 80),
+            mode: "qa",
           }),
         });
 
-        if (!response.ok) {
-          throw new Error(`Failed to send message: ${response.status}`);
+        if (!createResponse.ok) {
+          throw new Error(`Failed to create conversation: ${createResponse.status}`);
         }
 
-        const data = await response.json();
+        const createdConversation: Conversation = await createResponse.json();
+        setConversation(createdConversation);
+        // Update URL to conversation id for resuming later
+        try {
+          router.replace(`/q/${createdConversation.id}`);
+        } catch { }
+
+        const sendResponse = await fetch(`/api/conversations/${createdConversation.id}/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message,
+          }),
+        });
+
+        if (!sendResponse.ok) {
+          throw new Error(`Failed to send message: ${sendResponse.status}`);
+        }
+
+        const data = await sendResponse.json();
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
-          content: data.answer,
+          content: data.ai_message.content,
           role: "assistant",
           timestamp: new Date().toISOString()
         };
@@ -256,8 +377,9 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
         const responseTime = Date.now() - startTime;
         trackUserJourney.questionAnswered(
           questionLength,
-          data.answer.length,
-          responseTime
+          data.ai_message.content.length,
+          responseTime,
+          createdConversation.id
         );
       }
     } catch (err) {
@@ -398,6 +520,42 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
               <Text color="gray.600" mt={1}>
                 {conversation ? "Document Analysis & Chat" : "Privacy Analysis & Chat"}
               </Text>
+              {conversation && (
+                <HStack spacing={2} mt={2}>
+                  <Button
+                    size="xs"
+                    variant={conversation.pinned ? "solid" : "outline"}
+                    onClick={async () => {
+                      try {
+                        await fetch(`/api/conversations/${conversation.id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ pinned: !conversation.pinned }),
+                        });
+                        setConversation({ ...conversation, pinned: !conversation.pinned });
+                      } catch { }
+                    }}
+                  >
+                    {conversation.pinned ? "Unpin" : "Pin"}
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant={conversation.archived ? "solid" : "outline"}
+                    onClick={async () => {
+                      try {
+                        await fetch(`/api/conversations/${conversation.id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ archived: !conversation.archived }),
+                        });
+                        setConversation({ ...conversation, archived: !conversation.archived });
+                      } catch { }
+                    }}
+                  >
+                    {conversation.archived ? "Unarchive" : "Archive"}
+                  </Button>
+                </HStack>
+              )}
             </Box>
             <HStack spacing={3}>
               {conversation && (
@@ -410,6 +568,21 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
                 >
                   <FiUpload style={{ marginRight: '8px' }} />
                   Upload More Documents
+                </Button>
+              )}
+              {conversation && (
+                <Button
+                  size="sm"
+                  colorScheme="red"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await fetch(`/api/conversations/${conversation.id}`, { method: "DELETE" });
+                      router.push(`/q/${conversation.company_slug}`);
+                    } catch { }
+                  }}
+                >
+                  Delete
                 </Button>
               )}
               <Button
@@ -427,6 +600,79 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
 
       {/* Main Content */}
       <Box flex="1" overflowY="auto" ref={chatContainerRef}>
+        {company && (
+          <Box p={6}>
+            <Box maxW="7xl" mx="auto">
+              <HStack justify="space-between" mb={4}>
+                <Heading size="md">Your Conversations</Heading>
+                <HStack>
+                  <Button size="sm" variant="outline" onClick={refreshConversationsList} isLoading={convosLoading}>
+                    Refresh
+                  </Button>
+                  <Button size="sm" colorScheme="blue" onClick={createConversation}>
+                    Ask questions to {company.name} documents
+                  </Button>
+                </HStack>
+              </HStack>
+              <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", xl: "repeat(3, 1fr)" }} gap={4}>
+                {conversationsList.map((c) => (
+                  <GridItem key={c.id}>
+                    <Box
+                      bg={cardBg}
+                      p={4}
+                      borderRadius="lg"
+                      shadow="sm"
+                      border="1px"
+                      borderColor="gray.200"
+                    >
+                      <VStack align="stretch" spacing={3}>
+                        <HStack justify="space-between">
+                          <Heading size="sm" noOfLines={1}>{c.title || c.company_name}</Heading>
+                          <HStack spacing={2}>
+                            <Button size="xs" variant={c.pinned ? "solid" : "outline"} onClick={() => updateConversationMeta(c.id, { pinned: !c.pinned })}>
+                              {c.pinned ? "Unpin" : "Pin"}
+                            </Button>
+                            <Button size="xs" variant={c.archived ? "solid" : "outline"} onClick={() => updateConversationMeta(c.id, { archived: !c.archived })}>
+                              {c.archived ? "Unarchive" : "Archive"}
+                            </Button>
+                          </HStack>
+                        </HStack>
+                        <HStack spacing={3}>
+                          <Button size="sm" onClick={() => router.push(`/q/${c.id}`)}>Open</Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              const newName = window.prompt("Rename conversation", c.title || "");
+                              if (newName !== null) await updateConversationMeta(c.id, { title: newName });
+                            }}
+                          >
+                            Rename
+                          </Button>
+                          <Button size="sm" colorScheme="red" variant="outline" onClick={() => deleteConversationById(c.id)}>Delete</Button>
+                        </HStack>
+                        <Text fontSize="xs" color="gray.500">
+                          Updated {new Date(c.last_message_at || c.updated_at).toLocaleString()} • {c.message_count || c.messages?.length || 0} messages
+                        </Text>
+                      </VStack>
+                    </Box>
+                  </GridItem>
+                ))}
+                {conversationsList.length === 0 && !convosLoading && (
+                  <GridItem>
+                    <Box bg={cardBg} p={6} borderRadius="lg" shadow="sm" textAlign="center">
+                      <VStack spacing={3}>
+                        <Heading size="sm">No conversations yet</Heading>
+                        <Text color="gray.600">Create your first conversation for {company.name}</Text>
+                        <Button size="sm" colorScheme="blue" onClick={createConversation}>Ask questions to {company.name} documents</Button>
+                      </VStack>
+                    </Box>
+                  </GridItem>
+                )}
+              </Grid>
+            </Box>
+          </Box>
+        )}
         {/* Meta Summary for Companies */}
         {metaSummary && company && (
           <Box p={6}>
@@ -508,45 +754,23 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
           </Box>
         )}
 
-        {/* Chat Messages */}
-        <Box p={6}>
-          <Box maxW="4xl" mx="auto">
-            {messages.length === 0 && !loading && (
-              <Box textAlign="center" py={12}>
-                <VStack spacing={4}>
-                  <Box w="20" h="20" bg="blue.100" borderRadius="full" display="flex" alignItems="center" justifyContent="center">
-                    <FiSend size={24} color="blue.500" />
-                  </Box>
-                  <Heading size="md">Start a conversation</Heading>
-                  <Text color="gray.600">
-                    Ask about privacy practices, data collection, user rights, and more
-                  </Text>
-                </VStack>
-              </Box>
-            )}
 
-            <MessageList
-              messages={messages}
-              isLoading={loading}
-              assistantBubbleBg={cardBg}
-              userBubbleBg="blue.500"
+      </Box>
+
+      {/* Chat Input - only in conversation */}
+      {conversation && (
+        <Box bg={cardBg} borderTop="1px" borderColor="gray.200" p={4} flexShrink={0}>
+          <Box maxW="4xl" mx="auto">
+            <ChatInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSend={handleSendMessage}
+              disabled={loading}
+              placeholder="Ask about privacy practices, data collection, user rights..."
             />
           </Box>
         </Box>
-      </Box>
-
-      {/* Chat Input */}
-      <Box bg={cardBg} borderTop="1px" borderColor="gray.200" p={4} flexShrink={0}>
-        <Box maxW="4xl" mx="auto">
-          <ChatInput
-            value={inputValue}
-            onChange={setInputValue}
-            onSend={handleSendMessage}
-            disabled={loading}
-            placeholder="Ask about privacy practices, data collection, user rights..."
-          />
-        </Box>
-      </Box>
+      )}
 
       {/* Upload Modal for Conversations */}
       {conversation && isOpen && (
@@ -617,6 +841,8 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
           </Box>
         </Box>
       )}
+
+      {/* Create Conversation Modal removed in favor of immediate create */}
     </Box>
   );
 }

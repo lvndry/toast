@@ -49,7 +49,7 @@ class DocumentService(BaseService):
         try:
             document_dict = document.model_dump()
             await self.db.documents.insert_one(document_dict)
-            logger.info(f"Stored document {document.id} for company {document.company_slug}")
+            logger.info(f"Stored document {document.id} for company {document.company_id}")
             return document
         except Exception as e:
             logger.error(f"Error storing document {document.id}: {e}")
