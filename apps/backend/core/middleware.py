@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 import structlog
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -17,6 +17,7 @@ WHITELISTED_ROUTES = {
     "/health/startup",
     "/docs",
     "/openapi.json",
+    "/toast/users/tier-limits",
 }
 
 
@@ -70,9 +71,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 path=request.url.path,
                 method=request.method,
             )
-            raise HTTPException(
-                status_code=401, detail=f"Invalid token: {str(e)}"
-            ) from e
+            raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}") from e
 
         response = await call_next(request)
 

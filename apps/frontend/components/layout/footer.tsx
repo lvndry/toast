@@ -1,6 +1,8 @@
 "use client";
 
-import { Box, Container, Text, VStack } from "@chakra-ui/react";
+import { Box, Link as ChakraLink, Container, HStack, Text, VStack } from "@chakra-ui/react";
+import siteConfig from "@data/config";
+import NextLink from "next/link";
 
 export interface FooterProps {
   children?: React.ReactNode;
@@ -15,6 +17,12 @@ export function Footer(props: FooterProps) {
       <Container maxW="container.xl">
         <VStack gap={6}>
           {children}
+          <HStack spacing={6} color="gray.600" fontSize="sm">
+            <ChakraLink as={NextLink} href={siteConfig.privacyUrl ?? "/privacy"}>Privacy</ChakraLink>
+            <ChakraLink as={NextLink} href={siteConfig.termsUrl ?? "/terms"}>Terms</ChakraLink>
+            <ChakraLink as={NextLink} href="/contact">Contact</ChakraLink>
+            <ChakraLink as={NextLink} href="/status">Status</ChakraLink>
+          </HStack>
           <Text color="gray.500" fontSize="sm">
             © {new Date().getFullYear()} Toast AI. All rights reserved.
           </Text>

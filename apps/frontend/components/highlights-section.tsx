@@ -1,87 +1,140 @@
 import {
-  Avatar,
   Box,
-  Flex,
+  Container,
+  Icon,
   SimpleGrid,
   Text,
-  VStack,
-  Container
+  VStack
 } from "@chakra-ui/react";
 
 import { Highlight } from "@components/highlights";
 import { FallInPlace } from "@components/motion/fall-in-place";
+import {
+  FiClock,
+  FiFileText,
+  FiSearch,
+  FiShield,
+  FiTrendingUp,
+  FiZap
+} from "react-icons/fi";
 
 export function HighlightsSection() {
   return (
-    <Box py={24}>
+    <Box py={24} bg="gray.50" _dark={{ bg: "gray.900" }}>
       <Container maxW="container.xl">
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
+        <VStack spacing={12}>
+          {/* Section Header */}
           <FallInPlace delay={0.0}>
-            <Highlight
-              title="AI-Powered Legal Analysis"
-              description={
-                <VStack alignItems="flex-start" spacing="4">
-                  <Text color="gray.600" fontSize="lg">
-                    Get started with <Text as="span" fontWeight="bold">instant legal document analysis</Text>.
-                    Our AI has already analyzed thousands of companies&apos; terms of service,
-                    privacy policies, and legal agreements. Search and understand complex
-                    legal documents in seconds, not hours.
-                  </Text>
-                </VStack>
-              }
-            />
+            <VStack spacing={4} textAlign="center">
+              <Text
+                fontSize="sm"
+                fontWeight="semibold"
+                color="blue.600"
+                textTransform="uppercase"
+                letterSpacing="wide"
+              >
+                Why Choose Toast AI
+              </Text>
+              <Text
+                fontSize={{ base: "2xl", md: "3xl" }}
+                fontWeight="bold"
+                color="gray.900"
+                _dark={{ color: "white" }}
+              >
+                Legal Documents Made Simple
+              </Text>
+            </VStack>
           </FallInPlace>
 
-          <FallInPlace delay={0.1}>
-            <Highlight
-              title="Pre-analyzed Database"
-              description={
-                <Text color="gray.600" fontSize="lg">
-                  We&apos;ve done the heavy lifting - our AI has already scraped and analyzed legal documents
-                  from thousands of websites. No more manual document reading or legal jargon confusion.
+          {/* Value Propositions */}
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
+            <FallInPlace delay={0.1}>
+              <Highlight
+                icon={<Icon as={FiSearch} w={6} h={6} color="blue.500" />}
+                title="Instant Analysis"
+                description="Get legal insights in seconds, not hours. Our AI understands complex legal jargon so you don't have to."
+              />
+            </FallInPlace>
+
+            <FallInPlace delay={0.2}>
+              <Highlight
+                icon={<Icon as={FiFileText} w={6} h={6} color="green.500" />}
+                title="Pre-analyzed Database"
+                description="Thousands of companies already analyzed. Search privacy policies and terms instantly."
+              />
+            </FallInPlace>
+
+            <FallInPlace delay={0.3}>
+              <Highlight
+                icon={<Icon as={FiShield} w={6} h={6} color="purple.500" />}
+                title="Privacy Protection"
+                description="Understand what companies do with your data before you sign up. Make informed decisions."
+              />
+            </FallInPlace>
+
+            <FallInPlace delay={0.4}>
+              <Highlight
+                icon={<Icon as={FiClock} w={6} h={6} color="orange.500" />}
+                title="Save Hours"
+                description="Skip manual document reading. Get the key points and risks highlighted automatically."
+              />
+            </FallInPlace>
+
+            <FallInPlace delay={0.5}>
+              <Highlight
+                icon={<Icon as={FiZap} w={6} h={6} color="pink.500" />}
+                title="Plain English"
+                description="Complex legal terms explained simply. No law degree required to understand your rights."
+              />
+            </FallInPlace>
+
+            <FallInPlace delay={0.6}>
+              <Highlight
+                icon={<Icon as={FiTrendingUp} w={6} h={6} color="teal.500" />}
+                title="Stay Updated"
+                description="Monitor policy changes and get alerts when companies update their terms."
+              />
+            </FallInPlace>
+          </SimpleGrid>
+
+          {/* Quick Stats */}
+          <FallInPlace delay={0.7}>
+            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={8} w="full">
+              <VStack spacing={2}>
+                <Text fontSize="3xl" fontWeight="bold" color="blue.600">
+                  10,000+
                 </Text>
-              }
-            />
-          </FallInPlace>
-
-          <FallInPlace delay={0.2}>
-            <Box
-              p={6}
-              bg="white"
-              borderRadius="lg"
-              shadow="md"
-              bgGradient="linear(to-br, pink.200, purple.500)"
-              color="white"
-              transition="all 0.2s ease"
-              _hover={{ transform: "translateY(-4px)", shadow: "lg" }}
-            >
-              <VStack align="flex-start" spacing="4">
-                <Flex align="center" gap={3}>
-                  <Avatar size="sm" src="/static/images/avatar.jpg" />
-                  <Box>
-                    <Text fontWeight="semibold">Sarah Chen</Text>
-                    <Text fontSize="sm" opacity={0.8}>General Counsel</Text>
-                  </Box>
-                </Flex>
-                <Text fontSize="lg" fontStyle="italic">
-                  &quot;ToastAI saved our team hours of work. What used to take days now takes minutes.
-                  Finally, a tool that makes legal documents actually readable.&quot;
+                <Text fontSize="sm" color="gray.600" textAlign="center">
+                  Companies Analyzed
                 </Text>
               </VStack>
-            </Box>
-          </FallInPlace>
-
-          <FallInPlace delay={0.3}>
-            <Highlight
-              title="Start analyzing legal documents in three simple steps"
-              description={
-                <Text color="gray.600" fontSize="lg">
-                  We&apos;ve made legal document analysis accessible to everyone through AI-powered insights.
+              <VStack spacing={2}>
+                <Text fontSize="3xl" fontWeight="bold" color="green.600">
+                  95%
                 </Text>
-              }
-            />
+                <Text fontSize="sm" color="gray.600" textAlign="center">
+                  Accuracy Rate
+                </Text>
+              </VStack>
+              <VStack spacing={2}>
+                <Text fontSize="3xl" fontWeight="bold" color="purple.600">
+                  &lt; 10s
+                </Text>
+                <Text fontSize="sm" color="gray.600" textAlign="center">
+                  Average Analysis Time
+                </Text>
+              </VStack>
+              <VStack spacing={2}>
+                <Text fontSize="3xl" fontWeight="bold" color="orange.600">
+                  24/7
+                </Text>
+                <Text fontSize="sm" color="gray.600" textAlign="center">
+                  Always Available
+                </Text>
+              </VStack>
+            </SimpleGrid>
           </FallInPlace>
-        </SimpleGrid>
+        </VStack>
       </Container>
     </Box>
   );

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from core.jwt import get_current_user
 from models.clerkUser import ClerkUser
+from src.constants import TIER_DESCRIPTIONS, TIER_DISPLAY_NAMES, TIER_LIMITS
 from src.services.usage_service import UsageService
 from src.services.user_service import user_service
 from src.user import User, UserTier
@@ -62,6 +63,25 @@ async def get_usage(current: ClerkUser = Depends(get_current_user)):
 
     usage_summary = await UsageService.get_usage_summary(current.user_id)
     return usage_summary
+
+
+@router.get("/tier-limits")
+async def get_tier_limits():
+    """Get tier limits and information for all available tiers"""
+    tiers = []
+
+    for tier in UserTier:
+        tiers.append(
+            {
+                "tier": tier.value,
+                "display_name": TIER_DISPLAY_NAMES[tier],
+                "description": TIER_DESCRIPTIONS[tier],
+                "monthly_limit": TIER_LIMITS[tier],
+                "limit_type": "company_searches",
+            }
+        )
+
+    return {"tiers": tiers, "limit_type": "company_searches", "period": "monthly"}
 
 
 @router.post("/upgrade-tier")

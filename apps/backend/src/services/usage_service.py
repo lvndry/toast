@@ -1,8 +1,9 @@
 from datetime import datetime
 
 from core.logging import get_logger
+from src.constants import TIER_LIMITS
 from src.services.user_service import user_service
-from src.user import User, UserTier
+from src.user import User
 
 logger = get_logger(__name__)
 
@@ -11,11 +12,7 @@ class UsageService:
     """Service for handling user usage tracking and rate limiting"""
 
     # Monthly limits per tier
-    TIER_LIMITS = {
-        UserTier.FREE: 1000,  # 1000 requests per month
-        UserTier.BUSINESS: 10000,  # 10000 requests per month
-        UserTier.ENTERPRISE: 100000,  # 100000 requests per month
-    }
+    TIER_LIMITS = TIER_LIMITS
 
     @staticmethod
     def get_current_month_key() -> str:

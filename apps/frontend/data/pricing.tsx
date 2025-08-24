@@ -11,7 +11,8 @@ export default {
       price: "Free",
       features: [
         {
-          title: "10 company searches per month",
+          title: "100 company searches per month",
+          dynamicKey: "monthly_limit",
         },
         {
           title: "Basic legal document analysis",
@@ -37,7 +38,7 @@ export default {
       },
     },
     {
-      id: "pro",
+      id: "business",
       title: "Pro",
       description: "For growing legal teams and professionals.",
       price: "$29",
@@ -45,7 +46,8 @@ export default {
       isRecommended: true,
       features: [
         {
-          title: "100 company searches per month",
+          title: "100 company searches per month", // This will be replaced dynamically
+          dynamicKey: "monthly_limit",
         },
         {
           title: "Advanced legal analysis",
@@ -85,7 +87,8 @@ export default {
       pricePeriod: "/month",
       features: [
         {
-          title: "Unlimited company searches",
+          title: "Unlimited company searches", // This will be replaced dynamically
+          dynamicKey: "monthly_limit",
         },
         {
           title: "Full legal document analysis",

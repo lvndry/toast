@@ -1,6 +1,9 @@
 "use client";
 
-import { Box, Container, Flex, HStack, Text } from "@chakra-ui/react";
+import { Box, Button, Link as ChakraLink, Container, Flex, HStack } from "@chakra-ui/react";
+import siteConfig from "@data/config";
+import NextLink from "next/link";
+import { Logo } from "./logo";
 
 export interface HeaderProps {
   children?: React.ReactNode;
@@ -10,15 +13,36 @@ export interface HeaderProps {
 export function Header(props: HeaderProps) {
   const { children, ...rest } = props;
 
+  const defaultNav = (
+    <HStack gap={6}>
+      {siteConfig.header?.links?.map((item: any) => {
+        const href = item.id ? `/#${item.id}` : item.href;
+        const isPrimary = item.variant === "primary";
+        if (isPrimary) {
+          return (
+            <NextLink key={item.label} href={href} passHref legacyBehavior>
+              <Button as="a" colorScheme="primary" size="sm">
+                {item.label}
+              </Button>
+            </NextLink>
+          );
+        }
+        return (
+          <ChakraLink as={NextLink} key={item.label ?? href} href={href} color="gray.700" _hover={{ color: "gray.900" }}>
+            {item.label}
+          </ChakraLink>
+        );
+      })}
+    </HStack>
+  );
+
   return (
     <Box as="header" bg="white" borderBottom="1px" borderColor="gray.200" {...rest}>
       <Container maxW="container.xl">
         <Flex justify="space-between" align="center" py={4}>
-          <Text fontSize="xl" fontWeight="bold">
-            Toast AI
-          </Text>
+          <Logo />
           <HStack gap={6}>
-            {children}
+            {children ?? defaultNav}
           </HStack>
         </Flex>
       </Container>

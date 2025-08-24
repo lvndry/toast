@@ -7,7 +7,7 @@ const faq = {
       q: "How many companies can I search per month?",
       a: (
         <>
-          The free plan includes 10 company searches per month. Pro plan includes 100 searches,
+          The free plan includes 100 company searches per month. Pro plan includes 100 searches,
           and Enterprise plan includes unlimited searches. <br /> You can upgrade your plan at any time.
         </>
       ),
