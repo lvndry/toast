@@ -50,40 +50,25 @@ import re
 import time
 import tracemalloc
 from datetime import datetime
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
 
 from dotenv import load_dotenv
 from litellm import acompletion
-from loguru import logger
 from pydantic import BaseModel
 
+from core.logging import get_logger
 from src.company import Company
-from src.db import get_all_companies, get_document_by_url, mongo
 from src.document import Document, Region
 from src.models import SupportedModel, get_model
+from src.services.company_service import company_service
+from src.services.document_service import document_service
 from src.toast_crawler import CrawlResult, ToastCrawler
 from src.utils.markdown import markdown_to_text
 from src.utils.perf import log_memory_usage, memory_monitor_task
 
 load_dotenv()
 
-# Configure loguru for structured logging
-logger.configure(
-    handlers=[
-        {
-            "sink": "crawling.log",
-            "rotation": "10 MB",
-            "retention": "1 week",
-            "format": "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}",
-            "level": "INFO",
-        },
-        {
-            "sink": lambda msg: print(msg, end=""),
-            "format": "<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | {message}",
-            "level": "INFO",
-        },
-    ]
-)
+logger = get_logger(__name__)
 
 
 class ProcessingStats(BaseModel):
@@ -91,7 +76,7 @@ class ProcessingStats(BaseModel):
 
     companies_processed: int = 0
     companies_failed: int = 0
-    failed_company_slugs: List[str] = []
+    failed_company_slugs: list[str] = []
     total_urls_crawled: int = 0
     total_documents_found: int = 0
     legal_documents_processed: int = 0
@@ -160,9 +145,7 @@ class DocumentAnalyzer:
             "other",
         ]
 
-    async def detect_locale(
-        self, text: str, metadata: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def detect_locale(self, text: str, metadata: dict[str, Any]) -> dict[str, Any]:
         """
         Detect the locale of a document.
 
@@ -240,8 +223,8 @@ Be specific with locale (include country when possible)."""
             }
 
     async def classify_document(
-        self, url: str, text: str, metadata: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, url: str, text: str, metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Classify if document is a legal document and determine its type.
 
@@ -301,9 +284,7 @@ Note: Cookie banners, navigation elements, or links to legal documents don't cou
                 "is_legal_document_justification": "Could not analyze due to error",
             }
 
-    async def detect_regions(
-        self, text: str, metadata: Dict[str, Any], url: str
-    ) -> Dict[str, Any]:
+    async def detect_regions(self, text: str, metadata: dict[str, Any], url: str) -> dict[str, Any]:
         """
         Detect if document applies globally or to specific regions.
 
@@ -378,8 +359,8 @@ Return JSON:
             }
 
     def _map_regions_to_document_format(
-        self, is_global: bool, specific_regions: List[str]
-    ) -> List[Region]:
+        self, is_global: bool, specific_regions: list[str]
+    ) -> list[Region]:
         """Map detected regions to Document Region literals."""
         if is_global:
             return ["global"]
@@ -412,8 +393,8 @@ Return JSON:
         return regions if regions else ["Other"]
 
     async def extract_title(
-        self, markdown: str, metadata: Dict[str, Any], url: str, doc_type: str
-    ) -> Dict[str, Any]:
+        self, markdown: str, metadata: dict[str, Any], url: str, doc_type: str
+    ) -> dict[str, Any]:
         """
         Extract meaningful title from document.
 
@@ -461,9 +442,7 @@ Return JSON:
         title = f"{type_titles.get(doc_type, 'Legal Document')} - {domain}"
         return {"title": title, "confidence": 0.5}
 
-    async def extract_effective_date(
-        self, content: str, metadata: Dict[str, Any]
-    ) -> Optional[str]:
+    async def extract_effective_date(self, content: str, metadata: dict[str, Any]) -> str | None:
         """
         Extract the effective date from a legal document.
 
@@ -489,8 +468,8 @@ Return JSON:
         return await self._extract_effective_date_llm(content, metadata)
 
     async def _extract_effective_date_static(
-        self, content: str, metadata: Dict[str, Any]
-    ) -> Optional[str]:
+        self, content: str, metadata: dict[str, Any]
+    ) -> str | None:
         """
         Attempt static extraction of effective date from metadata and content patterns.
 
@@ -535,8 +514,8 @@ Return JSON:
         return None
 
     async def _extract_effective_date_llm(
-        self, content: str, metadata: Dict[str, Any]
-    ) -> Optional[str]:
+        self, content: str, metadata: dict[str, Any]
+    ) -> str | None:
         """
         Use LLM to extract effective date from document content.
 
@@ -605,7 +584,7 @@ IMPORTANT: Return null for effective_date if you cannot find a clear effective d
             logger.warning(f"LLM effective date extraction failed: {e}")
             return None
 
-    def _parse_date_string(self, date_str: str) -> Optional[str]:
+    def _parse_date_string(self, date_str: str) -> str | None:
         """
         Parse a date string into ISO format (YYYY-MM-DD).
 
@@ -718,7 +697,7 @@ class LegalDocumentPipeline:
             strategy=self.crawler_strategy,
         )
 
-    async def _store_documents(self, documents: List[Document]) -> int:
+    async def _store_documents(self, documents: list[Document]) -> int:
         """
         Store documents with intelligent deduplication and update logic.
 
@@ -733,22 +712,18 @@ class LegalDocumentPipeline:
         for document in documents:
             try:
                 # Check for existing document
-                existing_doc = await get_document_by_url(document.url)
+                existing_doc = await document_service.get_document_by_url(document.url)
 
                 if existing_doc:
                     # Calculate content hashes for comparison
                     current_hash = hashlib.sha256(document.text.encode()).hexdigest()
-                    existing_hash = hashlib.sha256(
-                        existing_doc.text.encode()
-                    ).hexdigest()
+                    existing_hash = hashlib.sha256(existing_doc.text.encode()).hexdigest()
 
                     if current_hash != existing_hash:
                         # Update existing document with new content
                         logger.info(f"Updating document: {document.url}")
                         document.id = existing_doc.id  # Preserve original ID
-                        await mongo.db.documents.update_one(
-                            {"url": document.url}, {"$set": document.model_dump()}
-                        )
+                        await document_service.update_document(document)
                         stored_count += 1
                     else:
                         logger.debug(f"Skipping unchanged document: {document.url}")
@@ -756,7 +731,7 @@ class LegalDocumentPipeline:
                 else:
                     # Create new document
                     logger.info(f"Creating new document: {document.url}")
-                    await mongo.db.documents.insert_one(document.model_dump())
+                    await document_service.store_document(document)
                     stored_count += 1
 
             except Exception as e:
@@ -764,9 +739,7 @@ class LegalDocumentPipeline:
 
         return stored_count
 
-    async def _process_crawl_result(
-        self, result: CrawlResult, company: Company
-    ) -> Optional[Document]:
+    async def _process_crawl_result(self, result: CrawlResult, company: Company) -> Document | None:
         """
         Process a single crawl result through the analysis pipeline.
 
@@ -782,9 +755,7 @@ class LegalDocumentPipeline:
             text_content = markdown_to_text(result.markdown)
 
             # Detect locale
-            locale_result = await self.analyzer.detect_locale(
-                text_content, result.metadata
-            )
+            locale_result = await self.analyzer.detect_locale(text_content, result.metadata)
             detected_locale = locale_result.get("locale", "en-US")
             language_name = locale_result.get("language_name", "English")
 
@@ -834,9 +805,7 @@ class LegalDocumentPipeline:
                     effective_date = datetime.strptime(effective_date_str, "%Y-%m-%d")
                     logger.debug(f"Parsed effective date: {effective_date}")
                 except ValueError as e:
-                    logger.warning(
-                        f"Failed to parse effective date '{effective_date_str}': {e}"
-                    )
+                    logger.warning(f"Failed to parse effective date '{effective_date_str}': {e}")
 
             # Extract title
             title_result = await self.analyzer.extract_title(
@@ -876,7 +845,7 @@ class LegalDocumentPipeline:
             logger.error(f"Failed to process crawl result {result.url}: {e}")
             return None
 
-    async def _process_company(self, company: Company) -> List[Document]:
+    async def _process_company(self, company: Company) -> list[Document]:
         """
         Process a single company through the complete pipeline.
 
@@ -923,9 +892,7 @@ class LegalDocumentPipeline:
                     if document:
                         processed_documents.append(document)
                 else:
-                    logger.warning(
-                        f"Failed to crawl {result.url}: {result.error_message}"
-                    )
+                    logger.warning(f"Failed to crawl {result.url}: {result.error_message}")
 
             # Store processed documents
             if processed_documents:
@@ -955,7 +922,7 @@ class LegalDocumentPipeline:
             self.stats.failed_company_slugs.append(company.slug)
             return []
 
-    async def run(self, companies: List[Company] = None) -> ProcessingStats:
+    async def run(self, companies: list[Company] = None) -> ProcessingStats:
         """
         Execute the complete legal document crawling pipeline.
 
@@ -974,15 +941,13 @@ class LegalDocumentPipeline:
 
         try:
             # Get all companies
-            companies = companies or await get_all_companies()
+            companies = companies or await company_service.get_all_companies()
             logger.info(f"📊 Processing {len(companies)} companies")
 
             # Process companies sequentially for memory efficiency and rate limiting
             all_documents: list[Document] = []
             for i, company in enumerate(companies, 1):
-                logger.info(
-                    f"🏢 Processing company {i}/{len(companies)}: {company.name}"
-                )
+                logger.info(f"🏢 Processing company {i}/{len(companies)}: {company.name}")
                 documents = await self._process_company(company)
                 all_documents.extend(documents)
 
@@ -1006,19 +971,13 @@ class LegalDocumentPipeline:
                 )
             logger.info(f"🌐 Total URLs crawled: {self.stats.total_urls_crawled}")
             logger.info(f"📄 Total documents found: {self.stats.total_documents_found}")
-            logger.info(
-                f"⚖️ Legal documents processed: {self.stats.legal_documents_processed}"
-            )
-            logger.info(
-                f"💾 Legal documents stored: {self.stats.legal_documents_stored}"
-            )
+            logger.info(f"⚖️ Legal documents processed: {self.stats.legal_documents_processed}")
+            logger.info(f"💾 Legal documents stored: {self.stats.legal_documents_stored}")
             logger.info(f"🗣️ English documents: {self.stats.english_documents}")
             logger.info(f"🌍 Non-English skipped: {self.stats.non_english_skipped}")
             logger.info(f"🔄 Duplicates skipped: {self.stats.duplicates_skipped}")
             logger.info(f"✅ Success rate: {self.stats.success_rate:.1f}%")
-            logger.info(
-                f"🎯 Legal detection rate: {self.stats.legal_detection_rate:.1f}%"
-            )
+            logger.info(f"🎯 Legal detection rate: {self.stats.legal_detection_rate:.1f}%")
             logger.info(f"⏱️ Total time: {self.stats.processing_time_seconds:.2f}s")
 
             return self.stats
@@ -1052,9 +1011,7 @@ async def main():
         # Exit with appropriate code
         if stats.companies_failed > 0:
             failed_slugs = (
-                ", ".join(stats.failed_company_slugs)
-                if stats.failed_company_slugs
-                else "unknown"
+                ", ".join(stats.failed_company_slugs) if stats.failed_company_slugs else "unknown"
             )
             logger.warning(
                 f"Pipeline completed with {stats.companies_failed} failures: {failed_slugs}"

@@ -9,13 +9,14 @@ import os
 import sys
 from datetime import datetime
 
+from core.logging import get_logger
+from src.services.user_service import user_service
+from src.user import UserTier
+
 # Add the src directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
-from loguru import logger
-
-from src.db import mongo
-from src.user import UserTier
+logger = get_logger(__name__)
 
 
 async def migrate_users_to_tier_system():
@@ -23,49 +24,50 @@ async def migrate_users_to_tier_system():
     try:
         logger.info("Starting user tier migration...")
 
-        # Get all users that don't have tier field
-        users_without_tier = await mongo.db.users.find(
-            {
-                "$or": [
-                    {"tier": {"$exists": False}},
-                    {"monthly_usage": {"$exists": False}},
-                ]
-            }
-        ).to_list(length=None)
+        # Get all users
+        all_users = await user_service.get_all_users()
 
-        logger.info(f"Found {len(users_without_tier)} users to migrate")
+        # Filter users that don't have tier or monthly_usage fields
+        users_to_migrate = []
+        for user in all_users:
+            if not hasattr(user, "tier") or not hasattr(user, "monthly_usage"):
+                users_to_migrate.append(user)
+
+        logger.info(f"Found {len(users_to_migrate)} users to migrate")
 
         migrated_count = 0
         skipped_count = 0
         errors = []
 
-        for user_doc in users_without_tier:
+        for user in users_to_migrate:
             try:
-                user_id = user_doc.get("id")
+                user_id = user.id
                 if not user_id:
                     skipped_count += 1
                     continue
 
                 # Set default values for missing fields
-                update_data = {}
+                needs_update = False
 
-                if "tier" not in user_doc:
-                    update_data["tier"] = UserTier.FREE.value
+                if not hasattr(user, "tier") or user.tier is None:
+                    user.tier = UserTier.FREE
                     logger.info(f"Setting tier to FREE for user {user_id}")
+                    needs_update = True
 
-                if "monthly_usage" not in user_doc:
-                    update_data["monthly_usage"] = {}
+                if not hasattr(user, "monthly_usage") or user.monthly_usage is None:
+                    user.monthly_usage = {}
                     logger.info(f"Setting empty monthly_usage for user {user_id}")
+                    needs_update = True
 
-                if update_data:
-                    update_data["updated_at"] = datetime.now()
-                    await mongo.db.users.update_one({"id": user_id}, {"$set": update_data})
+                if needs_update:
+                    user.updated_at = datetime.now()
+                    await user_service.upsert_user(user)
                     migrated_count += 1
                 else:
                     skipped_count += 1
 
             except Exception as e:
-                error_msg = f"Error migrating user {user_doc.get('id', 'unknown')}: {str(e)}"
+                error_msg = f"Error migrating user {user.id if user else 'unknown'}: {str(e)}"
                 errors.append(error_msg)
                 logger.error(error_msg)
 
@@ -93,7 +95,7 @@ async def main():
     """Main function to run the migration"""
     try:
         # Test database connection
-        await mongo.test_connection()
+        await user_service.test_connection()
 
         # Run the migration
         result = await migrate_users_to_tier_system()
@@ -108,7 +110,7 @@ async def main():
         logger.error(f"Migration failed: {e}")
         sys.exit(1)
     finally:
-        mongo.close_mongo_connection()
+        user_service.close_connection()
 
 
 if __name__ == "__main__":

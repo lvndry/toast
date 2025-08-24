@@ -86,16 +86,17 @@ export default function CompaniesPage() {
   }, [searchTerm, companies, trackUserJourney]);
 
   async function fetchCompanyLogo(company: Company): Promise<string | null> {
-    try {
-      setLogoLoadingStates(prev => ({ ...prev, [company.id]: true }));
+    setLogoLoadingStates(prev => ({ ...prev, [company.id]: true }));
 
-      const params = new URLSearchParams();
-      if (company.website) {
-        const domain = company.website.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-        params.append('domain', domain);
-      } else {
-        params.append('domain', company.slug);
+    try {
+      // If company already has a logo, use it
+      if (company.logo) {
+        return company.logo;
       }
+
+      // Try to fetch logo using company ID first
+      const params = new URLSearchParams();
+      params.append('companyId', company.id);
 
       const response = await fetch(`/api/companies/logos?${params.toString()}`);
       if (response.ok) {

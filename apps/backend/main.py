@@ -1,14 +1,30 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from core.config import settings
 from core.logging import setup_logging
 from core.middleware import AuthMiddleware
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from src.routes import company, conversation, crawler, list, migration, q
 from src.routes import user as user_routes
+from src.services.base_service import BaseService
 
 setup_logging()
 
-app = FastAPI(title="Toast API", root_path="/toast")
+
+async def lifespan(app: FastAPI):
+    """Manage application lifecycle events."""
+    # Startup
+    base_service = BaseService()
+    await base_service.test_connection()
+
+    yield
+
+    # Shutdown
+    base_service.close_connection()
+
+
+app = FastAPI(title="Toast API", root_path="/toast", lifespan=lifespan)
+
 
 app.add_middleware(
     CORSMiddleware,

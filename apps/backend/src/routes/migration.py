@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from loguru import logger
 from pydantic import BaseModel
 
+from core.logging import get_logger
 from src.services import migration_service
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/migration", tags=["migration"])
 

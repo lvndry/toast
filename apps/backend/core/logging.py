@@ -59,3 +59,9 @@ def setup_logging() -> None:
 def get_logger(name: str = __name__) -> Any:
     """Get a logger instance"""
     return structlog.get_logger(name)
+
+
+# Convenience function for backward compatibility
+def logger(name: str = __name__) -> Any:
+    """Get a logger instance (alias for get_logger)"""
+    return structlog.get_logger(name)

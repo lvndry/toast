@@ -4,12 +4,13 @@ from typing import Any
 
 import certifi
 from dotenv import load_dotenv
-from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from core.logging import get_logger
 from src.user import UserTier
 
 load_dotenv()
+logger = get_logger(__name__)
 
 
 class MigrationManager:

@@ -28,16 +28,18 @@ from crawl4ai.deep_crawling.filters import (  # type: ignore
 from crawl4ai.deep_crawling.scorers import KeywordRelevanceScorer  # type: ignore
 from dotenv import load_dotenv
 from litellm import acompletion
-from loguru import logger
 from typing_extensions import deprecated
 
-from ..src.company import Company
-from ..src.db import get_all_companies, get_document_by_url, mongo
-from ..src.document import DocType, Document
-from ..src.utils.markdown import markdown_to_text
-from ..src.utils.perf import log_memory_usage, memory_monitor_task
+from core.logging import get_logger
+from src.company import Company
+from src.dashboard.db_utils import get_all_companies_isolated
+from src.document import DocType, Document  # type: ignore
+from src.services.document_service import document_service
+from src.utils.markdown import markdown_to_text
+from src.utils.perf import log_memory_usage, memory_monitor_task
 
 load_dotenv()
+logger = get_logger(__name__)
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
@@ -100,9 +102,7 @@ class LegalDocumentCrawler:
     def _create_browser_config(self) -> BrowserConfig:
         """Create the browser configuration."""
 
-        return BrowserConfig(
-            user_agent=self.user_agent, text_mode=True, verbose=self.verbose
-        )
+        return BrowserConfig(user_agent=self.user_agent, text_mode=True, verbose=self.verbose)
 
     def _create_keyword_relevance_scorer(self) -> KeywordRelevanceScorer:
         """Create the keyword relevance scorer."""
@@ -181,9 +181,7 @@ class LegalDocumentCrawler:
         legal_keywords_query = "privacy policy, terms of service, cookie policy, GDPR, terms and conditions, legal disclaimer, data protection, privacy, privacy policy, cookie, cookies, cookie policy, data, processor, subprocessor, partners, policy, policies, use policy, terms, terms of service, terms and conditions, terms of use, coppa, safety, copyright, dmca, gdpr, hipaa"
         threshold_score = 0
 
-        return ContentRelevanceFilter(
-            query=legal_keywords_query, threshold=threshold_score
-        )
+        return ContentRelevanceFilter(query=legal_keywords_query, threshold=threshold_score)
 
     @deprecated("This filter is no longer used")
     def _create_filter_chain(self) -> FilterChain:
@@ -268,9 +266,7 @@ class LegalDocumentCrawler:
         all_results = []
         seen_base_urls = set()
 
-        async with AsyncWebCrawler(
-            config=self.browser_config, verbose=self.verbose
-        ) as crawler:
+        async with AsyncWebCrawler(config=self.browser_config, verbose=self.verbose) as crawler:
             for url in urls:
                 results = []
                 async for result in await crawler.arun(url, config=self.crawler_config):
@@ -351,9 +347,7 @@ Please return a JSON object with the following fields:
 Use caution: Web crawlers often pick up limited or partial page content. If the content appears incomplete, vague, or primarily navigational or promotional, treat it with skepticism and prefer "other" unless clear evidence suggests a more specific classification.
 """
 
-    async def classify(
-        self, url: str, text: str, metadata: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def classify(self, url: str, text: str, metadata: dict[str, Any]) -> dict[str, Any]:
         """
         Classify a document using the configured LLM.
 
@@ -482,9 +476,7 @@ Be as specific as possible with the locale (include country code when possible).
         }
 
 
-async def detect_regions(
-    text: str, metadata: dict[str, Any], url: str
-) -> dict[str, Any]:
+async def detect_regions(text: str, metadata: dict[str, Any], url: str) -> dict[str, Any]:
     """
     Detect if a document applies globally or to specific regions only.
 
@@ -628,9 +620,7 @@ Your response will help determine legal applicability across jurisdictions, so p
         }
 
 
-async def extract_title(
-    markdown: str, metadata: dict[str, Any], url: str, doc_type: str
-) -> str:
+async def extract_title(markdown: str, metadata: dict[str, Any], url: str, doc_type: str) -> str:
     """
     Extract the title of a document using LLM analysis.
 
@@ -713,7 +703,7 @@ async def store_documents(documents: list[Document]):
     """Store documents with deduplication and update logic."""
     for document in documents:
         # Check if document with same URL exists
-        existing_doc = await get_document_by_url(document.url)
+        existing_doc = await document_service.get_document_by_url(document.url)
 
         if existing_doc:
             # Calculate SHA-256 hash of the document text
@@ -726,7 +716,7 @@ async def store_documents(documents: list[Document]):
                 # Update existing document if content is different
                 logger.info(f"Updating document with URL: {document.url}")
                 document.id = existing_doc.id  # Preserve the original ID
-                await mongo.db.documents.update_one(
+                await document_service.update_document(
                     {"url": document.url}, {"$set": document.model_dump()}
                 )
             else:
@@ -734,7 +724,7 @@ async def store_documents(documents: list[Document]):
         else:
             # Create new document if URL doesn't exist
             logger.info(f"Creating new document with URL: {document.url}")
-            await mongo.db.documents.insert_one(document.model_dump())
+            await document_service.create_document(document)
 
 
 async def process_company(company: Company) -> list[Document]:
@@ -792,9 +782,7 @@ async def process_company(company: Company) -> list[Document]:
             continue
 
         # Classify the document
-        classification = await classifier.classify(
-            result.url, text_content, result.metadata
-        )
+        classification = await classifier.classify(result.url, text_content, result.metadata)
         logger.info(f"URL: {result.url} - Classification: {classification}")
 
         # Skip if not a legal document
@@ -803,9 +791,7 @@ async def process_company(company: Company) -> list[Document]:
             continue
 
         # Detect regions for the document
-        region_detection = await detect_regions(
-            text_content, result.metadata, result.url
-        )
+        region_detection = await detect_regions(text_content, result.metadata, result.url)
         logger.info(f"URL: {result.url} - Region detection: {region_detection}")
 
         # Extract title for the document
@@ -845,9 +831,7 @@ async def process_company(company: Company) -> list[Document]:
     company_end_time = time.time()
     company_duration = company_end_time - company_start_time
     log_memory_usage(f"Completed {company.name}")
-    logger.success(
-        f"✅ Completed processing {company.name} in {company_duration:.2f} seconds"
-    )
+    logger.success(f"✅ Completed processing {company.name} in {company_duration:.2f} seconds")
 
     return legal_documents
 
@@ -863,7 +847,7 @@ async def main():
     # Start background memory monitoring (optional - logs every 30 seconds)
     memory_task = asyncio.create_task(memory_monitor_task(30))
 
-    companies = await get_all_companies()
+    companies = await get_all_companies_isolated()
     all_documents = []
 
     # Process companies sequentially to respect rate limits
@@ -883,8 +867,7 @@ async def main():
 
     current, peak = tracemalloc.get_traced_memory()
     logger.info(
-        f"📊 Memory trace: Current={current / 1024 / 1024:.1f}MB, "
-        f"Peak={peak / 1024 / 1024:.1f}MB"
+        f"📊 Memory trace: Current={current / 1024 / 1024:.1f}MB, Peak={peak / 1024 / 1024:.1f}MB"
     )
     tracemalloc.stop()
 

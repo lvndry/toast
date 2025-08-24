@@ -1,7 +1,10 @@
 import asyncio
 
 import psutil  # type: ignore
-from loguru import logger
+
+from core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_memory_usage() -> dict[str, float]:

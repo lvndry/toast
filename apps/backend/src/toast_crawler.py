@@ -7,14 +7,17 @@ import heapq
 import re
 import time
 from collections import deque
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 from urllib.parse import urljoin, urlparse, urlunparse
 
 import aiohttp
 import markdownify  # type: ignore
 from bs4 import BeautifulSoup
-from loguru import logger
 from pydantic import BaseModel, Field
+
+from core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class CrawlResult(BaseModel):
@@ -24,12 +27,12 @@ class CrawlResult(BaseModel):
     title: str
     content: str
     markdown: str
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     status_code: int
     success: bool
-    error_message: Optional[str] = None
+    error_message: str | None = None
     legal_score: float = 0.0
-    discovered_urls: List[str] = Field(default_factory=list)
+    discovered_urls: list[str] = Field(default_factory=list)
 
 
 class CrawlStats(BaseModel):
@@ -304,8 +307,8 @@ class ContentAnalyzer:
         ]
 
     def analyze_content(
-        self, content: str, title: str = "", metadata: Optional[Dict[str, Any]] = None
-    ) -> Tuple[bool, float, List[str]]:
+        self, content: str, title: str = "", metadata: dict[str, Any] | None = None
+    ) -> tuple[bool, float, list[str]]:
         """
         Analyze content to determine if it's a legal document.
 
@@ -395,10 +398,7 @@ class ContentAnalyzer:
         # 2. Meets minimum score threshold
         # 3. OR has strong title indicators (overrides density for short legal docs)
         is_legal = (
-            (
-                legal_density >= min_density_threshold
-                and normalized_score >= min_score_threshold
-            )
+            (legal_density >= min_density_threshold and normalized_score >= min_score_threshold)
             or title_bonus >= 6.0  # Strong title indicators
         )
 
@@ -413,7 +413,7 @@ class RobotsTxtChecker:
     """Checks robots.txt compliance with improved parsing."""
 
     def __init__(self):
-        self.robots_cache: Dict[str, Dict[str, Any]] = {}
+        self.robots_cache: dict[str, dict[str, Any]] = {}
         self.user_agent = "ToastCrawler/2.0"
         # Common user agent patterns that should be treated as wildcards
         self.user_agent_patterns = [
@@ -429,9 +429,7 @@ class RobotsTxtChecker:
             "bot",  # Common suffix
         ]
 
-    async def can_fetch(
-        self, session: aiohttp.ClientSession, url: str
-    ) -> Tuple[bool, str]:
+    async def can_fetch(self, session: aiohttp.ClientSession, url: str) -> tuple[bool, str]:
         """Check if URL can be fetched according to robots.txt."""
         try:
             parsed = urlparse(url)
@@ -446,9 +444,7 @@ class RobotsTxtChecker:
                         if response.status == 200:
                             robots_content = await response.text()
                             logger.debug(f"Fetched robots.txt from {robots_url}")
-                            self.robots_cache[base_url] = self._parse_robots_txt(
-                                robots_content
-                            )
+                            self.robots_cache[base_url] = self._parse_robots_txt(robots_content)
                         else:
                             logger.debug(
                                 f"Could not fetch robots.txt from {robots_url} (status: {response.status})"
@@ -471,12 +467,12 @@ class RobotsTxtChecker:
             logger.warning(f"Error checking robots.txt for {url}: {e}")
             return True, f"Error checking robots.txt: {str(e)}"
 
-    def _parse_robots_txt(self, content: str) -> Dict[str, Any]:
+    def _parse_robots_txt(self, content: str) -> dict[str, Any]:
         """Parse robots.txt content into rules following the standard format."""
         lines = [line.strip() for line in content.split("\n") if line.strip()]
         logger.debug(f"Parsing robots.txt with {len(lines)} lines")
 
-        user_agents: Dict[str, Dict[str, List[str]]] = {}
+        user_agents: dict[str, dict[str, list[str]]] = {}
         current_user_agent = None
 
         for line in lines:
@@ -506,9 +502,7 @@ class RobotsTxtChecker:
                 elif directive == "disallow" and current_user_agent:
                     if value:  # Only add non-empty disallow rules
                         user_agents[current_user_agent]["disallow"].append(value)
-                        logger.debug(
-                            f"Added disallow rule for {current_user_agent}: {value}"
-                        )
+                        logger.debug(f"Added disallow rule for {current_user_agent}: {value}")
                 elif directive == "allow" and current_user_agent:
                     user_agents[current_user_agent]["allow"].append(value)
                     logger.debug(f"Added allow rule for {current_user_agent}: {value}")
@@ -517,17 +511,13 @@ class RobotsTxtChecker:
                     try:
                         delay = float(value)
                         user_agents[current_user_agent]["crawl_delay"] = delay  # type: ignore
-                        logger.debug(
-                            f"Added crawl-delay for {current_user_agent}: {delay}"
-                        )
+                        logger.debug(f"Added crawl-delay for {current_user_agent}: {delay}")
                     except ValueError:
                         logger.warning(f"Invalid crawl-delay value: {value}")
 
         return {"user_agents": user_agents}
 
-    def _check_url_allowed(
-        self, url: str, robots_rules: Dict[str, Any]
-    ) -> Tuple[bool, str]:
+    def _check_url_allowed(self, url: str, robots_rules: dict[str, Any]) -> tuple[bool, str]:
         """Check if URL is allowed based on parsed robots.txt rules."""
         parsed = urlparse(url)
         path = parsed.path
@@ -573,9 +563,9 @@ class RobotsTxtChecker:
             if self._path_matches_pattern(path, disallow_pattern):
                 # If we have a matching disallow rule, check if there's a more specific allow rule
                 for allow_pattern in applicable_rules.get("allow", []):
-                    if self._path_matches_pattern(path, allow_pattern) and len(
-                        allow_pattern
-                    ) > len(disallow_pattern):
+                    if self._path_matches_pattern(path, allow_pattern) and len(allow_pattern) > len(
+                        disallow_pattern
+                    ):
                         logger.debug(
                             f"URL allowed by more specific pattern: {allow_pattern} (overrides {disallow_pattern})"
                         )
@@ -632,13 +622,13 @@ class ToastCrawler:
         max_concurrent: int = 10,
         delay_between_requests: float = 1.0,
         timeout: int = 30,
-        allowed_domains: Optional[List[str]] = None,
+        allowed_domains: list[str] | None = None,
         respect_robots_txt: bool = True,
         user_agent: str = "ToastCrawler/2.0 (Legal Document Discovery Bot; website coming soon)",
         follow_external_links: bool = False,
         min_legal_score: float = 2.0,
         strategy: str = "bfs",  # "bfs", "dfs", "best_first"
-        ignore_robots_for_domains: List[str]
+        ignore_robots_for_domains: list[str]
         | None = None,  # List of domains to ignore robots.txt for
     ):
         """
@@ -663,9 +653,7 @@ class ToastCrawler:
         self.max_concurrent = max_concurrent
         self.delay_between_requests = delay_between_requests
         self.timeout = timeout
-        self.allowed_domains: Optional[Set[str]] = (
-            set(allowed_domains) if allowed_domains else None
-        )
+        self.allowed_domains: set[str] | None = set(allowed_domains) if allowed_domains else None
         self.respect_robots_txt = respect_robots_txt
         self.user_agent = user_agent
         self.follow_external_links = follow_external_links
@@ -679,14 +667,12 @@ class ToastCrawler:
         self.robots_checker = RobotsTxtChecker() if respect_robots_txt else None
 
         # State
-        self.visited_urls: Set[str] = set()
-        self.failed_urls: Set[str] = set()
-        self.url_queue: deque[Tuple[str, int]] = deque()  # For BFS
-        self.url_stack: List[Tuple[str, int]] = []  # For DFS
-        self.url_priority_queue: List[
-            Tuple[float, str, int]
-        ] = []  # For best-first (scored URLs)
-        self.results: List[CrawlResult] = []
+        self.visited_urls: set[str] = set()
+        self.failed_urls: set[str] = set()
+        self.url_queue: deque[tuple[str, int]] = deque()  # For BFS
+        self.url_stack: list[tuple[str, int]] = []  # For DFS
+        self.url_priority_queue: list[tuple[float, str, int]] = []  # For best-first (scored URLs)
+        self.results: list[CrawlResult] = []
         self.stats = CrawlStats()
 
         # Rate limiting
@@ -744,9 +730,7 @@ class ToastCrawler:
     def should_crawl_url(self, url: str, base_url: str, depth: int) -> bool:
         """Determine if URL should be crawled."""
         if depth > self.max_depth:
-            logger.debug(
-                f"❌ URL {url} rejected: depth {depth} > max_depth {self.max_depth}"
-            )
+            logger.debug(f"❌ URL {url} rejected: depth {depth} > max_depth {self.max_depth}")
             return False
 
         if url in self.visited_urls or url in self.failed_urls:
@@ -758,9 +742,7 @@ class ToastCrawler:
             return False
 
         if not self.follow_external_links and not self.is_same_domain(url, base_url):
-            logger.debug(
-                f"❌ URL {url} rejected: external link and follow_external_links=False"
-            )
+            logger.debug(f"❌ URL {url} rejected: external link and follow_external_links=False")
             return False
 
         # Skip common non-content URLs
@@ -783,9 +765,9 @@ class ToastCrawler:
         logger.debug(f"✅ URL {url} accepted for crawling at depth {depth}")
         return True
 
-    def extract_links(self, soup: BeautifulSoup, base_url: str) -> List[str]:
+    def extract_links(self, soup: BeautifulSoup, base_url: str) -> list[str]:
         """Extract links from HTML."""
-        links: List[str] = []
+        links: list[str] = []
 
         for link in soup.find_all("a", href=True):
             if hasattr(link, "get"):
@@ -802,7 +784,7 @@ class ToastCrawler:
                     links.append(normalized_url)
 
         # Remove duplicates and log discovered links
-        unique_links: List[str] = list(set(links))
+        unique_links: list[str] = list(set(links))
         logger.debug(f"🔗 Discovered {len(unique_links)} unique links from {base_url}")
         for link in unique_links[:10]:  # type: ignore
             logger.debug(f"  - {link}")
@@ -811,9 +793,9 @@ class ToastCrawler:
 
         return unique_links
 
-    def extract_metadata(self, soup: BeautifulSoup) -> Dict[str, Any]:
+    def extract_metadata(self, soup: BeautifulSoup) -> dict[str, Any]:
         """Extract metadata from HTML."""
-        metadata: Dict[str, Any] = {}
+        metadata: dict[str, Any] = {}
 
         # Title
         title_tag = soup.find("title")
@@ -823,9 +805,7 @@ class ToastCrawler:
         # Meta tags
         for meta in soup.find_all("meta"):
             if hasattr(meta, "get"):
-                name = (
-                    meta.get("name") or meta.get("property") or meta.get("http-equiv")
-                )
+                name = meta.get("name") or meta.get("property") or meta.get("http-equiv")
                 content = meta.get("content")
 
                 if name and content and isinstance(name, str):
@@ -835,9 +815,7 @@ class ToastCrawler:
         for i in range(1, 7):
             headers = soup.find_all(f"h{i}")
             if headers:
-                metadata[f"h{i}"] = [
-                    h.get_text().strip() for h in headers[:5]
-                ]  # First 5
+                metadata[f"h{i}"] = [h.get_text().strip() for h in headers[:5]]  # First 5
 
         return metadata
 
@@ -868,9 +846,7 @@ class ToastCrawler:
             if should_check_robots and self.robots_checker:
                 is_allowed, reason = await self.robots_checker.can_fetch(session, url)
                 if not is_allowed:
-                    logger.warning(
-                        f"URL blocked by robots.txt: {url} - Reason: {reason}"
-                    )
+                    logger.warning(f"URL blocked by robots.txt: {url} - Reason: {reason}")
                     return CrawlResult(
                         url=url,
                         title="",
@@ -921,9 +897,7 @@ class ToastCrawler:
                     text_content = re.sub(r"\s+", " ", text_content).strip()
 
                     # Convert to markdown
-                    markdown_content = markdownify.markdownify(
-                        str(soup), heading_style="ATX"
-                    )
+                    markdown_content = markdownify.markdownify(str(soup), heading_style="ATX")
 
                     # Extract metadata
                     metadata = self.extract_metadata(soup)
@@ -965,12 +939,7 @@ class ToastCrawler:
                     if not title_text:
                         url_parts = url.rstrip("/").split("/")
                         if url_parts:
-                            title_text = (
-                                url_parts[-1]
-                                .replace("-", " ")
-                                .replace("_", " ")
-                                .title()
-                            )
+                            title_text = url_parts[-1].replace("-", " ").replace("_", " ").title()
 
                     # Use text content as markdown (it's already plain text)
                     markdown_content = text_content
@@ -987,10 +956,8 @@ class ToastCrawler:
                     discovered_urls = []
 
                 # Analyze content for legal relevance (works for both HTML and plain text)
-                is_legal, legal_score, indicators = (
-                    self.content_analyzer.analyze_content(
-                        text_content, title_text, metadata
-                    )
+                is_legal, legal_score, indicators = self.content_analyzer.analyze_content(
+                    text_content, title_text, metadata
                 )
 
                 if is_legal:
@@ -1020,7 +987,7 @@ class ToastCrawler:
                 error_message=str(e),
             )
 
-    def generate_potential_legal_urls(self, base_url: str) -> List[str]:
+    def generate_potential_legal_urls(self, base_url: str) -> list[str]:
         """Generate potential legal document URLs based on common patterns."""
         parsed = urlparse(base_url)
         domain = parsed.netloc
@@ -1078,7 +1045,7 @@ class ToastCrawler:
 
         return potential_urls
 
-    def add_urls_to_queue(self, urls: List[str], base_url: str, depth: int):
+    def add_urls_to_queue(self, urls: list[str], base_url: str, depth: int):
         """Add URLs to the appropriate queue based on strategy."""
         for url in urls:
             if not self.should_crawl_url(url, base_url, depth + 1):
@@ -1098,9 +1065,7 @@ class ToastCrawler:
         # If we're at depth 0 (starting page), also add potential legal URLs
         if depth == 0:
             potential_legal_urls = self.generate_potential_legal_urls(base_url)
-            logger.info(
-                f"🔍 Generated {len(potential_legal_urls)} potential legal URLs"
-            )
+            logger.info(f"🔍 Generated {len(potential_legal_urls)} potential legal URLs")
 
             for url in potential_legal_urls:
                 if not self.should_crawl_url(url, base_url, 1):
@@ -1119,7 +1084,7 @@ class ToastCrawler:
                         f"Added potential legal URL to Best-First queue: {url} (score: {score:.2f})"
                     )
 
-    def get_next_url(self) -> Optional[Tuple[str, int]]:
+    def get_next_url(self) -> tuple[str, int] | None:
         """Get next URL from queue based on strategy."""
         if self.strategy == "bfs" and self.url_queue:
             return self.url_queue.popleft()
@@ -1130,7 +1095,7 @@ class ToastCrawler:
             return url, depth
         return None
 
-    async def crawl(self, base_url: str) -> List[CrawlResult]:
+    async def crawl(self, base_url: str) -> list[CrawlResult]:
         """
         Crawl starting from base URL.
 
@@ -1159,17 +1124,13 @@ class ToastCrawler:
         elif self.strategy == "best_first":
             score = self.url_scorer.score_url(base_url)
             heapq.heappush(self.url_priority_queue, (-score, base_url, 0))
-            logger.debug(
-                f"Added base URL to Best-First queue: {base_url} (score: {score:.2f})"
-            )
+            logger.debug(f"Added base URL to Best-First queue: {base_url} (score: {score:.2f})")
 
         # Create session with connection pooling
         connector = aiohttp.TCPConnector(limit=self.max_concurrent)
         timeout = aiohttp.ClientTimeout(total=self.timeout)
 
-        async with aiohttp.ClientSession(
-            connector=connector, timeout=timeout
-        ) as session:
+        async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
             # Semaphore to limit concurrent requests
             semaphore = asyncio.Semaphore(self.max_concurrent)
 
@@ -1181,9 +1142,7 @@ class ToastCrawler:
             while len(self.visited_urls) < self.max_pages:
                 # Get batch of URLs to process
                 batch = []
-                batch_size = min(
-                    self.max_concurrent, self.max_pages - len(self.visited_urls)
-                )
+                batch_size = min(self.max_concurrent, self.max_pages - len(self.visited_urls))
 
                 for _ in range(batch_size):
                     next_item = self.get_next_url()
@@ -1202,7 +1161,7 @@ class ToastCrawler:
                 batch_results = await asyncio.gather(*tasks)
 
                 # Process results
-                for result, (url, depth) in zip(batch_results, batch):
+                for result, (url, depth) in zip(batch_results, batch, strict=False):
                     self.stats.total_urls += 1
 
                     if result.success:
@@ -1211,9 +1170,7 @@ class ToastCrawler:
 
                         # Add discovered URLs to queue
                         if depth < self.max_depth:
-                            self.add_urls_to_queue(
-                                result.discovered_urls, base_url, depth
-                            )
+                            self.add_urls_to_queue(result.discovered_urls, base_url, depth)
 
                         logger.info(
                             f"✅ [{self.stats.crawled_urls}/{self.max_pages}] "
@@ -1247,7 +1204,7 @@ class ToastCrawler:
 
         return self.results
 
-    async def crawl_multiple(self, urls: List[str]) -> List[CrawlResult]:
+    async def crawl_multiple(self, urls: list[str]) -> list[CrawlResult]:
         """Crawl multiple base URLs."""
         all_results = []
 
@@ -1273,7 +1230,7 @@ async def crawl_for_legal_documents(
     max_depth: int = 4,
     max_pages: int = 1000,
     strategy: str = "bfs",
-) -> List[CrawlResult]:
+) -> list[CrawlResult]:
     """
     Simple interface to crawl for legal documents.
 
@@ -1303,9 +1260,7 @@ async def test_specific_url(url: str) -> CrawlResult:
     Returns:
         CrawlResult for the specific URL
     """
-    crawler = ToastCrawler(
-        max_depth=1, max_pages=1, strategy="bfs", min_legal_score=0.0
-    )
+    crawler = ToastCrawler(max_depth=1, max_pages=1, strategy="bfs", min_legal_score=0.0)
 
     # Test URL scoring
     url_score = crawler.url_scorer.score_url(url)
@@ -1337,9 +1292,7 @@ async def main():
     import sys
 
     if len(sys.argv) < 2:
-        logger.info(
-            "Usage: python toast_crawler.py <base_url> [--test-url specific_url]"
-        )
+        logger.info("Usage: python toast_crawler.py <base_url> [--test-url specific_url]")
         return
 
     # Check if we're testing a specific URL
@@ -1387,9 +1340,7 @@ async def main():
     moderate_docs = [r for r in results if 1.0 <= r.legal_score < 3.0]
 
     if moderate_docs:
-        logger.info(
-            f"\n📋 Found {len(moderate_docs)} pages with moderate legal scores:"
-        )
+        logger.info(f"\n📋 Found {len(moderate_docs)} pages with moderate legal scores:")
         for result in moderate_docs[:10]:  # Top 10 moderate scoring
             logger.info(f"📄 {result.title or 'Untitled'}")
             logger.info(f"   URL: {result.url}")

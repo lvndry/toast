@@ -4,12 +4,7 @@ from pydantic import BaseModel
 from core.jwt import get_current_user
 from models.clerkUser import ClerkUser
 from src.services.usage_service import UsageService
-from src.services.user_service import (
-    complete_onboarding,
-    create_or_update_user,
-    get_me,
-    upgrade_user_tier,
-)
+from src.services.user_service import user_service
 from src.user import User, UserTier
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -39,7 +34,7 @@ async def upsert_user(
         first_name=req.first_name,
         last_name=req.last_name,
     )
-    await create_or_update_user(user)
+    await user_service.upsert_user(user)
     return {"status": "ok", "user_id": user.id}
 
 
@@ -47,14 +42,14 @@ async def upsert_user(
 async def me(current: ClerkUser = Depends(get_current_user)):
     if not current.user_id:
         raise HTTPException(status_code=401, detail="Invalid user")
-    user = await get_me(current.user_id)
+    user = await user_service.get_user_by_id(current.user_id)
     if user is None:
         # Create minimal user record on first access
         new_user = User(
             id=current.user_id,
             email=current.email,
         )
-        await create_or_update_user(new_user)
+        await user_service.upsert_user(new_user)
         return new_user
     return user
 
@@ -78,11 +73,21 @@ async def upgrade_tier(
     if not current.user_id:
         raise HTTPException(status_code=401, detail="Invalid user")
 
-    result = await upgrade_user_tier(current.user_id, req.tier)
-    if "error" in result:
-        raise HTTPException(status_code=400, detail=result["error"])
+    user = await user_service.get_user_by_id(current.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    return result
+    old_tier = user.tier
+    user.tier = req.tier
+    await user_service.upsert_user(user)
+
+    return {
+        "success": True,
+        "user_id": current.user_id,
+        "old_tier": old_tier.value,
+        "new_tier": req.tier.value,
+        "upgraded_at": user.updated_at.isoformat(),
+    }
 
 
 class CompleteOnboardingRequest(BaseModel):
@@ -96,5 +101,5 @@ async def complete_onboarding_route(
 ):
     if not current.user_id:
         raise HTTPException(status_code=401, detail="Invalid user")
-    await complete_onboarding(current.user_id)
+    await user_service.set_user_onboarding_completed(current.user_id)
     return {"status": "ok"}

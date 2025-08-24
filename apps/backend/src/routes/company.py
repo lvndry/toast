@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from loguru import logger
 
 from core.jwt import get_optional_user
-from src.services.company_service import get_company_by_id as svc_get_company_by_id
-from src.services.company_service import get_company_by_slug as svc_get_company_by_slug
-from src.services.company_service import get_or_generate_meta_summary, get_sources, list_companies
-from src.services.usage_service import UsageService
+from core.logging import get_logger
+from src.services.company_service import company_service
+from src.summarizer import generate_company_meta_summary
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/companies")
 
@@ -17,7 +17,7 @@ async def get_companies(has_documents: bool = True, user=Depends(get_optional_us
 
     If has_documents is True, only return companies that have documents.
     """
-    companies = await list_companies(has_documents=has_documents)
+    companies = await company_service.list_companies_with_documents(has_documents=has_documents)
     if user is None:
         companies = companies[:100]
     return companies
@@ -27,60 +27,52 @@ async def get_companies(has_documents: bool = True, user=Depends(get_optional_us
 async def get_company(slug: str):
     """Get a company by its slug."""
     try:
-        company = await svc_get_company_by_slug(slug)
+        company = await company_service.get_company_by_slug(slug)
         return company
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
 
-@router.get("/meta-summary/{company_slug}")
-async def get_company_meta_summary(company_slug: str, user=Depends(get_optional_user)):
-    """Get a meta-summary of all documents for a company."""
-    # First verify the company exists
-    try:
-        company = await svc_get_company_by_slug(company_slug)
-        if not company:
-            raise ValueError(f"Company with slug {company_slug} not found")
-
-        # Check usage limits if user is authenticated
-        if user:
-            # Check if user has exceeded their monthly limit
-            allowed, usage_info = await UsageService.check_usage_limit(user.user_id)
-
-            if not allowed:
-                raise HTTPException(
-                    status_code=429,
-                    detail={
-                        "message": "Monthly usage limit exceeded",
-                        "usage": usage_info,
-                        "upgrade_message": f"Upgrade to {usage_info['tier']} tier for higher limits",
-                    },
-                )
-
-            # Increment usage counter
-            success = await UsageService.increment_usage(user.user_id, "meta_summary")
-            if not success:
-                logger.warning(f"Failed to increment usage for user {user.user_id}")
-
-        return await get_or_generate_meta_summary(company_slug)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-
-@router.get("/{company_slug}/sources")
-async def get_company_sources(company_slug: str):
-    """Get all documents (sources) for a company."""
-    try:
-        return await get_sources(company_slug)
-    except ValueError as e:
-        logger.error(f"Error fetching sources for company {company_slug}: {e}")
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-
 @router.get("/{company_id}")
-async def fetch_company_by_id(company_id: str):
+async def get_company_by_id(company_id: str):
     """Get a company by its ID."""
-    company = await svc_get_company_by_id(company_id)
-    if not company:
-        raise HTTPException(status_code=404, detail=f"Company with ID {company_id} not found")
-    return company
+    try:
+        company = await company_service.get_company_by_id(company_id)
+        return company
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.put("/{company_id}/logo")
+async def update_logo(company_id: str, logo_url: str):
+    """Update a company's logo URL."""
+    try:
+        updated_company = await company_service.update_company_logo(company_id, logo_url)
+        return updated_company
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Error updating logo for company {company_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update logo") from e
+
+
+@router.get("/{company_id}/meta-summary")
+async def get_meta_summary(company_id: str, user=Depends(get_optional_user)):
+    """Get or generate a meta summary for a company."""
+    try:
+        company = await company_service.get_company_by_id(company_id)
+        meta_summary = await generate_company_meta_summary(company.slug)
+        return meta_summary
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.get("/{company_id}/sources")
+async def get_sources_for_company(company_id: str, user=Depends(get_optional_user)):
+    """Get sources for a company."""
+    try:
+        company = await company_service.get_company_by_id(company_id)
+        sources = await company_service.get_company_documents(company.slug)
+        return sources
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e

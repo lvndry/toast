@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from loguru import logger
-
-from src.db import get_user_by_id, upsert_user
+from core.logging import get_logger
+from src.services.user_service import user_service
 from src.user import User, UserTier
+
+logger = get_logger(__name__)
 
 
 class UsageService:
@@ -24,7 +25,7 @@ class UsageService:
     @staticmethod
     async def get_user_usage(user_id: str) -> User | None:
         """Get user with current usage information"""
-        return await get_user_by_id(user_id)
+        return await user_service.get_user_by_id(user_id)
 
     @staticmethod
     async def increment_usage(user_id: str, endpoint: str = "meta_summary") -> bool:
@@ -33,7 +34,7 @@ class UsageService:
         Returns True if the request is allowed, False if limit exceeded.
         """
         try:
-            user = await get_user_by_id(user_id)
+            user = await user_service.get_user_by_id(user_id)
             if not user:
                 logger.warning(f"User {user_id} not found for usage tracking")
                 return True  # Allow request if user not found
@@ -54,7 +55,7 @@ class UsageService:
             user.updated_at = datetime.now()
 
             # Update user in database
-            await upsert_user(user)
+            await user_service.upsert_user(user)
 
             logger.info(
                 f"User {user_id} usage incremented: {current_usage + 1}/{tier_limit} for {current_month}"
@@ -72,7 +73,7 @@ class UsageService:
         Returns (allowed, usage_info)
         """
         try:
-            user = await get_user_by_id(user_id)
+            user = await user_service.get_user_by_id(user_id)
             if not user:
                 return True, {"limit": 0, "used": 0, "remaining": 0, "tier": "unknown"}
 
@@ -99,7 +100,7 @@ class UsageService:
     async def get_usage_summary(user_id: str) -> dict:
         """Get detailed usage summary for a user"""
         try:
-            user = await get_user_by_id(user_id)
+            user = await user_service.get_user_by_id(user_id)
             if not user:
                 return {"error": "User not found"}
 

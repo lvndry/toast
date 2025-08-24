@@ -4,14 +4,15 @@ import asyncio
 
 from dotenv import load_dotenv
 from litellm import acompletion
-from loguru import logger
 from pydantic import BaseModel
 
-from src.db import get_company_documents, update_document
+from core.logging import get_logger
 from src.document import Document, DocumentAnalysis
 from src.models import get_model
+from src.services.document_service import document_service
 
 load_dotenv()
+logger = get_logger(__name__)
 
 
 class MetaSummaryScore(BaseModel):
@@ -33,7 +34,7 @@ class MetaSummary(BaseModel):
 
 
 async def summarize_all_company_documents(company_slug: str) -> str:
-    documents = await get_company_documents(company_slug)
+    documents = await document_service.get_company_documents(company_slug)
     total_docs = len(documents)
     logger.info(f"Summarizing {total_docs} documents for {company_slug}")
 
@@ -42,14 +43,12 @@ async def summarize_all_company_documents(company_slug: str) -> str:
         analysis = await summarize_document(doc)
         doc.analysis = analysis
         logger.debug(f"Analysis: {analysis}")
-        await update_document(doc)
+        await document_service.update_document(doc)
         logger.info(
             f"✓ Completed document {index}/{total_docs} ({(index / total_docs) * 100:.1f}%)"
         )
 
-    logger.info(
-        f"✓ Successfully summarized all {total_docs} documents for {company_slug}"
-    )
+    logger.info(f"✓ Successfully summarized all {total_docs} documents for {company_slug}")
 
 
 async def summarize_document(document: Document) -> DocumentAnalysis:
@@ -164,16 +163,15 @@ async def generate_company_meta_summary(company_slug: str) -> MetaSummary:
     Generate a meta-summary of all analyzed documents for a company.
 
     Args:
-        documents_with_analysis: List of documents that have analysis data
+        company_slug: The company slug to generate meta-summary for
 
-    Yields:
-        str: Chunks of the generated meta-summary
+    Returns:
+        MetaSummary: The generated meta-summary
     """
+    documents = await document_service.get_company_documents(company_slug)
+    logger.info(f"Generating meta-summary for {company_slug} with {len(documents)} documents")
+
     summaries = []
-    documents = await get_company_documents(company_slug)
-    logger.info(
-        f"Generating meta-summary for {company_slug} with {len(documents)} documents"
-    )
     for doc in documents:
         doc_type = doc.doc_type
         if doc.analysis:
@@ -302,9 +300,7 @@ Your task is to create a clear and accessible summary of the of the following do
 
         logger.debug(response.choices[0].message.content)
 
-        return MetaSummary.model_validate_json(
-            response.choices[0].message.content, strict=False
-        )
+        return MetaSummary.model_validate_json(response.choices[0].message.content, strict=False)
     except Exception as e:
         logger.error(f"Error generating meta-summary: {str(e)}")
         return None

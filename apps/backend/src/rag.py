@@ -2,12 +2,13 @@ import asyncio
 
 from dotenv import load_dotenv
 from litellm import completion, embedding
-from loguru import logger
 
+from core.logging import get_logger
 from src.models import get_model
 from src.vector_db import INDEX_NAME, pc
 
 load_dotenv()
+logger = get_logger(__name__)
 
 
 async def embed_query(query: str) -> list[float]:
@@ -94,9 +95,7 @@ Important Behavioral Guidelines:
 """
 
 
-async def get_answer(
-    question: str, company_slug: str, *, namespace: str | None = None
-) -> str:
+async def get_answer(question: str, company_slug: str, *, namespace: str | None = None) -> str:
     """
     Get an answer to a question using RAG with LiteLLM and Pinecone.
 
@@ -169,7 +168,5 @@ Document URL: {match["metadata"]["url"]}
 
 
 if __name__ == "__main__":
-    answer = asyncio.run(
-        get_answer("what personal information notion stores about me?", "notion")
-    )
+    answer = asyncio.run(get_answer("what personal information notion stores about me?", "notion"))
     logger.info(answer)

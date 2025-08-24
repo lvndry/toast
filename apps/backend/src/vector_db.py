@@ -1,8 +1,10 @@
 import os
 
-from loguru import logger
-
 from pinecone import Pinecone, ServerlessSpec  # type: ignore
+
+from core.logging import get_logger
+
+logger = get_logger(__name__)
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 if not PINECONE_API_KEY:

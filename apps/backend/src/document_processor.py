@@ -1,21 +1,22 @@
 """Document processing service for uploaded documents with OCR, classification, and summarization."""
 
 import json
-from typing import Dict, Any, Optional
-from loguru import logger
+from io import BytesIO
+from typing import Any
 
+import pdfplumber
+from docx import Document as DocxDocument
 from dotenv import load_dotenv
 from litellm import acompletion
 from pydantic import BaseModel
-import pdfplumber
-from docx import Document as DocxDocument
-from io import BytesIO
 
+from core.logging import get_logger
 from src.document import Document, DocumentAnalysis
-from src.models import get_model, SupportedModel
+from src.models import SupportedModel, get_model
 from src.summarizer import summarize_document
 
 load_dotenv()
+logger = get_logger(__name__)
 
 
 class DocumentProcessingResult(BaseModel):
@@ -23,9 +24,9 @@ class DocumentProcessingResult(BaseModel):
 
     success: bool
     is_legal_document: bool
-    document: Optional[Document] = None
-    analysis: Optional[DocumentAnalysis] = None
-    error_message: Optional[str] = None
+    document: Document | None = None
+    analysis: DocumentAnalysis | None = None
+    error_message: str | None = None
 
 
 class DocumentProcessor:
@@ -74,9 +75,7 @@ class DocumentProcessor:
         """
         try:
             # Step 1: Extract text from document (OCR for PDFs, direct text for others)
-            text_content = await self._extract_text(
-                file_content, filename, content_type
-            )
+            text_content = await self._extract_text(file_content, filename, content_type)
             if not text_content:
                 return DocumentProcessingResult(
                     success=False,
@@ -133,7 +132,7 @@ class DocumentProcessor:
 
     async def _extract_text(
         self, file_content: bytes, filename: str, content_type: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Extract text from uploaded document."""
         try:
             # Handle different file types
@@ -153,7 +152,7 @@ class DocumentProcessor:
             logger.error(f"Error extracting text from {filename}: {str(e)}")
             return None
 
-    async def _extract_text_from_pdf(self, file_content: bytes) -> Optional[str]:
+    async def _extract_text_from_pdf(self, file_content: bytes) -> str | None:
         """Extract text from PDF using pdfplumber."""
         try:
             # Use pdfplumber to extract text from PDF
@@ -177,7 +176,7 @@ class DocumentProcessor:
             logger.error(f"Error extracting text from PDF: {str(e)}")
             return None
 
-    async def _extract_text_from_docx(self, file_content: bytes) -> Optional[str]:
+    async def _extract_text_from_docx(self, file_content: bytes) -> str | None:
         """Extract text from DOCX file using python-docx."""
         try:
             # Use python-docx to extract text from DOCX
@@ -196,9 +195,7 @@ class DocumentProcessor:
             logger.error(f"Error extracting text from DOCX: {str(e)}")
             return None
 
-    async def _classify_document(
-        self, text_content: str, filename: str
-    ) -> Dict[str, Any]:
+    async def _classify_document(self, text_content: str, filename: str) -> dict[str, Any]:
         """Classify the document using LLM."""
         # Truncate content if too long
         if len(text_content) > self.max_content_length:

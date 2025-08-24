@@ -2,14 +2,15 @@ import shortuuid
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from litellm import embedding
-from loguru import logger
 
-from src.db import get_company_documents
+from core.logging import get_logger
 from src.document import Document
 from src.models import get_model
+from src.services.document_service import document_service
 from src.vector_db import INDEX_NAME, init_pinecone_index, pc
 
 load_dotenv()
+logger = get_logger(__name__)
 
 
 VOYAGE_LAW_2_DIMENSION = 1024
@@ -40,7 +41,7 @@ async def embed_company_documents(company_slug: str, *, namespace: str | None = 
         company_slug: The slug of the company
         documents: List of documents to process
     """
-    documents = await get_company_documents(company_slug)
+    documents = await document_service.get_company_documents(company_slug)
     index = pc.Index(INDEX_NAME)
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=1200, chunk_overlap=200, separators=["\n\n", "\n", ".", ";", " ", ""]
@@ -63,7 +64,7 @@ async def embed_company_documents(company_slug: str, *, namespace: str | None = 
 
         # Create vectors for each chunk
         for idx, (chunk, embedding_data) in enumerate(
-            zip(chunks, chunk_embeddings.data)
+            zip(chunks, chunk_embeddings.data, strict=False)
         ):
             start, end = offsets[idx] if idx < len(offsets) else (0, 0)
             vector = {
@@ -79,9 +80,7 @@ async def embed_company_documents(company_slug: str, *, namespace: str | None = 
                     "chunk_start": start,
                     "chunk_end": end,
                     "chunk_index": idx,
-                    "effective_date": doc.effective_date.isoformat()
-                    if doc.effective_date
-                    else "",
+                    "effective_date": doc.effective_date.isoformat() if doc.effective_date else "",
                 },
             }
             all_vectors.append(vector)
@@ -114,7 +113,7 @@ async def embed_document(document: Document, *, namespace: str):
     )
 
     vectors = []
-    for idx, (chunk, embedding_data) in enumerate(zip(chunks, chunk_embeddings.data)):
+    for idx, (chunk, embedding_data) in enumerate(zip(chunks, chunk_embeddings.data, strict=False)):
         start, end = offsets[idx] if idx < len(offsets) else (0, 0)
         vectors.append(
             {

@@ -14,7 +14,6 @@ dependencies = [
     "jose>=1.0.0",
     "langchain>=0.3.25",
     "litellm>=1.65.1",
-    "loguru>=0.7.3",
     "markdown>=3.8",
     "markdownify>=1.1.0",
     "motor[zstd]>=3.7.0",
@@ -62,7 +61,7 @@ select = [
     "UP", # pyupgrade
 ]
 
-ignore = ["E501"]
+ignore = ["E501", "B008"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.params.Depends", "fastapi.Query", "fastapi.params.Query"]

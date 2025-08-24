@@ -9,3 +9,4 @@ class Company(BaseModel):
     domains: list[str] = []
     categories: list[str] = []
     crawl_base_urls: list[str] = []
+    logo: str | None = None
