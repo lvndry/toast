@@ -1,8 +1,8 @@
 import os
 
-from pinecone import Pinecone, ServerlessSpec  # type: ignore
+from pinecone import Pinecone, ServerlessSpec
 
-from core.logging import get_logger
+from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 

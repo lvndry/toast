@@ -1,20 +1,21 @@
 """Test database connection for Streamlit dashboard debugging."""
 
 import asyncio
-import os
 
 import certifi
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from src.core.config import settings
+
 # Load environment variables from .env file
 load_dotenv()
 
-MONGO_URI = os.getenv("MONGO_URI")
+MONGO_URI = settings.database.mongodb_uri
 DATABASE_NAME = "toast"
 
 
-async def test_connection():
+async def test_connection() -> bool:
     """Test MongoDB connection and basic operations."""
     if not MONGO_URI:
         print("❌ MONGO_URI environment variable is not set")

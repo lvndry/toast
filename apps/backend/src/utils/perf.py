@@ -1,8 +1,8 @@
 import asyncio
 
-import psutil  # type: ignore
+import psutil
 
-from core.logging import get_logger
+from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -23,7 +23,7 @@ def get_memory_usage() -> dict[str, float]:
     }
 
 
-def log_memory_usage(context: str = ""):
+def log_memory_usage(context: str = "") -> None:
     """Log current memory usage with context."""
     memory_stats = get_memory_usage()
     context_str = f" [{context}]" if context else ""
@@ -37,7 +37,7 @@ def log_memory_usage(context: str = ""):
     )
 
 
-async def memory_monitor_task(interval: int = 30):
+async def memory_monitor_task(interval: int = 30) -> None:
     """Background task to monitor memory usage periodically."""
     while True:
         log_memory_usage("Periodic Check")

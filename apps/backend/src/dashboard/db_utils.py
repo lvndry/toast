@@ -1,31 +1,27 @@
 """Dashboard database utilities using isolated database connections."""
 
-import os
-
 import certifi
-from motor.motor_asyncio import AsyncIOMotorClient
+from core.config import settings
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
-from core.logging import get_logger
 from src.company import Company
+from src.core.logging import get_logger
 from src.document import Document
 
 logger = get_logger(__name__)
 
-MONGO_URI = os.getenv("MONGO_URI")
+MONGO_URI = settings.database.mongodb_uri
 DATABASE_NAME = "toast"
-
-if not MONGO_URI:
-    raise ValueError("MONGO_URI is not set")
 
 
 class DashboardDB:
     """Isolated database connection for Streamlit dashboard."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._client: AsyncIOMotorClient | None = None
-        self._db = None
+        self._db: AsyncIOMotorDatabase | None = None
 
-    async def connect(self):
+    async def connect(self) -> None:
         """Create a new database connection."""
         if self._client is None:
             if "+srv" in MONGO_URI:
@@ -35,7 +31,7 @@ class DashboardDB:
             self._db = self._client[DATABASE_NAME]
             logger.info("Dashboard connected to MongoDB")
 
-    async def disconnect(self):
+    async def disconnect(self) -> None:
         """Close the database connection."""
         if self._client:
             self._client.close()
@@ -44,9 +40,18 @@ class DashboardDB:
             logger.info("Dashboard disconnected from MongoDB")
 
     @property
-    def db(self):
+    def db(self) -> AsyncIOMotorDatabase:
         """Get the database instance."""
+        if self._db is None:
+            raise ValueError("Database not initialized")
         return self._db
+
+    @property
+    def client(self) -> AsyncIOMotorClient:
+        """Get the client instance."""
+        if self._client is None:
+            raise ValueError("Client not initialized")
+        return self._client
 
 
 async def get_dashboard_db() -> DashboardDB:
@@ -110,7 +115,7 @@ async def update_company_isolated(company: Company) -> bool:
         success = result.modified_count > 0
         if success:
             logger.info(f"Updated company {company.id}")
-        return success
+        return bool(success)
     except Exception as e:
         logger.error(f"Error updating company {company.id}: {e}")
         return False
@@ -126,7 +131,7 @@ async def delete_company_isolated(company_id: str) -> bool:
         success = result.deleted_count > 0
         if success:
             logger.info(f"Deleted company {company_id}")
-        return success
+        return bool(success)
     except Exception as e:
         logger.error(f"Error deleting company {company_id}: {e}")
         return False

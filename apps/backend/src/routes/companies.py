@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from core.jwt import get_optional_user
-from core.logging import get_logger
+from src.company import Company
+from src.core.jwt import get_optional_user
+from src.core.logging import get_logger
+from src.document import Document, DocumentAnalysis
+from src.models.clerkUser import ClerkUser
 from src.services.company_service import company_service
 from src.summarizer import MetaSummary, generate_company_meta_summary
 
@@ -11,13 +14,17 @@ router = APIRouter(prefix="/companies")
 
 
 @router.get("")
-async def get_companies(has_documents: bool = True, user=Depends(get_optional_user)):
+async def get_companies(
+    has_documents: bool = True, user: ClerkUser | None = Depends(get_optional_user)
+) -> list[Company]:
     """
     Get all companies.
 
     If has_documents is True, only return companies that have documents.
     """
-    companies = await company_service.list_companies_with_documents(has_documents=has_documents)
+    companies: list[Company] = await company_service.list_companies_with_documents(
+        has_documents=has_documents
+    )
     logger.info(f"Found {len(companies)} companies")
     if user is None:
         companies = companies[:100]
@@ -25,7 +32,7 @@ async def get_companies(has_documents: bool = True, user=Depends(get_optional_us
 
 
 @router.get("/slug/{slug}")
-async def get_company(slug: str):
+async def get_company(slug: str) -> Company:
     """Get a company by its slug."""
     try:
         company = await company_service.get_company_by_slug(slug)
@@ -35,7 +42,7 @@ async def get_company(slug: str):
 
 
 @router.get("/{company_id}")
-async def get_company_by_id(company_id: str):
+async def get_company_by_id(company_id: str) -> Company:
     """Get a company by its ID."""
     try:
         company = await company_service.get_company_by_id(company_id)
@@ -45,7 +52,7 @@ async def get_company_by_id(company_id: str):
 
 
 @router.put("/{company_id}/logo")
-async def update_logo(company_id: str, logo_url: str):
+async def update_logo(company_id: str, logo_url: str) -> Company:
     """Update a company's logo URL."""
     try:
         updated_company = await company_service.update_company_logo(company_id, logo_url)
@@ -58,7 +65,9 @@ async def update_logo(company_id: str, logo_url: str):
 
 
 @router.get("/{company_slug}/meta-summary")
-async def get_meta_summary(company_slug: str, user=Depends(get_optional_user)):
+async def get_meta_summary(
+    company_slug: str, user: ClerkUser | None = Depends(get_optional_user)
+) -> DocumentAnalysis:
     """Get or generate a meta summary for a company."""
     try:
         # 1) Try cache first
@@ -97,8 +106,6 @@ async def get_meta_summary(company_slug: str, user=Depends(get_optional_user)):
         }
 
         # 4) Store in DB for future requests
-        from src.document import DocumentAnalysis
-
         await company_service.store_company_meta_summary(
             company_slug, DocumentAnalysis(**analysis_like)
         )
@@ -109,11 +116,13 @@ async def get_meta_summary(company_slug: str, user=Depends(get_optional_user)):
 
 
 @router.get("/{company_id}/sources")
-async def get_sources_for_company(company_id: str, user=Depends(get_optional_user)):
+async def get_sources_for_company(
+    company_id: str, user: ClerkUser | None = Depends(get_optional_user)
+) -> list[Document]:
     """Get sources for a company."""
     try:
         company = await company_service.get_company_by_id(company_id)
-        sources = await company_service.get_company_documents(company.slug)
+        sources: list[Document] = await company_service.get_company_documents(company.slug)
         return sources
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e

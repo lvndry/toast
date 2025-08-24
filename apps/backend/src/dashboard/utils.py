@@ -2,13 +2,13 @@ import asyncio
 import concurrent.futures
 import threading
 import warnings
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine, Generator
 from contextlib import contextmanager
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import streamlit as st
 
-from core.logging import get_logger
+from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -16,7 +16,7 @@ T = TypeVar("T")
 
 
 @contextmanager
-def suppress_streamlit_warnings():
+def suppress_streamlit_warnings() -> Generator[None, None, None]:
     """Context manager to suppress Streamlit ScriptRunContext warnings in worker threads."""
     warnings.filterwarnings("ignore", message="missing ScriptRunContext")
     try:
@@ -36,7 +36,7 @@ def run_async(coro: Coroutine[None, None, T]) -> T | None:
         The result of the coroutine with its original type preserved, or None if an error occurs
     """
 
-    def run_in_thread():
+    def run_in_thread() -> T | None:
         # Suppress Streamlit ScriptRunContext warnings in worker threads
         with suppress_streamlit_warnings():
             # Create a completely fresh event loop in this thread
@@ -109,8 +109,10 @@ def run_async_with_retry(coro: Coroutine[None, None, T], max_retries: int = 3) -
     return None
 
 
-def run_in_thread_with_warning_suppression(func, *args, **kwargs):
-    """Run a function in a separate thread with Streamlit warning suppression.
+def run_in_thread_with_warning_suppression(
+    func: Callable[..., Any], *args: Any, **kwargs: Any
+) -> Any:
+    """Run a function in a separate thread with Streamlit warning suppression
 
     Args:
         func: The function to run
@@ -121,7 +123,7 @@ def run_in_thread_with_warning_suppression(func, *args, **kwargs):
         The result of the function
     """
 
-    def run_in_thread():
+    def run_in_thread() -> Any:
         with suppress_streamlit_warnings():
             return func(*args, **kwargs)
 

@@ -1,10 +1,11 @@
 """Company service for managing company operations."""
 
-from datetime import datetime
-from typing import ClassVar
+from __future__ import annotations
 
-from core.logging import get_logger
+from datetime import datetime
+
 from src.company import Company
+from src.core.logging import get_logger
 from src.document import Document, DocumentAnalysis
 from src.exceptions import CompanyNotFoundError
 from src.services.base_service import BaseService
@@ -16,9 +17,9 @@ logger = get_logger(__name__)
 class CompanyService(BaseService):
     """Service for company-related database operations."""
 
-    _instance: ClassVar["CompanyService"] = None
+    _instance: CompanyService | None = None
 
-    def __new__(cls):
+    def __new__(cls) -> CompanyService:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -64,7 +65,7 @@ class CompanyService(BaseService):
                 logger.info(f"Updated company {company.id}")
             else:
                 logger.warning(f"No company found with id {company.id} to update")
-            return success
+            return bool(success)
         except Exception as e:
             logger.error(f"Error updating company {company.id}: {e}")
             raise e
@@ -78,7 +79,7 @@ class CompanyService(BaseService):
                 logger.info(f"Deleted company {company_id}")
             else:
                 logger.warning(f"No company found with id {company_id} to delete")
-            return success
+            return bool(success)
         except Exception as e:
             logger.error(f"Error deleting company {company_id}: {e}")
             raise e
@@ -92,7 +93,8 @@ class CompanyService(BaseService):
 
     async def get_company_documents(self, company_id: str) -> list[Document]:
         """Get all documents for a company."""
-        return await document_service.get_company_documents(company_id)
+        documents: list[Document] = await document_service.get_company_documents(company_id)
+        return documents
 
     async def get_company_meta_summary(self, company_slug: str) -> DocumentAnalysis | None:
         """Get a meta summary for a company from the database."""
@@ -106,7 +108,9 @@ class CompanyService(BaseService):
             logger.error(f"Error getting meta summary for {company_slug}: {e}")
             return None
 
-    async def store_company_meta_summary(self, company_slug: str, meta_summary: DocumentAnalysis):
+    async def store_company_meta_summary(
+        self, company_slug: str, meta_summary: DocumentAnalysis
+    ) -> None:
         """Store a meta summary for a company in the database."""
         try:
             company = await self.get_company_by_slug(company_slug)

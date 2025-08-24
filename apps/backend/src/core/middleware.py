@@ -4,7 +4,7 @@ import structlog
 from fastapi import FastAPI, HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from core.jwt import clerk_auth_service
+from src.core.jwt import clerk_auth_service
 
 logger = structlog.get_logger(service="auth_middleware")
 

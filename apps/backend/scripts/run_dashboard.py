@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 
-def check_environment():
+def check_environment() -> bool:
     """Check if required environment variables are set."""
     required_vars = ["MONGO_URI"]
     missing_vars = []
@@ -27,7 +27,7 @@ def check_environment():
     return True
 
 
-def test_database_connection():
+def test_database_connection() -> bool:
     """Test database connection before starting dashboard."""
     try:
         import asyncio
@@ -48,7 +48,7 @@ def test_database_connection():
         return False
 
 
-def run_streamlit():
+def run_streamlit() -> bool:
     """Run the Streamlit dashboard."""
     try:
         # Get the path to the dashboard app
@@ -93,7 +93,7 @@ def run_streamlit():
         return False
 
 
-def main():
+def main() -> None:
     """Main function to run the dashboard."""
     print("🍞 Toast AI Dashboard")
     print("=" * 30)
@@ -112,7 +112,7 @@ def main():
         sys.exit(1)
 
     # Run dashboard
-    success = run_streamlit()
+    success: bool = run_streamlit()
 
     if not success:
         sys.exit(1)

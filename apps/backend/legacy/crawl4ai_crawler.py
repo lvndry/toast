@@ -11,29 +11,29 @@ import time
 import tracemalloc
 from typing import Any
 
-from crawl4ai import AsyncWebCrawler, CrawlerRunConfig  # type: ignore
-from crawl4ai.async_configs import BrowserConfig  # type: ignore
-from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy  # type: ignore
-from crawl4ai.deep_crawling import (  # type: ignore
+from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
+from crawl4ai.async_configs import BrowserConfig
+from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy
+from crawl4ai.deep_crawling import (
     BestFirstCrawlingStrategy,
     BFSDeepCrawlStrategy,
     DFSDeepCrawlStrategy,
 )
-from crawl4ai.deep_crawling.filters import (  # type: ignore
+from crawl4ai.deep_crawling.filters import (
     ContentRelevanceFilter,
     DomainFilter,
     FilterChain,
     URLPatternFilter,
 )
-from crawl4ai.deep_crawling.scorers import KeywordRelevanceScorer  # type: ignore
+from crawl4ai.deep_crawling.scorers import KeywordRelevanceScorer
 from dotenv import load_dotenv
 from litellm import acompletion
 from typing_extensions import deprecated
 
-from core.logging import get_logger
 from src.company import Company
+from src.core.logging import get_logger
 from src.dashboard.db_utils import get_all_companies_isolated
-from src.document import DocType, Document  # type: ignore
+from src.document import DocType, Document
 from src.services.document_service import document_service
 from src.utils.markdown import markdown_to_text
 from src.utils.perf import log_memory_usage, memory_monitor_task
@@ -386,7 +386,12 @@ Use caution: Web crawlers often pick up limited or partial page content. If the 
                 logger.warning(f"Unknown classification: {result['classification']}")
                 result["classification"] = "other"
 
-            return result
+            return {
+                "classification": result["classification"],
+                "classification_justification": result["classification_justification"],
+                "is_legal_document": result["is_legal_document"],
+                "is_legal_document_justification": result["is_legal_document_justification"],
+            }
 
         except Exception as e:
             logger.error(f"Error classifying document with {self.model}: {str(e)}")
@@ -398,7 +403,7 @@ Use caution: Web crawlers often pick up limited or partial page content. If the 
             }
 
 
-async def detect_locale(text: str, metadata: dict[str, Any]) -> str:
+async def detect_locale(text: str, metadata: dict[str, Any]) -> dict[str, Any]:
     """
     Detect the locale of a document.
 
@@ -465,7 +470,11 @@ Be as specific as possible with the locale (include country code when possible).
 
         result = json.loads(response.choices[0].message.content)
 
-        return result
+        return {
+            "locale": result["locale"],
+            "confidence": result["confidence"],
+            "language_name": result["language_name"],
+        }
 
     except Exception as e:
         logger.error(f"Error detecting locale with LLM: {str(e)}")
@@ -620,7 +629,9 @@ Your response will help determine legal applicability across jurisdictions, so p
         }
 
 
-async def extract_title(markdown: str, metadata: dict[str, Any], url: str, doc_type: str) -> str:
+async def extract_title(
+    markdown: str, metadata: dict[str, Any], url: str, doc_type: str
+) -> dict[str, Any]:
     """
     Extract the title of a document using LLM analysis.
 
@@ -680,7 +691,10 @@ Do not generate or rewrite — extract only what is present in the text or metad
 
         result = json.loads(response.choices[0].message.content)
 
-        return result
+        return {
+            "title": result.get("title", ""),
+            "confidence": result.get("confidence", 0.0),
+        }
 
     except Exception as e:
         logger.error(f"Error extracting title with LLM: {str(e)}")
@@ -696,10 +710,13 @@ Do not generate or rewrite — extract only what is present in the text or metad
         "copyright_policy": "Copyright Policy",
     }
 
-    return type_titles.get(doc_type, "Legal Document")
+    return {
+        "title": type_titles.get(doc_type, "Legal Document"),
+        "confidence": 0.0,
+    }
 
 
-async def store_documents(documents: list[Document]):
+async def store_documents(documents: list[Document]) -> None:
     """Store documents with deduplication and update logic."""
     for document in documents:
         # Check if document with same URL exists
@@ -836,7 +853,7 @@ async def process_company(company: Company) -> list[Document]:
     return legal_documents
 
 
-async def main():
+async def main() -> None:
     # Start memory tracking
     tracemalloc.start()
     main_start_time = time.time()

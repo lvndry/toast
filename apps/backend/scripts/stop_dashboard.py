@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 
-def stop_dashboard():
+def stop_dashboard() -> bool:
     """Stop the Streamlit dashboard process."""
     try:
         # Find and kill streamlit processes

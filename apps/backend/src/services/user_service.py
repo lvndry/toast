@@ -1,9 +1,10 @@
 """User service for managing user operations."""
 
-from datetime import datetime
-from typing import ClassVar
+from __future__ import annotations
 
-from core.logging import get_logger
+from datetime import datetime
+
+from src.core.logging import get_logger
 from src.services.base_service import BaseService
 from src.user import User
 
@@ -13,9 +14,9 @@ logger = get_logger(__name__)
 class UserService(BaseService):
     """Service for user-related database operations."""
 
-    _instance: ClassVar["UserService"] = None
+    _instance: UserService | None = None
 
-    def __new__(cls):
+    def __new__(cls) -> UserService:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -68,7 +69,7 @@ class UserService(BaseService):
                 logger.info(f"Deleted user {user_id}")
             else:
                 logger.warning(f"No user found with id {user_id} to delete")
-            return success
+            return bool(success)
         except Exception as e:
             logger.error(f"Error deleting user {user_id}: {e}")
             raise e
@@ -87,7 +88,7 @@ class UserService(BaseService):
                 logger.info(f"Marked onboarding completed for user {user_id}")
             else:
                 logger.warning(f"No user found with id {user_id} to update onboarding")
-            return success
+            return bool(success)
         except Exception as e:
             logger.error(f"Error updating onboarding for user {user_id}: {e}")
             raise e
@@ -117,7 +118,7 @@ class UserService(BaseService):
                 logger.info(f"Updated profile for user {user_id}")
             else:
                 logger.warning(f"No user found with id {user_id} to update profile")
-            return success
+            return bool(success)
         except Exception as e:
             logger.error(f"Error updating profile for user {user_id}: {e}")
             raise e

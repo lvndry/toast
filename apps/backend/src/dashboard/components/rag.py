@@ -5,7 +5,7 @@ from src.dashboard.utils import run_async
 from src.rag import get_answer
 
 
-def show_rag():
+def show_rag() -> None:
     st.title("RAG Question Answering")
 
     # Get list of companies from the database
@@ -16,9 +16,7 @@ def show_rag():
         return
 
     # Company selection
-    selected_company = st.selectbox(
-        "Select a company", [company.slug for company in companies]
-    )
+    selected_company = st.selectbox("Select a company", [company.slug for company in companies])
 
     # Question input
     question = st.text_area("Enter your question about the company:", height=100)

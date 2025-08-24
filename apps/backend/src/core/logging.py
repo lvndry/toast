@@ -4,7 +4,7 @@ from typing import Any
 
 import structlog
 
-from core.config import settings
+from src.core.config import settings
 
 structlog.configure(
     processors=[

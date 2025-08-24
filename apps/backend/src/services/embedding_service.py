@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 from collections.abc import Iterable
 
-from core.logging import get_logger
+from src.core.logging import get_logger
 from src.embedding import embed_company_documents
 from src.services.company_service import company_service
 

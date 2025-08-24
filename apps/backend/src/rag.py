@@ -1,10 +1,11 @@
 import asyncio
+from typing import Any
 
 from dotenv import load_dotenv
-from litellm import completion, embedding
+from litellm import EmbeddingResponse, completion, embedding
 
-from core.logging import get_logger
-from src.models import get_model
+from src.core.logging import get_logger
+from src.llm import get_model
 from src.vector_db import INDEX_NAME, pc
 
 load_dotenv()
@@ -23,14 +24,14 @@ async def embed_query(query: str) -> list[float]:
     """
     model = get_model("voyage-law-2")
     try:
-        response = embedding(
+        response: EmbeddingResponse = await embedding(
             model=model.model,
             api_key=model.api_key,
             input=[query],
             input_type="query",
         )
 
-        return response.data[0]["embedding"]
+        return response.data[0]["embedding"]  # type: ignore
     except Exception as e:
         logger.error(f"Error getting embeddings: {str(e)}")
         raise
@@ -38,7 +39,7 @@ async def embed_query(query: str) -> list[float]:
 
 async def search_query(
     query: str, company_slug: str, top_k: int = 12, *, namespace: str | None = None
-):
+) -> dict[str, Any]:
     # Convert text query to vector embedding
     query_vector = await embed_query(query)
     index = pc.Index(INDEX_NAME)
@@ -50,7 +51,8 @@ async def search_query(
         include_metadata=True,
         include_values=False,
     )
-    return search_results
+
+    return search_results  # type: ignore
 
 
 SYSTEM_PROMPT = """You are a thoughtful and professional AI assistant.
@@ -161,7 +163,7 @@ Document URL: {match["metadata"]["url"]}
                 answer_text += "\n\nSources:\n" + "\n".join(citation_lines)
         except Exception:
             pass
-        return answer_text
+        return str(answer_text)
     except Exception as e:
         logger.error(f"Error getting completion from LiteLLM: {str(e)}")
         return "I apologize, but I encountered an error while trying to generate an answer."

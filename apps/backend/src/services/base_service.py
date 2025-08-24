@@ -1,42 +1,41 @@
 """Base service class for database operations."""
 
-import os
-from typing import ClassVar
+from __future__ import annotations
 
 import certifi
 from dotenv import load_dotenv
 from motor.core import AgnosticDatabase
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from core.logging import get_logger
+from src.core.config import settings
+from src.core.logging import get_logger
 
 load_dotenv()
 
 logger = get_logger(__name__)
 
-MONGO_URI = os.getenv("MONGO_URI")
 DATABASE_NAME = "toast"
 
-if not MONGO_URI:
-    raise ValueError("MONGO_URI is not set")
+MONGO_URI = settings.database.mongodb_uri
 
 
 class BaseService:
     """Base service class that provides database connection and common functionality."""
 
-    _instance: ClassVar["BaseService"] = None
-    _client: AsyncIOMotorClient = None
-    _db: AgnosticDatabase = None
+    _instance: BaseService | None = None
+    _client: AsyncIOMotorClient | None = None
+    _db: AgnosticDatabase | None = None
 
-    def __new__(cls):
+    def __new__(cls) -> BaseService:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialize_database()
         return cls._instance
 
-    def _initialize_database(self):
+    def _initialize_database(self) -> None:
         """Initialize the database connection."""
-        if "+srv" in MONGO_URI:  # If the URI is a MongoDB Atlas URI, we need to use TLS
+        # If the URI is a MongoDB Atlas URI, we need to use TLS
+        if "+srv" in MONGO_URI:
             self._client = AsyncIOMotorClient(MONGO_URI, tls=True, tlsCAFile=certifi.where())
         else:
             self._client = AsyncIOMotorClient(MONGO_URI)
@@ -47,18 +46,22 @@ class BaseService:
     @property
     def db(self) -> AgnosticDatabase:
         """Get the database instance."""
+        if self._db is None:
+            raise ValueError("Database not initialized")
         return self._db
 
     @property
     def client(self) -> AsyncIOMotorClient:
         """Get the MongoDB client."""
+        if self._client is None:
+            raise ValueError("Client not initialized")
         return self._client
 
-    async def test_connection(self):
+    async def test_connection(self) -> None:
         """Test the database connection."""
         try:
-            await self._client.admin.command("ping")
-            db_names = await self._client.list_database_names()
+            await self.client.admin.command("ping")
+            db_names = await self.client.list_database_names()
             if "toast" not in db_names:
                 raise Exception("Toast database not found")
             logger.info("Connected to MongoDB")
@@ -66,7 +69,7 @@ class BaseService:
             logger.error(f"Error connecting to MongoDB: {e}")
             raise e
 
-    def close_connection(self):
+    def close_connection(self) -> None:
         """Close the database connection."""
         if self._client:
             self._client.close()

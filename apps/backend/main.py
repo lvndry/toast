@@ -1,17 +1,19 @@
+from collections.abc import AsyncGenerator
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from core.config import settings
-from core.logging import setup_logging
-from core.middleware import AuthMiddleware
-from src.routes import companies, conversation, crawler, list, migration, q
+from src.core.config import settings
+from src.core.logging import setup_logging
+from src.core.middleware import AuthMiddleware
+from src.routes import companies, conversation, list, migration, q
 from src.routes import user as user_routes
 from src.services.base_service import BaseService
 
 setup_logging()
 
 
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application lifecycle events."""
     # Startup
     base_service = BaseService()
@@ -37,13 +39,12 @@ app.add_middleware(AuthMiddleware)
 
 
 @app.get("/health")
-async def healthcheck():
+async def healthcheck() -> dict[str, str]:
     """Health check endpoint to verify the API is running."""
     return {"status": "healthy", "message": "Toast API is running"}
 
 
 routes = [
-    crawler.router,
     q.router,
     companies.router,
     conversation.router,

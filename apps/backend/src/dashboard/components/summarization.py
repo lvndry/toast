@@ -1,20 +1,15 @@
 import asyncio
+from collections.abc import AsyncGenerator
 
 import streamlit as st
 
-from src.dashboard.db_utils import (
-    get_all_companies_isolated,
-    get_company_documents_isolated,
-)
+from src.dashboard.db_utils import get_all_companies_isolated, get_company_documents_isolated
 from src.dashboard.utils import run_async
-from src.summarizer import (
-    generate_company_meta_summary,
-    summarize_all_company_documents,
-)
+from src.summarizer import generate_company_meta_summary, summarize_all_company_documents
 
 
 def run_summarization_async(
-    company_slug: str, loop: asyncio.AbstractEventLoop = None
+    company_slug: str, loop: asyncio.AbstractEventLoop | None = None
 ) -> bool:
     """Run document summarization in an isolated async context"""
     try:
@@ -37,9 +32,7 @@ def run_summarization_async(
                         task.cancel()
 
                     # Wait for all cancelled tasks to finish
-                    loop.run_until_complete(
-                        asyncio.gather(*pending_tasks, return_exceptions=True)
-                    )
+                    loop.run_until_complete(asyncio.gather(*pending_tasks, return_exceptions=True))
 
                 loop.close()
     except Exception as e:
@@ -47,14 +40,14 @@ def run_summarization_async(
         return False
 
 
-async def generate_meta_summary_async(company_slug: str):
+async def generate_meta_summary_async(company_slug: str) -> AsyncGenerator[str, None]:
     """Generate meta summary for a company"""
     result = await generate_company_meta_summary(company_slug)
     summary_content = str(result)  # or format as needed
     yield summary_content
 
 
-def show_summarization():
+def show_summarization() -> None:
     st.title("📋 Document Summarization")
 
     # Get all companies
@@ -81,9 +74,7 @@ def show_summarization():
     """)
 
     if st.button("🚀 Summarize All Companies", type="primary", key="summarize_all_btn"):
-        with st.spinner(
-            "Analyzing documents for all companies... This may take several minutes."
-        ):
+        with st.spinner("Analyzing documents for all companies... This may take several minutes."):
             progress_placeholder = st.empty()
             progress_placeholder.info("🔍 Processing documents...")
 
@@ -104,17 +95,13 @@ def show_summarization():
                 if pending_tasks:
                     for task in pending_tasks:
                         task.cancel()
-                    loop.run_until_complete(
-                        asyncio.gather(*pending_tasks, return_exceptions=True)
-                    )
+                    loop.run_until_complete(asyncio.gather(*pending_tasks, return_exceptions=True))
                 loop.close()
 
             progress_placeholder.empty()
 
             if all_success:
-                st.success(
-                    "✅ Document analysis completed successfully for all companies!"
-                )
+                st.success("✅ Document analysis completed successfully for all companies!")
                 st.info("""
                 **What happened:**
                 • All documents were analyzed for privacy practices
@@ -130,14 +117,10 @@ def show_summarization():
                 )
 
     # Create company dropdown options
-    company_options = {
-        f"{company.name} ({company.slug})": company for company in companies
-    }
+    company_options = {f"{company.name} ({company.slug})": company for company in companies}
 
     # Check if a company was preselected (from session state)
-    preselected_company = st.session_state.get(
-        "selected_company_for_summarization", None
-    )
+    preselected_company = st.session_state.get("selected_company_for_summarization", None)
     default_index = 0
 
     if preselected_company:
@@ -180,16 +163,14 @@ def show_summarization():
     documents = run_async(get_company_documents_isolated(selected_company.slug))
 
     if not documents:
-        st.warning(
-            f"No documents found for {selected_company.name}. Please crawl documents first."
-        )
+        st.warning(f"No documents found for {selected_company.name}. Please crawl documents first.")
         return
 
     # Show document summary
     st.subheader("📄 Available Documents")
 
     # Count documents by type
-    doc_type_counts = {}
+    doc_type_counts: dict[str, int] = {}
     analyzed_count = 0
 
     for doc in documents:
@@ -228,9 +209,7 @@ def show_summarization():
     col1, col2, col3 = st.columns([2, 1, 2])
 
     with col2:
-        if st.button(
-            "🚀 Summarize Documents", type="primary", key="summarize_documents_btn"
-        ):
+        if st.button("🚀 Summarize Documents", type="primary", key="summarize_documents_btn"):
             # Clear any previous session state
             if "selected_company_for_summarization" in st.session_state:
                 del st.session_state["selected_company_for_summarization"]
@@ -260,9 +239,7 @@ def show_summarization():
                     # Refresh the page to show updated analysis count
                     st.rerun()
                 else:
-                    st.error(
-                        "Document analysis failed. Please check the logs and try again."
-                    )
+                    st.error("Document analysis failed. Please check the logs and try again.")
 
     # Meta Summary Section
     st.write("---")
@@ -279,12 +256,8 @@ def show_summarization():
         • Highlight the most important privacy considerations for users
         """)
 
-        if st.button(
-            "📋 Generate Meta Summary", type="primary", key="generate_meta_summary_btn"
-        ):
-            with st.spinner(
-                f"Generating comprehensive summary for {selected_company.name}..."
-            ):
+        if st.button("📋 Generate Meta Summary", type="primary", key="generate_meta_summary_btn"):
+            with st.spinner(f"Generating comprehensive summary for {selected_company.name}..."):
                 try:
                     # Create a placeholder for streaming content
                     summary_placeholder = st.empty()
@@ -295,10 +268,8 @@ def show_summarization():
 
                     try:
 
-                        async def get_summary():
-                            result = await generate_company_meta_summary(
-                                selected_company.slug
-                            )
+                        async def get_summary() -> str:
+                            result = await generate_company_meta_summary(selected_company.slug)
                             return str(result)
 
                         summary_content = loop.run_until_complete(get_summary())

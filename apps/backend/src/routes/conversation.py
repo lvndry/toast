@@ -1,7 +1,10 @@
+from typing import Any
+
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from core.logging import get_logger
+from src.conversation import Conversation
+from src.core.logging import get_logger
 from src.services.conversation_service import conversation_service
 
 logger = get_logger(__name__)
@@ -34,7 +37,7 @@ class PatchConversationRequest(BaseModel):
 
 
 @router.post("")
-async def create_new_conversation(request: CreateConversationRequest):
+async def create_new_conversation(request: CreateConversationRequest) -> Conversation:
     """Create a new conversation."""
     try:
         created_conversation = await conversation_service.create_conversation(
@@ -52,7 +55,7 @@ async def create_new_conversation(request: CreateConversationRequest):
 
 
 @router.get("/{conversation_id}")
-async def get_conversation(conversation_id: str):
+async def get_conversation(conversation_id: str) -> Conversation:
     """Get a conversation by ID."""
     try:
         conversation = await conversation_service.get_conversation_by_id(conversation_id)
@@ -72,10 +75,10 @@ async def get_user_conversations_route(
     company_slug: str | None = None,
     archived: bool | None = None,
     pinned: bool | None = None,
-):
+) -> list[Conversation]:
     """Get all conversations for a user."""
     try:
-        query = {"user_id": user_id}
+        query: dict[str, Any] = {"user_id": user_id}
         if company_slug is not None:
             query["company_slug"] = company_slug
         if archived is not None:
@@ -83,7 +86,7 @@ async def get_user_conversations_route(
         if pinned is not None:
             query["pinned"] = pinned
 
-        conversations = (
+        conversations: list[Conversation] = (
             await conversation_service.db.conversations.find(query)
             .sort("last_message_at", -1)
             .to_list(length=None)
@@ -95,11 +98,11 @@ async def get_user_conversations_route(
 
 
 @router.post("/{conversation_id}/messages")
-async def send_message(request: SendMessageRequest):
+async def send_message(request: SendMessageRequest) -> dict:
     """Send a message in a conversation."""
     try:
         try:
-            result = await conversation_service.send_message(
+            result: dict[str, Any] = await conversation_service.send_message(
                 request.conversation_id, request.message
             )
             return result
@@ -113,7 +116,7 @@ async def send_message(request: SendMessageRequest):
 
 
 @router.patch("/{conversation_id}")
-async def patch_conversation(conversation_id: str, request: PatchConversationRequest):
+async def patch_conversation(conversation_id: str, request: PatchConversationRequest) -> dict:
     """Patch conversation metadata fields."""
     try:
         success = await conversation_service.patch_conversation(
@@ -135,7 +138,7 @@ async def upload_document(
     file: UploadFile = File(...),
     company_name: str = Form(...),
     company_description: str = Form(None),
-):
+) -> dict:
     """Upload a document to a conversation."""
     try:
         # Read the uploaded file
@@ -160,11 +163,16 @@ async def upload_document(
                         status_code=500,
                         detail=f"Document processing failed: {result.error_message}",
                     )
+            if not result.document:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Document processing failed: {result.error_message}",
+                )
 
             return {
                 "message": "Document uploaded and processed successfully",
-                "document_id": result.document.id,  # type: ignore
-                "classification": result.document.doc_type,  # type: ignore
+                "document_id": result.document.id,
+                "classification": result.document.doc_type,
                 "analysis_available": result.analysis is not None,
             }
         except ValueError as e:
@@ -177,7 +185,7 @@ async def upload_document(
 
 
 @router.delete("/{conversation_id}")
-async def delete_conversation(conversation_id: str):
+async def delete_conversation(conversation_id: str) -> dict:
     """Delete a conversation."""
     try:
         success = await conversation_service.delete_conversation(conversation_id)

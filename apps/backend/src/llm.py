@@ -11,9 +11,7 @@ class Model:
         self.api_key = api_key
 
 
-SupportedModel = Literal[
-    "mistral-small", "mistral-medium", "gemini-2.0-flash", "voyage-law-2"
-]
+SupportedModel = Literal["mistral-small", "mistral-medium", "gemini-2.0-flash", "voyage-law-2"]
 
 
 def get_model(model_name: SupportedModel) -> Model:

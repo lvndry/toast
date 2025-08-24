@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore", message="missing ScriptRunContext")
 st.set_page_config(page_title="Toast Dashboard", page_icon="🍞", layout="wide")
 
 
-def main():
+def main() -> None:
     st.sidebar.title("Navigation")
 
     # Check if we have a current page in session state

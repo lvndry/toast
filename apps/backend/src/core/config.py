@@ -37,10 +37,13 @@ class DatabaseConfig:
     """Database configuration"""
 
     def __init__(self) -> None:
-        self.mongodb_uri: str | None = os.getenv("MONGODB_URI")
+        self.mongodb_uri: str = os.getenv("MONGO_URI") or ""
         self.mongodb_ssl_ca_certs: str | None = os.getenv("MONGODB_SSL_CA_CERTS")
         self.mongodb_ssl_certfile: str | None = os.getenv("MONGODB_SSL_CERTFILE")
         self.mongodb_ssl_keyfile: str | None = os.getenv("MONGODB_SSL_KEYFILE")
+
+        if self.mongodb_uri is None:
+            raise ValueError("MONGO_URI is not set")
 
     @property
     def database_url(self) -> str | None:

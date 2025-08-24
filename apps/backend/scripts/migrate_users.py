@@ -8,8 +8,10 @@ import asyncio
 import os
 import sys
 from datetime import datetime
+from typing import Any
 
 from core.logging import get_logger
+
 from src.services.user_service import user_service
 from src.user import UserTier
 
@@ -19,7 +21,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 logger = get_logger(__name__)
 
 
-async def migrate_users_to_tier_system():
+async def migrate_users_to_tier_system() -> dict[str, Any]:
     """Migrate existing users to include tier and monthly_usage fields"""
     try:
         logger.info("Starting user tier migration...")
@@ -91,7 +93,7 @@ async def migrate_users_to_tier_system():
         raise e
 
 
-async def main():
+async def main() -> None:
     """Main function to run the migration"""
     try:
         # Test database connection

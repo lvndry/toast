@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 from litellm import acompletion
 from pydantic import BaseModel
 
-from core.logging import get_logger
+from src.core.logging import get_logger
 from src.document import Document, DocumentAnalysis
-from src.models import get_model
+from src.llm import get_model
 from src.services.document_service import document_service
 
 load_dotenv()
@@ -33,9 +33,9 @@ class MetaSummary(BaseModel):
     keypoints: list[str]
 
 
-async def summarize_all_company_documents(company_slug: str) -> str:
-    documents = await document_service.get_company_documents(company_slug)
-    total_docs = len(documents)
+async def summarize_all_company_documents(company_slug: str) -> list[Document]:
+    documents: list[Document] = await document_service.get_company_documents(company_slug)
+    total_docs: int = len(documents)
     logger.info(f"Summarizing {total_docs} documents for {company_slug}")
 
     for index, doc in enumerate(documents, 1):
@@ -49,9 +49,10 @@ async def summarize_all_company_documents(company_slug: str) -> str:
         )
 
     logger.info(f"✓ Successfully summarized all {total_docs} documents for {company_slug}")
+    return documents
 
 
-async def summarize_document(document: Document) -> DocumentAnalysis:
+async def summarize_document(document: Document) -> DocumentAnalysis | None:
     SYSTEM_PROMPT = """
 You are a privacy-focused document summarizer designed to make legal documents—especially privacy policies and terms of service—clear and accessible to non-expert, privacy-conscious users.
 Your job is to extract and explain the real-world implications of these documents, focusing on how the company collects, uses, shares, retains, and protects user data.
@@ -141,10 +142,13 @@ Document content:
         summary_data = response.choices[0].message.content
         # Ensure required keys exist; add defaults when missing
         try:
-            parsed = DocumentAnalysis.model_validate_json(summary_data, strict=False)
+            parsed: DocumentAnalysis = DocumentAnalysis.model_validate_json(
+                summary_data, strict=False
+            )
+            return parsed
         except Exception:
             # Fallback: wrap minimal structure if malformed
-            parsed = DocumentAnalysis(
+            parsed_fallback: DocumentAnalysis = DocumentAnalysis(
                 summary="",
                 scores={
                     "transparency": {"score": 0, "justification": ""},
@@ -152,7 +156,7 @@ Document content:
                 },
                 keypoints=[],
             )
-        return parsed
+            return parsed_fallback
     except Exception as e:
         logger.error(f"Error summarizing document: {str(e)}")
         return None
@@ -300,13 +304,22 @@ Your task is to create a clear and accessible summary of the of the following do
 
         logger.debug(response.choices[0].message.content)
 
-        return MetaSummary.model_validate_json(response.choices[0].message.content, strict=False)
+        return MetaSummary.model_validate_json(response.choices[0].message.content, strict=False)  # type: ignore
     except Exception as e:
         logger.error(f"Error generating meta-summary: {str(e)}")
-        return None
+        return MetaSummary(
+            summary="",
+            scores=MetaSummaryScores(
+                transparency=MetaSummaryScore(score=0, justification=""),
+                data_usage=MetaSummaryScore(score=0, justification=""),
+                control_and_rights=MetaSummaryScore(score=0, justification=""),
+                third_party_sharing=MetaSummaryScore(score=0, justification=""),
+            ),
+            keypoints=[],
+        )
 
 
-async def main():
+async def main() -> None:
     await summarize_all_company_documents("notion")
 
     print("Generating company meta-summary:")

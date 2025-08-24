@@ -1,14 +1,13 @@
+from typing import Any
+
 from fastapi import APIRouter, Request
-from typing import Dict, Any
 
 router = APIRouter(prefix="/list")
 
 
 @router.get("")
-async def list_routes(request: Request) -> Dict[str, Any]:
+async def list_routes(request: Request) -> dict[str, Any]:
     """List all available routes in the application."""
-
-    # Get all routes from the application
     routes = []
 
     for route in request.app.routes:
@@ -17,9 +16,7 @@ async def list_routes(request: Request) -> Dict[str, Any]:
                 "path": route.path,
                 "methods": list(route.methods),
                 "name": getattr(route, "name", None),
-                "endpoint": (
-                    str(route.endpoint) if hasattr(route, "endpoint") else None
-                ),
+                "endpoint": (str(route.endpoint) if hasattr(route, "endpoint") else None),
             }
             routes.append(route_info)
 

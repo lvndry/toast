@@ -9,7 +9,7 @@ from src.dashboard.db_utils import (
 from src.dashboard.utils import run_async_with_retry
 
 
-def show_edit_form(company: Company):
+def show_edit_form(company: Company) -> None:
     """Show edit form for a company"""
     st.subheader(f"Edit Company: {company.name}")
 
@@ -78,7 +78,7 @@ def show_edit_form(company: Company):
                 st.error(f"Error updating company: {str(e)}")
 
 
-def show_delete_confirmation(company: Company):
+def show_delete_confirmation(company: Company) -> None:
     """Show delete confirmation dialog"""
     st.error(f"⚠️ **Delete Company: {company.name}**")
     st.write("**This action cannot be undone!**")
@@ -115,7 +115,7 @@ def show_delete_confirmation(company: Company):
             st.rerun()
 
 
-def show_company_view():
+def show_company_view() -> None:
     st.title("All Companies")
 
     # Add a refresh button
@@ -249,7 +249,7 @@ def show_company_view():
             st.metric("Companies with Crawl URLs", companies_with_crawl_urls)
 
         with col4:
-            unique_categories = set()
+            unique_categories: set[str] = set()
             for company in companies:
                 unique_categories.update(company.categories)
             st.metric("Unique Categories", len(unique_categories))

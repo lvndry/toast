@@ -68,3 +68,43 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.params.Depends", "fastapi.
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["E712"]  # Allow explicit boolean comparisons in tests for clarity
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+show_error_context = true
+ignore_missing_imports = true
+
+exclude = ["^\\.venv/", "^build/", "^dist/"]
+follow_imports = "skip"
+
+# Ignore specific error types globally
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = [
+  "cryptography.*",
+  "pymongo.*",
+  "motor.*",
+  "supabase.*",
+  "httpx.*",
+  "httpcore.*",
+]
+ignore_errors = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+follow_imports = "skip"

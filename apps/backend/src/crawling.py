@@ -56,8 +56,8 @@ from dotenv import load_dotenv
 from litellm import acompletion
 from pydantic import BaseModel
 
-from core.logging import get_logger
 from src.company import Company
+from src.core.logging import get_logger
 from src.document import Document, Region
 from src.models import SupportedModel, get_model
 from src.services.company_service import company_service
@@ -212,7 +212,7 @@ Be specific with locale (include country when possible)."""
 
             result = json.loads(response.choices[0].message.content)
             logger.debug(f"LLM locale detection result: {result}")
-            return result
+            return result  # type: ignore
 
         except Exception as e:
             logger.warning(f"LLM locale detection failed: {e}")
@@ -273,7 +273,7 @@ Note: Cookie banners, navigation elements, or links to legal documents don't cou
 
             result = json.loads(response.choices[0].message.content)
             logger.debug(f"Document classification result: {result}")
-            return result
+            return result  # type: ignore
 
         except Exception as e:
             logger.warning(f"Document classification failed: {e}")
@@ -922,7 +922,7 @@ class LegalDocumentPipeline:
             self.stats.failed_company_slugs.append(company.slug)
             return []
 
-    async def run(self, companies: list[Company] = None) -> ProcessingStats:
+    async def run(self, companies: list[Company] | None = None) -> ProcessingStats:
         """
         Execute the complete legal document crawling pipeline.
 
@@ -995,7 +995,7 @@ class LegalDocumentPipeline:
             tracemalloc.stop()
 
 
-async def main():
+async def main() -> None:
     """Main entry point for the crawling pipeline."""
     try:
         pipeline = LegalDocumentPipeline(

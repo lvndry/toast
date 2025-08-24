@@ -4,15 +4,15 @@ import concurrent.futures
 import streamlit as st
 
 from src.company import Company
-from src.crawling import LegalDocumentPipeline
+from src.crawling import LegalDocumentPipeline, ProcessingStats
 from src.dashboard.db_utils import get_all_companies_isolated
 from src.dashboard.utils import run_async, suppress_streamlit_warnings
 
 
-def run_crawl_async(company: Company):
+def run_crawl_async(company: Company) -> ProcessingStats | None:
     """Run crawling using LegalDocumentPipeline in a completely isolated thread with its own event loop"""
 
-    def run_in_thread():
+    def run_in_thread() -> ProcessingStats | None:
         # Suppress Streamlit ScriptRunContext warnings in worker threads
         with suppress_streamlit_warnings():
             # Create a completely fresh event loop in this thread
@@ -54,7 +54,7 @@ def run_crawl_async(company: Company):
             return None
 
 
-def show_crawling():
+def show_crawling() -> None:
     st.title("🕷️ Start Crawling")
 
     # Get all companies

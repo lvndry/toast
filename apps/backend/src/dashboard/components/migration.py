@@ -1,6 +1,7 @@
 import asyncio
 import time
-from typing import Any, Dict, Optional
+from collections.abc import Coroutine
+from typing import Any
 
 import aiohttp
 import streamlit as st
@@ -10,8 +11,8 @@ async def make_api_request(
     session: aiohttp.ClientSession,
     url: str,
     method: str = "GET",
-    data: Optional[Dict[str, Any]] = None,
-):
+    data: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], int]:
     """Helper function to make async HTTP requests"""
     try:
         if method.upper() == "GET":
@@ -22,9 +23,10 @@ async def make_api_request(
                 return await response.json(), response.status
     except Exception as e:
         return {"error": str(e)}, 500
+    return {"error": "Unknown error"}, 500
 
 
-def run_async(coro):
+def run_async(coro: Coroutine[Any, Any, Any]) -> Any:
     """Helper to run async functions in Streamlit"""
     try:
         loop = asyncio.get_event_loop()
@@ -34,21 +36,21 @@ def run_async(coro):
     return loop.run_until_complete(coro)
 
 
-async def get_migration_summary_async(api_url: str):
+async def get_migration_summary_async(api_url: str) -> tuple[dict[str, Any], int]:
     """Async function to get migration summary"""
     async with aiohttp.ClientSession() as session:
         return await make_api_request(session, f"{api_url}/toast/migration/summary")
 
 
 async def run_migration_async(
-    api_url: str, endpoint: str, data: Optional[Dict[str, Any]] = None
-):
+    api_url: str, endpoint: str, data: dict[str, Any] | None = None
+) -> tuple[dict[str, Any], int]:
     """Async function to run migration operations"""
     async with aiohttp.ClientSession() as session:
         return await make_api_request(session, f"{api_url}{endpoint}", "POST", data)
 
 
-def show_migration():
+def show_migration() -> None:
     st.title("Database Migration")
     st.markdown("Migrate data from localhost to production database")
 
@@ -59,7 +61,7 @@ def show_migration():
 
     with col1:
         st.subheader("Local Database")
-        local_uri = st.text_input(
+        _local_uri = st.text_input(
             "Local MongoDB URI",
             value=st.secrets.get("MONGO_URI", ""),
             type="password",
@@ -68,7 +70,7 @@ def show_migration():
 
     with col2:
         st.subheader("Production Database")
-        production_uri = st.text_input(
+        _production_uri = st.text_input(
             "Production MongoDB URI",
             value=st.secrets.get("PRODUCTION_MONGO_URI", ""),
             type="password",
@@ -151,9 +153,7 @@ def show_migration():
                         with st.expander("Detailed Summary"):
                             st.json(summary)
                     else:
-                        st.error(
-                            f"Failed to get summary: {result.get('message', 'Unknown error')}"
-                        )
+                        st.error(f"Failed to get summary: {result.get('message', 'Unknown error')}")
                 else:
                     st.error(f"API request failed with status {status_code}")
 
@@ -195,9 +195,7 @@ def show_migration():
 
     # Actual Migration Section
     st.subheader("Execute Migration")
-    st.warning(
-        "⚠️ This will actually migrate data to production. Make sure you have a backup!"
-    )
+    st.warning("⚠️ This will actually migrate data to production. Make sure you have a backup!")
 
     # Confirmation checkbox
     migration_confirmed = st.checkbox(
@@ -234,9 +232,7 @@ def show_migration():
                     {"dry_run": False},
                 )
     else:
-        st.info(
-            "Please confirm that you understand the migration will modify production data."
-        )
+        st.info("Please confirm that you understand the migration will modify production data.")
 
     # Migration History
     if "migration_results" in st.session_state:
@@ -248,8 +244,8 @@ def show_migration():
 
 
 def run_migration(
-    api_url: str, endpoint: str, action: str, data: Optional[Dict[str, Any]] = None
-):
+    api_url: str, endpoint: str, action: str, data: dict[str, Any] | None = None
+) -> None:
     """Helper function to run migration operations"""
     if not api_url:
         st.error("Please provide API Base URL")
@@ -257,9 +253,7 @@ def run_migration(
 
     try:
         with st.spinner(f"Running {action}..."):
-            result, status_code = run_async(
-                run_migration_async(api_url, endpoint, data)
-            )
+            result, status_code = run_async(run_migration_async(api_url, endpoint, data))
 
             if status_code == 200:
                 if result.get("success"):
@@ -281,9 +275,7 @@ def run_migration(
                     with st.expander(f"Results for {action}"):
                         display_migration_results(result.get("data", {}))
                 else:
-                    st.error(
-                        f"{action} failed: {result.get('message', 'Unknown error')}"
-                    )
+                    st.error(f"{action} failed: {result.get('message', 'Unknown error')}")
             else:
                 st.error(f"API request failed with status {status_code}")
 
@@ -291,7 +283,7 @@ def run_migration(
         st.error(f"Error running {action}: {str(e)}")
 
 
-def display_migration_results(data: Dict[str, Any]):
+def display_migration_results(data: dict[str, Any]) -> None:
     """Display migration results in a formatted way"""
     if not data:
         st.info("No data to display")
@@ -308,22 +300,16 @@ def display_migration_results(data: Dict[str, Any]):
             with col1:
                 companies = summary["collections"].get("companies", {})
                 st.metric("Companies (Local)", companies.get("local_count", 0))
-                st.metric(
-                    "Companies (Production)", companies.get("production_count", 0)
-                )
+                st.metric("Companies (Production)", companies.get("production_count", 0))
 
             with col2:
                 documents = summary["collections"].get("documents", {})
                 st.metric("Documents (Local)", documents.get("local_count", 0))
-                st.metric(
-                    "Documents (Production)", documents.get("production_count", 0)
-                )
+                st.metric("Documents (Production)", documents.get("production_count", 0))
 
             with col3:
                 meta_summaries = summary["collections"].get("meta_summaries", {})
-                st.metric(
-                    "Meta Summaries (Local)", meta_summaries.get("local_count", 0)
-                )
+                st.metric("Meta Summaries (Local)", meta_summaries.get("local_count", 0))
                 st.metric(
                     "Meta Summaries (Production)",
                     meta_summaries.get("production_count", 0),

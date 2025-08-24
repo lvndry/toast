@@ -5,7 +5,7 @@ from src.dashboard.db_utils import get_all_companies_isolated
 from src.dashboard.utils import run_async
 
 
-def show_embedding():
+def show_embedding() -> None:
     st.title("🔍 Document Embedding")
 
     # Get all companies

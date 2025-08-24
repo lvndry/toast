@@ -10,9 +10,9 @@ from dotenv import load_dotenv
 from litellm import acompletion
 from pydantic import BaseModel
 
-from core.logging import get_logger
+from src.core.logging import get_logger
 from src.document import Document, DocumentAnalysis
-from src.models import SupportedModel, get_model
+from src.llm import SupportedModel, get_model
 from src.summarizer import summarize_document
 
 load_dotenv()
@@ -230,7 +230,7 @@ Use caution: If the content appears incomplete, vague, or primarily promotional,
                 temperature=self.temperature,
             )
 
-            result = json.loads(response.choices[0].message.content)
+            result: dict[str, Any] = json.loads(response.choices[0].message.content)
             logger.debug(f"Document classification result: {result}")
             return result
 

@@ -1,9 +1,11 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from core.jwt import get_current_user
-from models.clerkUser import ClerkUser
 from src.constants import TIER_DESCRIPTIONS, TIER_DISPLAY_NAMES, TIER_LIMITS
+from src.core.jwt import get_current_user
+from src.models.clerkUser import ClerkUser
 from src.services.usage_service import UsageService
 from src.services.user_service import user_service
 from src.user import User, UserTier
@@ -25,7 +27,7 @@ class UpgradeTierRequest(BaseModel):
 async def upsert_user(
     req: CreateUserRequest,
     current: ClerkUser = Depends(get_current_user),
-):
+) -> dict[str, Any]:
     if not current.user_id:
         raise HTTPException(status_code=401, detail="Invalid user")
 
@@ -40,7 +42,7 @@ async def upsert_user(
 
 
 @router.get("/me")
-async def me(current: ClerkUser = Depends(get_current_user)):
+async def me(current: ClerkUser = Depends(get_current_user)) -> User:
     if not current.user_id:
         raise HTTPException(status_code=401, detail="Invalid user")
     user = await user_service.get_user_by_id(current.user_id)
@@ -56,17 +58,17 @@ async def me(current: ClerkUser = Depends(get_current_user)):
 
 
 @router.get("/usage")
-async def get_usage(current: ClerkUser = Depends(get_current_user)):
+async def get_usage(current: ClerkUser = Depends(get_current_user)) -> dict[str, Any]:
     """Get current user's usage information and limits"""
     if not current.user_id:
         raise HTTPException(status_code=401, detail="Invalid user")
 
     usage_summary = await UsageService.get_usage_summary(current.user_id)
-    return usage_summary
+    return usage_summary  # type: ignore
 
 
 @router.get("/tier-limits")
-async def get_tier_limits():
+async def get_tier_limits() -> dict[str, Any]:
     """Get tier limits and information for all available tiers"""
     tiers = []
 
@@ -88,7 +90,7 @@ async def get_tier_limits():
 async def upgrade_tier(
     req: UpgradeTierRequest,
     current: ClerkUser = Depends(get_current_user),
-):
+) -> dict[str, Any]:
     """Upgrade user's tier"""
     if not current.user_id:
         raise HTTPException(status_code=401, detail="Invalid user")
@@ -118,7 +120,7 @@ class CompleteOnboardingRequest(BaseModel):
 async def complete_onboarding_route(
     _: CompleteOnboardingRequest,
     current: ClerkUser = Depends(get_current_user),
-):
+) -> dict[str, Any]:
     if not current.user_id:
         raise HTTPException(status_code=401, detail="Invalid user")
     await user_service.set_user_onboarding_completed(current.user_id)

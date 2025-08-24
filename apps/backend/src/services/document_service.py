@@ -1,9 +1,11 @@
 """Document service for managing document operations."""
 
-from datetime import datetime
-from typing import ClassVar
+from __future__ import annotations
 
-from core.logging import get_logger
+from datetime import datetime
+from typing import Any
+
+from src.core.logging import get_logger
 from src.document import Document, DocumentAnalysis
 from src.services.base_service import BaseService
 
@@ -13,9 +15,9 @@ logger = get_logger(__name__)
 class DocumentService(BaseService):
     """Service for document-related database operations."""
 
-    _instance: ClassVar["DocumentService"] = None
+    _instance: DocumentService | None = None
 
-    def __new__(cls):
+    def __new__(cls) -> DocumentService:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -73,7 +75,7 @@ class DocumentService(BaseService):
                 logger.info(f"Updated document {document.id}")
             else:
                 logger.warning(f"No document found with id {document.id} to update")
-            return success
+            return bool(success)
         except Exception as e:
             logger.error(f"Error updating document {document.id}: {e}")
             raise e
@@ -87,7 +89,7 @@ class DocumentService(BaseService):
                 logger.info(f"Deleted document {document_id}")
             else:
                 logger.warning(f"No document found with id {document_id} to delete")
-            return success
+            return bool(success)
         except Exception as e:
             logger.error(f"Error deleting document {document_id}: {e}")
             raise e
@@ -97,9 +99,9 @@ class DocumentService(BaseService):
         documents = await self.db.documents.find({"doc_type": doc_type}).to_list(length=None)
         return [Document(**document) for document in documents]
 
-    async def get_documents_with_analysis(self, company_slug: str = None) -> list[Document]:
+    async def get_documents_with_analysis(self, company_slug: str | None = None) -> list[Document]:
         """Get documents that have analysis data."""
-        query = {"analysis": {"$exists": True, "$ne": None}}
+        query: dict[str, Any] = {"analysis": {"$exists": True, "$ne": None}}
         if company_slug:
             query["company_slug"] = company_slug
 
@@ -116,7 +118,7 @@ class DocumentService(BaseService):
             success = result.modified_count > 0
             if success:
                 logger.info(f"Updated analysis for document {document_id}")
-            return success
+            return bool(success)
         except Exception as e:
             logger.error(f"Error updating analysis for document {document_id}: {e}")
             raise e

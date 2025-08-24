@@ -1,15 +1,16 @@
 """Conversation service for managing conversation operations."""
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import ClassVar
 
 from litellm import acompletion
 
-from core.logging import get_logger
 from src.conversation import Conversation, Message
-from src.document_processor import DocumentProcessor
+from src.core.logging import get_logger
+from src.document_processor import DocumentProcessingResult, DocumentProcessor
 from src.embedding import embed_document
-from src.models import get_model
+from src.llm import get_model
 from src.rag import get_answer
 from src.services.base_service import BaseService
 
@@ -19,9 +20,9 @@ logger = get_logger(__name__)
 class ConversationService(BaseService):
     """Service for conversation-related database operations."""
 
-    _instance: ClassVar["ConversationService"] = None
+    _instance: ConversationService | None = None
 
-    def __new__(cls):
+    def __new__(cls) -> ConversationService:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -42,7 +43,7 @@ class ConversationService(BaseService):
             company_slug=company_slug,
             company_description=company_description,
             title=title,
-            mode=mode,  # type: ignore[arg-type]
+            mode=mode,
         )
         return await self._create_conversation(conversation)
 
@@ -84,7 +85,7 @@ class ConversationService(BaseService):
                 {"id": conversation.id},
                 {"$set": conversation.model_dump(mode="json")},
             )
-            success = result.modified_count > 0
+            success: bool = result.modified_count > 0
             if success:
                 logger.info(f"Updated conversation {conversation.id}")
             else:
@@ -114,7 +115,7 @@ class ConversationService(BaseService):
                 {"id": conversation_id},
                 {"$set": update_data},
             )
-            success = result.modified_count > 0
+            success: bool = result.modified_count > 0
             if success:
                 logger.info(f"Patched conversation {conversation_id}")
             else:
@@ -128,7 +129,7 @@ class ConversationService(BaseService):
         """Delete a conversation from the database."""
         try:
             result = await self.db.conversations.delete_one({"id": conversation_id})
-            success = result.deleted_count > 0
+            success: bool = result.deleted_count > 0
             if success:
                 logger.info(f"Deleted conversation {conversation_id}")
             else:
@@ -149,7 +150,7 @@ class ConversationService(BaseService):
                     "$inc": {"message_count": 1},
                 },
             )
-            success = result.modified_count > 0
+            success: bool = result.modified_count > 0
             if success:
                 logger.info(f"Added message to conversation {conversation_id}")
             else:
@@ -166,7 +167,7 @@ class ConversationService(BaseService):
                 {"id": conversation_id},
                 {"$push": {"documents": document_id}, "$set": {"updated_at": datetime.now()}},
             )
-            success = result.modified_count > 0
+            success: bool = result.modified_count > 0
             if success:
                 logger.info(f"Added document {document_id} to conversation {conversation_id}")
             else:
@@ -280,7 +281,7 @@ class ConversationService(BaseService):
         content_type: str,
         company_name: str | None = None,
         company_description: str | None = None,
-    ):
+    ) -> DocumentProcessingResult:
         """Upload a document to a conversation."""
         conversation = await self.get_conversation_by_id(conversation_id)
         if not conversation:
@@ -295,6 +296,9 @@ class ConversationService(BaseService):
         )
 
         if not result.success:
+            return result
+
+        if not result.document:
             return result
 
         await self.add_document_to_conversation(conversation_id, result.document.id)

@@ -11,11 +11,11 @@ from typing import Any
 from urllib.parse import urljoin, urlparse, urlunparse
 
 import aiohttp
-import markdownify  # type: ignore
+import markdownify
 from bs4 import BeautifulSoup
 from pydantic import BaseModel, Field
 
-from core.logging import get_logger
+from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -56,7 +56,7 @@ class CrawlStats(BaseModel):
 class URLScorer:
     """Scores URLs based on legal document relevance."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.legal_keywords = {
             # Generic legal terms
             "legal": 3.5,
@@ -214,7 +214,7 @@ class URLScorer:
 class ContentAnalyzer:
     """Analyzes page content for legal document characteristics."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.legal_indicators = [
             "terms of service",
             "privacy policy",
@@ -412,7 +412,7 @@ class ContentAnalyzer:
 class RobotsTxtChecker:
     """Checks robots.txt compliance with improved parsing."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.robots_cache: dict[str, dict[str, Any]] = {}
         self.user_agent = "ToastCrawler/2.0"
         # Common user agent patterns that should be treated as wildcards
@@ -786,7 +786,7 @@ class ToastCrawler:
         # Remove duplicates and log discovered links
         unique_links: list[str] = list(set(links))
         logger.debug(f"🔗 Discovered {len(unique_links)} unique links from {base_url}")
-        for link in unique_links[:10]:  # type: ignore
+        for link in unique_links[:10]:
             logger.debug(f"  - {link}")
         if len(unique_links) > 10:
             logger.debug(f"  ... and {len(unique_links) - 10} more links")
@@ -819,7 +819,7 @@ class ToastCrawler:
 
         return metadata
 
-    async def rate_limit(self):
+    async def rate_limit(self) -> None:
         """Apply rate limiting."""
         async with self.request_lock:
             elapsed = time.time() - self.last_request_time
@@ -1045,7 +1045,7 @@ class ToastCrawler:
 
         return potential_urls
 
-    def add_urls_to_queue(self, urls: list[str], base_url: str, depth: int):
+    def add_urls_to_queue(self, urls: list[str], base_url: str, depth: int) -> None:
         """Add URLs to the appropriate queue based on strategy."""
         for url in urls:
             if not self.should_crawl_url(url, base_url, depth + 1):
@@ -1287,7 +1287,7 @@ async def test_specific_url(url: str) -> CrawlResult:
 
 
 # Example usage
-async def main():
+async def main() -> None:
     """Example usage of the ToastCrawler."""
     import sys
 

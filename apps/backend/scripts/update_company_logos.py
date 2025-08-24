@@ -15,11 +15,13 @@ This script will:
 import asyncio
 import os
 import sys
+from typing import Any
 from urllib.parse import urlparse
 
 import aiohttp
-
 from core.logging import get_logger
+
+from src.company import Company
 from src.services.company_service import company_service
 
 logger = get_logger(__name__)
@@ -32,16 +34,22 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 class LogoFetcher:
     """Fetches company logos from various sources."""
 
-    def __init__(self):
-        self.session = None
+    def __init__(self) -> None:
+        self._session: aiohttp.ClientSession | None = None
 
-    async def __aenter__(self):
-        self.session = aiohttp.ClientSession()
+    @property
+    def session(self) -> aiohttp.ClientSession:
+        if self._session is None:
+            raise RuntimeError("Session not initialized")
+        return self._session
+
+    async def __aenter__(self) -> "LogoFetcher":
+        self._session = aiohttp.ClientSession()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.session:
-            await self.session.close()
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        if self._session:
+            await self._session.close()
 
     async def get_logo_from_clearbit(self, domain: str) -> str | None:
         """Fetch logo from Clearbit Logo API."""
@@ -78,7 +86,7 @@ class LogoFetcher:
                 if response.status == 200:
                     data = await response.json()
                     if "items" in data and len(data["items"]) > 0:
-                        return data["items"][0]["link"]
+                        return data["items"][0]["link"]  # type: ignore
         except Exception as e:
             logger.error(f"Error fetching logo from Google for {company_name}: {e}")
         return None
@@ -114,7 +122,7 @@ class LogoFetcher:
 
         return None
 
-    async def find_best_logo(self, company) -> str | None:
+    async def find_best_logo(self, company: Company) -> str | None:
         """Find the best available logo for a company."""
         # Try Clearbit first (most reliable)
         if company.domains:
@@ -145,7 +153,7 @@ class LogoFetcher:
         return None
 
 
-async def main():
+async def main() -> None:
     """Main function to update all company logos."""
     logger.info("Starting company logo update process...")
 

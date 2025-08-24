@@ -6,7 +6,7 @@ from src.dashboard.db_utils import create_company_isolated, get_company_by_slug_
 from src.dashboard.utils import run_async_with_retry
 
 
-def show_company_creation():
+def show_company_creation() -> None:
     st.title("Create New Company")
 
     with st.form("company_form"):

@@ -1,8 +1,8 @@
 """RAG service for managing RAG operations."""
 
-from typing import ClassVar
+from __future__ import annotations
 
-from core.logging import get_logger
+from src.core.logging import get_logger
 from src.rag import get_answer
 from src.services.base_service import BaseService
 
@@ -12,19 +12,21 @@ logger = get_logger(__name__)
 class RAGService(BaseService):
     """Service for RAG-related operations."""
 
-    _instance: ClassVar["RAGService"] = None
+    _instance: RAGService | None = None
 
-    def __new__(cls):
+    def __new__(cls) -> RAGService:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    async def get_answer(self, question: str, company_name: str, namespace: str = None) -> str:
+    async def get_answer(
+        self, question: str, company_name: str, namespace: str | None = None
+    ) -> str:
         """Get an answer using RAG."""
         try:
             answer = await get_answer(question, company_name, namespace=namespace)
             logger.info(f"Generated RAG answer for company {company_name}")
-            return answer
+            return str(answer)
         except Exception as e:
             logger.error(f"Error getting RAG answer for company {company_name}: {e}")
             raise e

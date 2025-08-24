@@ -16,7 +16,8 @@ from urllib.parse import urlparse
 
 import aiohttp
 
-from core.logging import get_logger
+from src.company import Company
+from src.core.logging import get_logger
 from src.services.company_service import company_service
 
 logger = get_logger(__name__)
@@ -25,7 +26,7 @@ logger = get_logger(__name__)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-async def test_database_connection():
+async def test_database_connection() -> bool:
     """Test database connection."""
     try:
         await company_service.test_connection()
@@ -36,10 +37,10 @@ async def test_database_connection():
         return False
 
 
-async def test_fetch_companies():
+async def test_fetch_companies() -> list[Company]:
     """Test fetching companies from database."""
     try:
-        companies = await company_service.get_all_companies()
+        companies: list[Company] = await company_service.get_all_companies()
         # Limit to 5 for testing
         test_companies = companies[:5]
         logger.info(f"✅ Successfully fetched {len(test_companies)} companies")
@@ -53,7 +54,7 @@ async def test_fetch_companies():
         return []
 
 
-async def test_logo_detection(company):
+async def test_logo_detection(company: Company) -> str | None:
     """Test logo detection for a single company."""
     if not company.domains:
         logger.warning(f"⚠️  Company {company.name} has no domains")
@@ -81,7 +82,7 @@ async def test_logo_detection(company):
         return None
 
 
-async def test_logo_update(company, logo_url: str):
+async def test_logo_update(company: Company, logo_url: str) -> bool:
     """Test updating a company's logo."""
     try:
         success = await company_service.update_company_logo(company.id, logo_url)
@@ -96,7 +97,7 @@ async def test_logo_update(company, logo_url: str):
         return False
 
 
-async def main():
+async def main() -> None:
     """Run all tests."""
     logger.info("🧪 Starting logo script tests...")
 

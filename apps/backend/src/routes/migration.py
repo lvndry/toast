@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from core.logging import get_logger
+from src.core.logging import get_logger
 from src.services import migration_service
 
 logger = get_logger(__name__)
@@ -21,7 +21,7 @@ class MigrationResponse(BaseModel):
 
 
 @router.get("/summary", response_model=MigrationResponse)
-async def get_migration_summary():
+async def get_migration_summary() -> MigrationResponse:
     """Get a summary of what would be migrated from local to production."""
     try:
         summary = await migration_service.get_summary()
@@ -36,7 +36,7 @@ async def get_migration_summary():
 
 
 @router.post("/dry-run", response_model=MigrationResponse)
-async def run_dry_migration():
+async def run_dry_migration() -> MigrationResponse:
     """Run a dry run migration to see what would be migrated without actually migrating."""
     try:
         result = await migration_service.run_dry_run()
@@ -52,7 +52,7 @@ async def run_dry_migration():
 
 
 @router.post("/execute", response_model=MigrationResponse)
-async def execute_migration(request: MigrationRequest):
+async def execute_migration(request: MigrationRequest) -> MigrationResponse:
     """Execute the actual migration from local to production."""
     try:
         result = await migration_service.execute(dry_run=request.dry_run)
@@ -69,7 +69,7 @@ async def execute_migration(request: MigrationRequest):
 
 
 @router.post("/migrate-companies", response_model=MigrationResponse)
-async def migrate_companies_only(request: MigrationRequest):
+async def migrate_companies_only(request: MigrationRequest) -> MigrationResponse:
     """Migrate only companies from local to production."""
     try:
         result = await migration_service.migrate_companies(dry_run=request.dry_run)
@@ -86,7 +86,7 @@ async def migrate_companies_only(request: MigrationRequest):
 
 
 @router.post("/migrate-documents", response_model=MigrationResponse)
-async def migrate_documents_only(request: MigrationRequest):
+async def migrate_documents_only(request: MigrationRequest) -> MigrationResponse:
     """Migrate only documents from local to production."""
     try:
         result = await migration_service.migrate_documents(dry_run=request.dry_run)
@@ -103,7 +103,7 @@ async def migrate_documents_only(request: MigrationRequest):
 
 
 @router.post("/migrate-meta-summaries", response_model=MigrationResponse)
-async def migrate_meta_summaries_only(request: MigrationRequest):
+async def migrate_meta_summaries_only(request: MigrationRequest) -> MigrationResponse:
     """Migrate only meta summaries from local to production."""
     try:
         result = await migration_service.migrate_meta_summaries(dry_run=request.dry_run)
@@ -120,7 +120,7 @@ async def migrate_meta_summaries_only(request: MigrationRequest):
 
 
 @router.post("/migrate-users-to-tier-system", response_model=MigrationResponse)
-async def migrate_users_to_tier_system_only(request: MigrationRequest):
+async def migrate_users_to_tier_system_only(request: MigrationRequest) -> MigrationResponse:
     """Migrate existing users to include tier and monthly_usage fields."""
     try:
         result = await migration_service.migrate_users_to_tier_system(dry_run=request.dry_run)

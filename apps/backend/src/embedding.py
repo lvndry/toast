@@ -3,10 +3,10 @@ from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from litellm import embedding
 
-from core.config import settings
-from core.logging import get_logger
+from src.core.config import settings
+from src.core.logging import get_logger
 from src.document import Document
-from src.models import get_model
+from src.llm import get_model
 from src.services.document_service import document_service
 from src.vector_db import INDEX_NAME, init_pinecone_index, pc
 
@@ -18,7 +18,9 @@ VOYAGE_LAW_2_DIMENSION = 1024
 init_pinecone_index(VOYAGE_LAW_2_DIMENSION)
 
 
-def _truncate_text_for_embedding(text: str, max_size: int = None) -> str:
+def _truncate_text_for_embedding(
+    text: str, max_size: int = settings.embedding.max_text_size_bytes
+) -> str:
     """
     Truncate text to fit within embedding service limits.
 
@@ -29,9 +31,6 @@ def _truncate_text_for_embedding(text: str, max_size: int = None) -> str:
     Returns:
         Truncated text that fits within size limits
     """
-    if max_size is None:
-        max_size = settings.embedding.max_text_size_bytes
-
     # Convert to bytes to check actual size
     text_bytes = text.encode("utf-8")
 
@@ -93,7 +92,7 @@ def _compute_chunk_offsets(full_text: str, chunks: list[str]) -> list[tuple[int,
     return offsets
 
 
-async def embed_company_documents(company_id: str, namespace: str | None = None, /):
+async def embed_company_documents(company_id: str, namespace: str | None = None, /) -> None:
     """
     Process documents by splitting their markdown content and creating embeddings for each chunk.
 
@@ -193,7 +192,7 @@ async def embed_company_documents(company_id: str, namespace: str | None = None,
         logger.warning("No vectors were created to upsert to Pinecone namespace '%s'", namespace)
 
 
-async def embed_document(document: Document, namespace: str, /):
+async def embed_document(document: Document, namespace: str, /) -> None:
     """Embed a single document into the specified namespace."""
     index = pc.Index(INDEX_NAME)
     splitter = RecursiveCharacterTextSplitter(

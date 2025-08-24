@@ -1,0 +1,138 @@
+name: Full CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          version: "latest"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/backend/.venv
+            apps/backend/.uv/cache
+          key: ${{ runner.os }}-uv-${{ hashFiles('apps/backend/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+
+      - name: Run linting with ruff
+        run: |
+          uv run ruff check .
+
+      - name: Run type checking with mypy
+        run: |
+          uv run mypy src/
+
+      - name: Run tests
+        run: |
+          uv run pytest tests/ -v --tb=short
+
+      - name: Check if backend can start
+        run: |
+          uv run python -c "
+          import sys
+          sys.path.append('src')
+          from main import app
+          print('✅ Backend app imports successfully')
+          "
+
+  frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
+
+    strategy:
+      matrix:
+        node-version: ["20"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type checking
+        run: npm run type-check
+
+      - name: Run Prettier check
+        run: |
+          npx prettier --check .
+
+      - name: Build application
+        run: npm run build
+
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Backend Security Check
+        working-directory: apps/backend
+        run: |
+          # Install uv for backend security check
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          source $HOME/.cargo/env
+          uv sync --dev
+          uv run bandit -r src/ -f json -o bandit-report.json || true
+
+      - name: Frontend Security Check
+        working-directory: apps/frontend
+        run: |
+          npm ci
+          npm audit --audit-level=moderate
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            apps/backend/bandit-report.json
+          retention-days: 30

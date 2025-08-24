@@ -5,9 +5,9 @@ import structlog
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from models.clerkUser import ClerkUser
 
-from core.config import settings
+from src.core.config import settings
+from src.models.clerkUser import ClerkUser
 
 logger = structlog.get_logger(service="jwt")
 
@@ -32,18 +32,16 @@ class ClerkAuthService:
                 response.raise_for_status()
                 jwks = response.json()
                 self.jwks_cache[jwks_url] = jwks
-                return jwks
+                return jwks  # type: ignore
         except httpx.RequestError as e:
-            raise HTTPException(
-                status_code=500, detail=f"Failed to fetch JWKS: {str(e)}"
-            ) from e
+            raise HTTPException(status_code=500, detail=f"Failed to fetch JWKS: {str(e)}") from e
 
     async def verify_token(self, token: str) -> dict[str, Any]:
         """Verify JWT token and return payload"""
         try:
             # Determine JWKS URL from token issuer if available
             try:
-                unverified_claims = jwt.get_unverified_claims(token)  # type: ignore[attr-defined]
+                unverified_claims = jwt.get_unverified_claims(token)
                 iss = unverified_claims.get("iss")
             except Exception:
                 iss = None
@@ -91,16 +89,12 @@ class ClerkAuthService:
                 )
             except Exception as e:
                 logger.exception(f"Failed to decode token: {e}")
-                raise HTTPException(
-                    status_code=401, detail=f"Invalid token: {str(e)}"
-                ) from e
+                raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}") from e
 
             return payload
 
         except JWTError as e:
-            raise HTTPException(
-                status_code=401, detail=f"Invalid token: {str(e)}"
-            ) from e
+            raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}") from e
         except Exception as e:
             raise HTTPException(
                 status_code=401, detail=f"Token verification failed: {str(e)}"
@@ -123,9 +117,7 @@ class ClerkAuthService:
         name = payload.get("name")
 
         if not user_id:
-            raise HTTPException(
-                status_code=401, detail="Invalid token: missing user ID"
-            )
+            raise HTTPException(status_code=401, detail="Invalid token: missing user ID")
 
         return ClerkUser(
             user_id=cast(str, user_id),
