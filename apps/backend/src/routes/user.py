@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from models.clerkUser import ClerkUser
 from pydantic import BaseModel
 
-from src.db import upsert_user
+from src.services.user_service import create_or_update_user
 from src.user import User
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -16,7 +16,7 @@ class CreateUserRequest(BaseModel):
 
 
 @router.post("")
-async def create_or_update_user(
+async def upsert_user(
     req: CreateUserRequest,
     current: ClerkUser = Depends(get_current_user),
 ):
@@ -29,5 +29,5 @@ async def create_or_update_user(
         first_name=req.first_name,
         last_name=req.last_name,
     )
-    await upsert_user(user)
+    await create_or_update_user(user)
     return {"status": "ok", "user_id": user.id}

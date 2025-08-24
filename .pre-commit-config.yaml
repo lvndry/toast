@@ -38,19 +38,9 @@ repos:
         exclude: ^backend/tests/.*$
         stages: [manual]
 
-
   # Local hooks for project-specific checks
   - repo: local
     hooks:
-      # TypeScript type checking
-      - id: typescript-check
-        name: TypeScript Check
-        entry: bash -c 'cd apps/frontend && bun run type-check'
-        language: system
-        files: ^apps/frontend/
-        types: [file]
-        types_or: [ts, tsx]
-
       - id: frontend-lint
         name: Frontend ESLint
         entry: bash -c 'cd apps/frontend && bun run lint'

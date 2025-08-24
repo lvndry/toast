@@ -2,15 +2,13 @@ from core.jwt import get_optional_user
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 
-from src.db import (
-    get_all_companies,
-    get_company_by_id,
-    get_company_by_slug,
-    get_company_documents,
-    store_company_meta_summary,
+from src.services.company_service import get_company_by_id as svc_get_company_by_id
+from src.services.company_service import get_company_by_slug as svc_get_company_by_slug
+from src.services.company_service import (
+    get_or_generate_meta_summary,
+    get_sources,
+    list_companies,
 )
-from src.db import get_company_meta_summary as get_stored_meta_summary
-from src.summarizer import generate_company_meta_summary
 
 router = APIRouter(prefix="/companies")
 
@@ -22,14 +20,7 @@ async def get_companies(has_documents: bool = True, user=Depends(get_optional_us
 
     If has_documents is True, only return companies that have documents.
     """
-    companies = await get_all_companies()
-    if has_documents:
-        companies = [
-            company
-            for company in companies
-            if await get_company_documents(company.slug)
-        ]
-
+    companies = await list_companies(has_documents=has_documents)
     if user is None:
         companies = companies[:100]
     return companies
@@ -39,7 +30,7 @@ async def get_companies(has_documents: bool = True, user=Depends(get_optional_us
 async def get_company(slug: str):
     """Get a company by its slug."""
     try:
-        company = await get_company_by_slug(slug)
+        company = await svc_get_company_by_slug(slug)
         return company
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -50,28 +41,10 @@ async def get_company_meta_summary(company_slug: str, user=Depends(get_optional_
     """Get a meta-summary of all documents for a company."""
     # First verify the company exists
     try:
-        company = await get_company_by_slug(company_slug)
+        company = await svc_get_company_by_slug(company_slug)
         if not company:
             raise ValueError(f"Company with slug {company_slug} not found")
-
-        # Try to get existing meta summary from database
-        meta_summary = await get_stored_meta_summary(company_slug)
-
-        if meta_summary is None:
-            logger.info(f"Generating new meta summary for company {company_slug}")
-            # Generate new meta summary if not found in database
-            meta_summary = await generate_company_meta_summary(
-                company_slug=company_slug
-            )
-            if meta_summary:
-                # Store the generated meta summary in database
-                await store_company_meta_summary(company_slug, meta_summary)
-            else:
-                raise ValueError(
-                    f"Failed to generate meta summary for company {company_slug}"
-                )
-
-        return meta_summary.model_dump()
+        return await get_or_generate_meta_summary(company_slug)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -80,13 +53,7 @@ async def get_company_meta_summary(company_slug: str, user=Depends(get_optional_
 async def get_company_sources(company_slug: str):
     """Get all documents (sources) for a company."""
     try:
-        documents = await get_company_documents(company_slug)
-        # Return only title and url for each document
-        sources = [
-            {"title": doc.title or "Untitled Document", "url": doc.url}
-            for doc in documents
-        ]
-        return {"sources": sources}
+        return await get_sources(company_slug)
     except ValueError as e:
         logger.error(f"Error fetching sources for company {company_slug}: {e}")
         raise HTTPException(status_code=404, detail=str(e))
@@ -95,7 +62,7 @@ async def get_company_sources(company_slug: str):
 @router.get("/{company_id}")
 async def fetch_company_by_id(company_id: str):
     """Get a company by its ID."""
-    company = await get_company_by_id(company_id)
+    company = await svc_get_company_by_id(company_id)
     if not company:
         raise HTTPException(
             status_code=404, detail=f"Company with ID {company_id} not found"
