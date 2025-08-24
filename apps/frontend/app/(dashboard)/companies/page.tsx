@@ -212,7 +212,7 @@ export default function CompaniesPage() {
       trackUserJourney.documentUploadCompleted(selectedFile.type, selectedFile.size, companyName);
 
       // Navigate to the conversation
-      router.push(`/q/${conversation.id}`);
+      router.push(`/c/${conversation.id}`);
 
       // Reset form
       setCompanyName("");
@@ -239,7 +239,7 @@ export default function CompaniesPage() {
   function handleCompanyClick(company: Company) {
     // Track company view
     trackUserJourney.companyViewed(company.slug, company.name);
-    router.push(`/q/${company.slug}`);
+    router.push(`/c/${company.slug}`);
   }
 
   function handleSignOut() {

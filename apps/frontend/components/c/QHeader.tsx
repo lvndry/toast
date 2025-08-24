@@ -19,6 +19,8 @@ interface QHeaderProps {
   onTogglePinned?: () => void;
   onToggleArchived?: () => void;
   uploadLoading?: boolean;
+  onToggleSummarySidebar?: () => void;
+  isSummarySidebarOpen?: boolean;
 }
 
 export default function QHeader({
@@ -30,7 +32,9 @@ export default function QHeader({
   onDeleteClick,
   onTogglePinned,
   onToggleArchived,
-  uploadLoading
+  uploadLoading,
+  onToggleSummarySidebar,
+  isSummarySidebarOpen
 }: QHeaderProps) {
   const cardBg = useColorModeValue("white", "gray.800");
 
@@ -63,6 +67,15 @@ export default function QHeader({
             )}
           </Box>
           <HStack spacing={3}>
+            {conversation && onToggleSummarySidebar && (
+              <Button
+                size="sm"
+                variant={isSummarySidebarOpen ? "solid" : "outline"}
+                onClick={onToggleSummarySidebar}
+              >
+                {isSummarySidebarOpen ? "Hide Summary" : "Show Summary"}
+              </Button>
+            )}
             {conversation && onUploadClick && (
               <Button
                 size="sm"

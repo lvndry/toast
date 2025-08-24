@@ -68,7 +68,7 @@ export default function CompanyMetaSummary({ metaSummary }: CompanyMetaSummaryPr
           </Grid>
         </Box>
 
-        <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={8}>
+        <Grid templateColumns="1fr" gap={8}>
           <Box>
             <Heading size="md" mb={4}>Key Points</Heading>
             <Box bg={cardBg} p={6} borderRadius="lg" shadow="sm">

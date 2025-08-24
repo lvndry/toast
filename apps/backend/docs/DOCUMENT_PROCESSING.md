@@ -11,7 +11,7 @@ When a user uploads a document through the "Upload My Own Documents" feature, th
 3. **Document Classification** → Use LLM (Mistral/Gemini) to classify the document type
 4. **Legal Document Validation** → Check if the document is a legal document
 5. **Summarization** → If legal, generate summary using existing summarizer
-6. **Conversation Creation** → Create a new conversation and navigate to `/q/[conversation_id]`
+6. **Conversation Creation** → Create a new conversation and navigate to `/c/[conversation_id]`
 
 ## Supported File Types
 
@@ -61,16 +61,19 @@ The frontend now:
 ## API Endpoints
 
 ### Upload Document
+
 ```
 POST /api/conversations/{conversation_id}/upload
 ```
 
 **Request:**
+
 - `file`: Uploaded file
 - `company_name`: Company name
 - `company_description`: Optional company description
 
 **Response:**
+
 ```json
 {
   "message": "Document uploaded and processed successfully",
@@ -81,6 +84,7 @@ POST /api/conversations/{conversation_id}/upload
 ```
 
 **Error Response:**
+
 ```json
 {
   "detail": "Document is not classified as a legal document. Please upload a legal document such as a privacy policy, terms of service, or similar legal document."

@@ -3,6 +3,12 @@
 import {
   Box,
   Button,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
   Heading,
   Spinner,
   Text,
@@ -14,13 +20,13 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 import { FiX } from "react-icons/fi";
-import ChatInput from "../../../../components/chat/chat-input";
-import CompanyMetaSummary from "../../../../components/q/CompanyMetaSummary";
-import ConversationsList from "../../../../components/q/ConversationsList";
-import QHeader from "../../../../components/q/QHeader";
-import UploadModal from "../../../../components/q/UploadModal";
 
-import { useAnalytics } from "../../../../hooks/useAnalytics";
+import CompanyMetaSummary from "@components/c/CompanyMetaSummary";
+import ConversationsList from "@components/c/ConversationsList";
+import QHeader from "@components/c/QHeader";
+import UploadModal from "@components/c/UploadModal";
+import ChatInput from "@components/chat/chat-input";
+import { useAnalytics } from "@hooks/useAnalytics";
 
 interface Company {
   id: string;
@@ -70,8 +76,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
   const { user } = useUser();
   const router = useRouter();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const {
-  } = useDisclosure();
+  const { isOpen: isSummaryOpen, onOpen: onSummaryOpen, onClose: onSummaryClose } = useDisclosure();
   const { trackUserJourney, trackPageView } = useAnalytics();
 
   const [company, setCompany] = useState<Company | null>(null);
@@ -134,6 +139,19 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
             conversationData.company_name,
             false
           );
+
+          // Fetch meta summary for the conversation's company if available
+          if (conversationData.company_slug) {
+            try {
+              const metaResponse = await fetch(`/api/meta-summary/${conversationData.company_slug}`);
+              if (metaResponse.ok) {
+                const metaData: MetaSummary = await metaResponse.json();
+                setMetaSummary(metaData);
+              }
+            } catch (_) {
+              // ignore meta summary errors in conversation mode
+            }
+          }
         } else {
           // Fetch company data
           const companyResponse = await fetch(`/api/companies/${slug}`);
@@ -220,7 +238,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
       });
       if (!res.ok) throw new Error("Failed to create conversation");
       const created: Conversation = await res.json();
-      router.push(`/q/${created.id}`);
+      router.push(`/c/${created.id}`);
     } catch (e) {
       console.error(e);
     }
@@ -345,7 +363,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
         setConversation(createdConversation);
         // Update URL to conversation id for resuming later
         try {
-          router.replace(`/q/${createdConversation.id}`);
+          router.replace(`/c/${createdConversation.id}`);
         } catch { }
 
         const sendResponse = await fetch(`/api/conversations/${createdConversation.id}/messages`, {
@@ -506,10 +524,12 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
         conversation={conversation ? { id: conversation.id, pinned: conversation.pinned, archived: conversation.archived } : null}
         onBack={() => router.back()}
         onUploadClick={conversation ? () => onOpen() : undefined}
+        onToggleSummarySidebar={conversation ? () => (isSummaryOpen ? onSummaryClose() : onSummaryOpen()) : undefined}
+        isSummarySidebarOpen={conversation ? isSummaryOpen : undefined}
         onDeleteClick={conversation ? async () => {
           try {
             await fetch(`/api/conversations/${conversation.id}`, { method: "DELETE" });
-            router.push(`/q/${conversation.company_slug}`);
+            router.push(`/c/${conversation.company_slug}`);
           } catch { }
         } : undefined}
         onTogglePinned={conversation ? async () => {
@@ -541,7 +561,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
           <ConversationsList
             companyName={company.name}
             conversations={conversationsList}
-            onOpenConversation={(id) => router.push(`/q/${id}`)}
+            onOpenConversation={(id) => router.push(`/c/${id}`)}
             onRefresh={refreshConversationsList}
             onCreate={createConversation}
             onRename={async (id, newName) => { await updateConversationMeta(id, { title: newName }); }}
@@ -552,7 +572,8 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
           />
         )}
 
-        {metaSummary && company && (
+        {/* Inline meta summary only when browsing company view, not conversation */}
+        {metaSummary && company && !conversation && (
           <CompanyMetaSummary metaSummary={metaSummary} />
         )}
 
@@ -580,6 +601,27 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
           onClose={onClose}
           onFileSelected={(file) => handleFileUpload(file)}
         />
+      )}
+
+      {/* Right-side Summary Drawer for conversations */}
+      {conversation && (
+        <Drawer isOpen={isSummaryOpen} placement="right" size="md" onClose={onSummaryClose}>
+          <DrawerOverlay />
+          <DrawerContent>
+            <DrawerCloseButton />
+            <DrawerHeader>Report</DrawerHeader>
+            <DrawerBody>
+              {metaSummary ? (
+                <CompanyMetaSummary metaSummary={metaSummary} />
+              ) : (
+                <VStack spacing={4} mt={8}>
+                  <Spinner />
+                  <Text color="gray.600">Loading meta summary…</Text>
+                </VStack>
+              )}
+            </DrawerBody>
+          </DrawerContent>
+        </Drawer>
       )}
 
       {/* Create Conversation Modal removed in favor of immediate create */}
