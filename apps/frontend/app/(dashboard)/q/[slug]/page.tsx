@@ -21,6 +21,8 @@ import { use, useEffect, useRef, useState } from "react";
 import { FiArrowLeft, FiSend, FiUpload, FiX } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
 
+import { useAnalytics } from "../../../../hooks/useAnalytics";
+
 interface Company {
   id: string;
   name: string;
@@ -62,6 +64,7 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
   const router = useRouter();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { trackUserJourney, trackPageView } = useAnalytics();
 
   const [company, setCompany] = useState<Company | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -115,6 +118,13 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
           const conversationData: Conversation = await conversationResponse.json();
           setConversation(conversationData);
           setMessages(conversationData.messages || []);
+
+          // Track conversation view
+          trackUserJourney.conversationStarted(
+            conversationData.id,
+            conversationData.company_name,
+            false
+          );
         } else {
           // Fetch company data
           const companyResponse = await fetch(`/api/companies/${slug}`);
@@ -123,6 +133,9 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
           }
           const companyData: Company = await companyResponse.json();
           setCompany(companyData);
+
+          // Track company view
+          trackUserJourney.companyViewed(companyData.slug, companyData.name);
 
           // Fetch meta summary
           const metaResponse = await fetch(`/api/meta-summary/${slug}`);
@@ -140,10 +153,24 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
     }
 
     fetchData();
-  }, [slug]);
+  }, [slug, trackUserJourney]);
+
+  // Track page view
+  useEffect(() => {
+    if (!initialLoading) {
+      const pageName = conversation ? "conversation" : "company_analysis";
+      trackPageView(pageName, {
+        company_slug: company?.slug || conversation?.company_name,
+        conversation_id: conversation?.id,
+      });
+    }
+  }, [initialLoading, conversation, company, trackPageView]);
 
   async function handleSendMessage() {
     if (!inputValue.trim() || loading) return;
+
+    const startTime = Date.now();
+    const questionLength = inputValue.length;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -155,6 +182,14 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
     setMessages(prev => [...prev, userMessage]);
     setInputValue("");
     setLoading(true);
+
+    // Track question asked
+    trackUserJourney.questionAsked(
+      inputValue,
+      questionLength,
+      conversation?.id,
+      company?.slug
+    );
 
     try {
       if (conversation) {
@@ -182,6 +217,15 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
         };
 
         setMessages(prev => [...prev, assistantMessage]);
+
+        // Track successful answer
+        const responseTime = Date.now() - startTime;
+        trackUserJourney.questionAnswered(
+          questionLength,
+          data.ai_message.content.length,
+          responseTime,
+          conversation.id
+        );
       } else if (company) {
         // Send message to company
         const response = await fetch("/api/q", {
@@ -208,6 +252,14 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
         };
 
         setMessages(prev => [...prev, assistantMessage]);
+
+        // Track successful answer
+        const responseTime = Date.now() - startTime;
+        trackUserJourney.questionAnswered(
+          questionLength,
+          data.answer.length,
+          responseTime
+        );
       }
     } catch (err) {
       console.error("Error sending message:", err);
@@ -218,6 +270,12 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
         timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, errorMessage]);
+
+      // Track failed question
+      trackUserJourney.questionFailed(
+        err instanceof Error ? err.message : "Unknown error",
+        conversation?.id
+      );
     } finally {
       setLoading(false);
     }
@@ -247,6 +305,9 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
 
     setUploadLoading(true);
     try {
+      // Track upload start
+      trackUserJourney.documentUploadStarted(file.type, file.size);
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('company_name', conversation.company_name);
@@ -263,11 +324,17 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
         const errorData = await uploadResponse.json().catch(() => ({}));
         const errorMessage = errorData.detail || 'Failed to upload document';
 
+        // Track upload failure
+        trackUserJourney.documentUploadFailed(file.type, errorMessage);
+
         // Removed toast as per edit hint
         return;
       }
 
       const uploadResult = await uploadResponse.json();
+
+      // Track successful upload
+      trackUserJourney.documentUploadCompleted(file.type, file.size, conversation.company_name);
 
       // Removed toast as per edit hint
 
@@ -282,6 +349,8 @@ export default function QPage({ params }: { params: Promise<{ slug: string; }>; 
       onClose(); // Close modal after successful upload
     } catch (error) {
       console.error('Upload error:', error);
+      // Track upload failure
+      trackUserJourney.documentUploadFailed(file.type, error instanceof Error ? error.message : 'Unknown error');
       // Removed toast as per edit hint
     } finally {
       setUploadLoading(false);

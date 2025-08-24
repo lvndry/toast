@@ -20,7 +20,15 @@ export async function http(
 
 
   const userAuth = await auth();
-  const token = await userAuth.getToken?.({ template: "default" });
+  let token: string | null | undefined = undefined;
+  try {
+    token = await userAuth.getToken?.({ template: "default" });
+    if (!token) {
+      token = await userAuth.getToken?.();
+    }
+  } catch (_) {
+    // ignore
+  }
 
   const mergedHeaders: HeadersInit = {
     ...(headers || {}),

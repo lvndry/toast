@@ -2,21 +2,32 @@
 
 import { Box, Button, Container, Heading, Input, Select, Stack, Text, Textarea, useToast } from "@chakra-ui/react";
 import { useUser } from "@clerk/nextjs";
-import posthog from "posthog-js";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { useAnalytics } from "../../../hooks/useAnalytics";
+import { posthog } from "../../../lib/analytics";
 
 export default function OnboardingPage() {
   const { user } = useUser();
+  const router = useRouter();
   const toast = useToast();
+  const { trackUserJourney } = useAnalytics();
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
   const [useCase, setUseCase] = useState("");
   const [goal, setGoal] = useState("");
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Track onboarding start
+    trackUserJourney.onboardingStarted();
+
     if (user) {
       setFirstName(user.firstName || "");
       setLastName(user.lastName || "");
@@ -40,12 +51,51 @@ export default function OnboardingPage() {
         }),
       }).catch(() => { });
     }
-  }, [user]);
+  }, [user, trackUserJourney]);
+
+  function validateForm() {
+    const newErrors: Record<string, string> = {};
+
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!role) {
+      newErrors.role = "Please select your role";
+    }
+
+    if (!useCase) {
+      newErrors.useCase = "Please select how you want to use Toast AI";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent) {
+    if (event.key === "Enter" && !loading) {
+      event.preventDefault();
+      void handleSubmit(event as any);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
     if (!user) return;
+
+    // Validate form before submitting
+    if (!validateForm()) {
+      toast({
+        title: "Please fill in all required fields",
+        status: "error",
+        duration: 3000,
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -56,7 +106,20 @@ export default function OnboardingPage() {
         goal,
       });
 
+      // Mark onboarding completed in backend
+      await fetch("/api/users/complete-onboarding", { method: "POST" });
+
+      // Track onboarding completion
+      trackUserJourney.onboardingCompleted({
+        user_id: user.id,
+        email: user.primaryEmailAddress?.emailAddress,
+        role,
+        use_case: useCase,
+        goal,
+      });
+
       toast({ title: "Thanks! You're all set.", status: "success" });
+      router.push("/companies");
     } catch (error) {
       toast({ title: "Submission failed", status: "error" });
     } finally {
@@ -71,25 +134,75 @@ export default function OnboardingPage() {
       <Box as="form" onSubmit={handleSubmit}>
         <Stack spacing={4}>
           <Stack direction={{ base: "column", md: "row" }} spacing={4}>
-            <Input placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-            <Input placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            <Input
+              placeholder="First name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <Input
+              placeholder="Last name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
           </Stack>
-          <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <Select placeholder="I am a..." value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="individual">Privacy-conscious individual</option>
-            <option value="small_business">Small business owner</option>
-            <option value="compliance_officer">Compliance officer</option>
-            <option value="legal_team">Legal team</option>
-            <option value="other">Other</option>
-          </Select>
-          <Select placeholder="I want to use Toast AI to..." value={useCase} onChange={(e) => setUseCase(e.target.value)}>
-            <option value="analyze_privacy_policies">Understand privacy policies</option>
-            <option value="vendor_risk">Assess vendor and contract risk</option>
-            <option value="monitor_changes">Monitor policy changes</option>
-            <option value="bulk_review">Bulk review for legal team</option>
-          </Select>
-          <Textarea placeholder="What success looks like for you" value={goal} onChange={(e) => setGoal(e.target.value)} />
-          <Button type="submit" colorScheme="purple" isLoading={loading} loadingText="Saving...">Continue</Button>
+          <Box>
+            <Input
+              placeholder="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={handleKeyDown}
+              isInvalid={!!errors.email}
+            />
+            {errors.email && <Text color="red.500" fontSize="sm" mt={1}>{errors.email}</Text>}
+          </Box>
+          <Box>
+            <Select
+              placeholder="I am a..."
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              onKeyDown={handleKeyDown}
+              isInvalid={!!errors.role}
+            >
+              <option value="individual">Privacy-conscious individual</option>
+              <option value="founder">Founder</option>
+              <option value="compliance_officer">Compliance officer</option>
+              <option value="legal_team">Legal team</option>
+              <option value="other">Other</option>
+            </Select>
+            {errors.role && <Text color="red.500" fontSize="sm" mt={1}>{errors.role}</Text>}
+          </Box>
+          <Box>
+            <Select
+              placeholder="I want to use Toast AI to..."
+              value={useCase}
+              onChange={(e) => setUseCase(e.target.value)}
+              onKeyDown={handleKeyDown}
+              isInvalid={!!errors.useCase}
+            >
+              <option value="analyze_privacy_policies">Understand privacy policies</option>
+              <option value="vendor_risk">Assess vendor and contract risk</option>
+              <option value="monitor_changes">Monitor policy changes</option>
+              <option value="bulk_review">Bulk review for legal team</option>
+            </Select>
+            {errors.useCase && <Text color="red.500" fontSize="sm" mt={1}>{errors.useCase}</Text>}
+          </Box>
+          <Textarea
+            placeholder="What success looks like for you"
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <Button
+            type="submit"
+            colorScheme="purple"
+            isLoading={loading}
+            loadingText="Saving..."
+          >
+            Continue
+          </Button>
         </Stack>
       </Box>
     </Container>

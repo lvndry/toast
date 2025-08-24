@@ -2,8 +2,31 @@
 
 import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react";
 import { SignIn } from "@clerk/nextjs";
+import { useEffect } from "react";
+import { useAnalytics } from "../../../../hooks/useAnalytics";
 
 export default function SignInPage() {
+  const { trackPageView, trackUserJourney } = useAnalytics();
+
+  // Track sign-in page view
+  useEffect(() => {
+    trackPageView("sign_in_page");
+  }, [trackPageView]);
+
+  // Track sign-in events
+  useEffect(() => {
+    const handleSignIn = () => {
+      trackUserJourney.signIn("clerk");
+    };
+
+    // Listen for sign-in success
+    window.addEventListener('clerk-sign-in-complete', handleSignIn);
+
+    return () => {
+      window.removeEventListener('clerk-sign-in-complete', handleSignIn);
+    };
+  }, [trackUserJourney]);
+
   return (
     <Container maxW="container.sm" py={20}>
       <VStack spacing={8} align="center">

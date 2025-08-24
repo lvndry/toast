@@ -8,5 +8,6 @@ class User(BaseModel):
     email: str
     first_name: str | None = None
     last_name: str | None = None
+    onboarding_completed: bool = False
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)

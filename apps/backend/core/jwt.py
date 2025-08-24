@@ -19,28 +19,43 @@ class ClerkAuthService:
     """Service to handle Clerk JWT token authentication"""
 
     def __init__(self) -> None:
-        self.jwks: dict[str, Any] | None = None
-        self.jwks_url = settings.security.clerk_jwks_url
+        self.jwks_cache: dict[str, dict[str, Any]] = {}
+        self.default_jwks_url = settings.security.clerk_jwks_url
 
-    async def get_jwks(self) -> dict[str, Any]:
-        """Fetch JWKS from Clerk"""
-        if self.jwks is None:
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(self.jwks_url)
-                    response.raise_for_status()
-                    self.jwks = response.json()
-            except httpx.RequestError as e:
-                raise HTTPException(
-                    status_code=500, detail=f"Failed to fetch JWKS: {str(e)}"
-                ) from e
-        return self.jwks
+    async def get_jwks(self, jwks_url: str) -> dict[str, Any]:
+        """Fetch JWKS from Clerk issuer-specific URL with simple cache"""
+        if jwks_url in self.jwks_cache:
+            return self.jwks_cache[jwks_url]
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(jwks_url)
+                response.raise_for_status()
+                jwks = response.json()
+                self.jwks_cache[jwks_url] = jwks
+                return jwks
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=500, detail=f"Failed to fetch JWKS: {str(e)}"
+            ) from e
 
     async def verify_token(self, token: str) -> dict[str, Any]:
         """Verify JWT token and return payload"""
         try:
+            # Determine JWKS URL from token issuer if available
+            try:
+                unverified_claims = jwt.get_unverified_claims(token)  # type: ignore[attr-defined]
+                iss = unverified_claims.get("iss")
+            except Exception:
+                iss = None
+
+            jwks_url = (
+                f"{iss.rstrip('/')}/.well-known/jwks.json"
+                if isinstance(iss, str) and iss
+                else self.default_jwks_url
+            )
+
             # Get JWKS
-            jwks = await self.get_jwks()
+            jwks = await self.get_jwks(jwks_url)
 
             # Decode token header to get key ID
             unverified_header = jwt.get_unverified_header(token)

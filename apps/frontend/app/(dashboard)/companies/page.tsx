@@ -23,6 +23,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FiLogOut, FiPlus, FiSearch, FiUpload, FiX } from "react-icons/fi";
 
+import { useAnalytics } from "../../../hooks/useAnalytics";
+
 interface Company {
   id: string;
   name: string;
@@ -51,6 +53,7 @@ export default function CompaniesPage() {
   const router = useRouter();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { trackUserJourney, trackPageView } = useAnalytics();
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +66,24 @@ export default function CompaniesPage() {
   const [companyName, setCompanyName] = useState("");
   const [companyDescription, setCompanyDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Track page view
+  useEffect(() => {
+    trackPageView("companies");
+  }, [trackPageView]);
+
+  // Track search
+  useEffect(() => {
+    if (searchTerm.trim()) {
+      const filteredCount = companies.filter(company =>
+        company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        company.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        company.industry?.toLowerCase().includes(searchTerm.toLowerCase())
+      ).length;
+
+      trackUserJourney.companySearched(searchTerm, filteredCount);
+    }
+  }, [searchTerm, companies, trackUserJourney]);
 
   async function fetchCompanyLogo(company: Company): Promise<string | null> {
     try {
@@ -134,6 +155,9 @@ export default function CompaniesPage() {
 
     setUploadLoading(true);
     try {
+      // Track upload start
+      trackUserJourney.documentUploadStarted(selectedFile.type, selectedFile.size);
+
       // Create conversation first
       const conversationResponse = await fetch('/api/conversations', {
         method: 'POST',
@@ -170,6 +194,9 @@ export default function CompaniesPage() {
         const errorData = await uploadResponse.json().catch(() => ({}));
         const errorMessage = errorData.detail || 'Failed to upload document';
 
+        // Track upload failure
+        trackUserJourney.documentUploadFailed(selectedFile.type, errorMessage);
+
         if (uploadResponse.status === 400) {
           // Show error message
         } else {
@@ -180,6 +207,9 @@ export default function CompaniesPage() {
 
       const uploadResult = await uploadResponse.json();
 
+      // Track successful upload
+      trackUserJourney.documentUploadCompleted(selectedFile.type, selectedFile.size, companyName);
+
       // Navigate to the conversation
       router.push(`/q/${conversation.id}`);
 
@@ -189,6 +219,10 @@ export default function CompaniesPage() {
       setSelectedFile(null);
     } catch (error) {
       console.error('Upload error:', error);
+      // Track upload failure
+      if (selectedFile) {
+        trackUserJourney.documentUploadFailed(selectedFile.type, error instanceof Error ? error.message : 'Unknown error');
+      }
     } finally {
       setUploadLoading(false);
     }
@@ -199,6 +233,17 @@ export default function CompaniesPage() {
     if (file) {
       setSelectedFile(file);
     }
+  }
+
+  function handleCompanyClick(company: Company) {
+    // Track company view
+    trackUserJourney.companyViewed(company.slug, company.name);
+    router.push(`/q/${company.slug}`);
+  }
+
+  function handleSignOut() {
+    trackUserJourney.signOut();
+    signOut();
   }
 
   if (loading) {
@@ -246,7 +291,7 @@ export default function CompaniesPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => signOut()}
+                onClick={handleSignOut}
               >
                 <FiLogOut style={{ marginRight: '8px' }} />
                 Sign Out
@@ -303,7 +348,7 @@ export default function CompaniesPage() {
                     cursor="pointer"
                     transition="all 0.2s"
                     _hover={{ transform: "translateY(-4px)", shadow: "lg" }}
-                    onClick={() => router.push(`/q/${company.slug}`)}
+                    onClick={() => handleCompanyClick(company)}
                   >
                     <VStack spacing={4} align="center">
                       {/* Company Logo */}

@@ -1,10 +1,12 @@
-"use client"
+"use client";
 
-import posthog from "posthog-js"
-import { PostHogProvider as PHProvider } from "posthog-js/react"
-import { useEffect } from "react"
+import posthog from "posthog-js";
+import { PostHogProvider as PHProvider } from "posthog-js/react";
+import { useEffect } from "react";
 
-export function PostHogProvider({ children }: { children: React.ReactNode }) {
+import { trackSession } from "../lib/analytics";
+
+export function PostHogProvider({ children }: { children: React.ReactNode; }) {
   useEffect(() => {
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
       api_host: "/ingest",
@@ -12,8 +14,23 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       defaults: '2025-05-24',
       capture_exceptions: true, // This enables capturing exceptions using Error Tracking
       debug: process.env.NODE_ENV === "development",
-    })
-  }, [])
+    });
 
-  return <PHProvider client={posthog}>{children}</PHProvider>
+    // Track session start
+    trackSession.started();
+
+    // Track session end when user leaves
+    const handleBeforeUnload = () => {
+      const sessionDuration = Math.floor((Date.now() - performance.timing.navigationStart) / 1000);
+      trackSession.ended(sessionDuration);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  return <PHProvider client={posthog}>{children}</PHProvider>;
 }

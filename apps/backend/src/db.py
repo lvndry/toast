@@ -140,6 +140,15 @@ async def get_user_by_id(user_id: str) -> User | None:
     return User(**doc) if doc else None
 
 
+async def set_user_onboarding_completed(user_id: str) -> None:
+    now = datetime.now()
+    await mongo.db.users.update_one(
+        {"id": user_id},
+        {"$set": {"onboarding_completed": True, "updated_at": now}},
+        upsert=False,
+    )
+
+
 ###########
 
 

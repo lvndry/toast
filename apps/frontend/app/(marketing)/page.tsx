@@ -19,9 +19,25 @@ import { Testimonial, Testimonials } from "@components/testimonials";
 import faq from "@data/faq";
 import pricing from "@data/pricing";
 import testimonials from "@data/testimonials";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+
+import { useAnalytics } from "../../hooks/useAnalytics";
 
 function Home() {
+  const { trackPageView, trackUserJourney } = useAnalytics();
+
+  // Track landing page view
+  useEffect(() => {
+    trackPageView("landing_page");
+  }, [trackPageView]);
+
+  const handleGetStartedClick = (planId: string) => {
+    trackUserJourney.featureUsed("get_started_clicked", {
+      plan_id: planId,
+      location: "pricing_section",
+    });
+  };
+
   return (
     <Box>
       <HeroSection />
@@ -32,7 +48,7 @@ function Home() {
 
       <TestimonialsSection />
 
-      <PricingSection />
+      <PricingSection onGetStartedClick={handleGetStartedClick} />
 
       <FaqSection />
     </Box>
@@ -71,7 +87,7 @@ function TestimonialsSection() {
   );
 }
 
-function PricingSection() {
+function PricingSection({ onGetStartedClick }: { onGetStartedClick: (planId: string) => void; }) {
   return (
     <Box py={16}>
       <VStack spacing={8}>
@@ -92,7 +108,14 @@ function PricingSection() {
               description={plan.description}
               price={plan.price}
               features={plan.features.map(f => f.title)}
-              action={<Link href={plan.action.href}>Get Started</Link>}
+              action={
+                <Link
+                  href={plan.action.href}
+                  onClick={() => onGetStartedClick(plan.id)}
+                >
+                  Get Started
+                </Link>
+              }
             />
           ))}
         </SimpleGrid>
