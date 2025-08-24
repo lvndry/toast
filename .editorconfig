@@ -30,11 +30,6 @@ indent_style = space
 indent_size = 2
 trim_trailing_whitespace = true
 
-# HTML files
-[*.html]
-indent_style = space
-indent_size = 2
-
 # CSS, SCSS files
 [*.{css,scss}]
 indent_style = space
