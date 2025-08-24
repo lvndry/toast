@@ -9,7 +9,7 @@ export async function GET(
 ) {
   const { slug } = await params;
   try {
-    const metaSummary = await httpJson(`${BACKEND_BASE_URL}/companies/meta-summary/${slug}`, { method: "GET" });
+    const metaSummary = await httpJson(`${BACKEND_BASE_URL}/companies/${slug}/meta-summary`, { method: "GET" });
     return NextResponse.json(metaSummary);
   } catch (error) {
     console.error("Error fetching meta summary:", error);

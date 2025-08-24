@@ -57,11 +57,11 @@ async def update_logo(company_id: str, logo_url: str):
         raise HTTPException(status_code=500, detail="Failed to update logo") from e
 
 
-@router.get("/{company_id}/meta-summary")
-async def get_meta_summary(company_id: str, user=Depends(get_optional_user)):
+@router.get("/{company_slug}/meta-summary")
+async def get_meta_summary(company_slug: str, user=Depends(get_optional_user)):
     """Get or generate a meta summary for a company."""
     try:
-        company = await company_service.get_company_by_id(company_id)
+        company = await company_service.get_company_by_slug(company_slug)
         meta_summary = await generate_company_meta_summary(company.slug)
         return meta_summary
     except ValueError as e:

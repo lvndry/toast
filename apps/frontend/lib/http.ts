@@ -47,7 +47,7 @@ export async function http(
       const start = Date.now();
       const response = await fetch(url, { ...init, headers: mergedHeaders, body: init.body as BodyInit | null | undefined });
       if (log) {
-        console.log(`[HTTP] ${init.method || "GET"} ${url} -> ${response.status} in ${Date.now() - start}ms`);
+        console.log(`[Client HTTP] ${init.method || "GET"} ${url} -> ${response.status} in ${Date.now() - start}ms`);
       }
       if (!response.ok && shouldRetry(response.status) && attempt < retry) {
         attempt += 1;
@@ -57,7 +57,7 @@ export async function http(
       return response;
     } catch (error) {
       lastError = error;
-      if (log) console.error(`[HTTP] ${init.method || "GET"} ${url} error:`, error);
+      if (log) console.error(`[Client HTTP] ${init.method || "GET"} ${url} error:`, error);
       if (attempt < retry) {
         attempt += 1;
         await delay(backoff(attempt, retryDelayMs));
@@ -66,7 +66,7 @@ export async function http(
       throw error;
     }
   }
-  throw lastError instanceof Error ? lastError : new Error("HTTP request failed");
+  throw lastError instanceof Error ? lastError : new Error("Client HTTP request failed");
 }
 
 function shouldRetry(status: number): boolean {
@@ -100,7 +100,7 @@ export async function httpJson<T, TBody = unknown>(
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(`HTTP ${response.status} ${response.statusText}: ${text}`);
+    throw new Error(`Client HTTP ${response.status} ${response.statusText}: ${text}`);
   }
   return response.json() as Promise<T>;
 }
