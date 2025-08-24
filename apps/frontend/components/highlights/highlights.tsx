@@ -20,6 +20,11 @@ export function Highlight(props: HighlightProps) {
       borderRadius="lg"
       shadow="md"
       gap={4}
+      border="1px"
+      borderColor="gray.200"
+      transition="all 0.2s ease"
+      _hover={{ transform: "translateY(-4px)", shadow: "lg" }}
+      _dark={{ bg: "gray.800", borderColor: "gray.700" }}
       {...rest}
     >
       {icon && <Box>{icon}</Box>}

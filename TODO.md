@@ -276,6 +276,7 @@ This living backlog prioritizes features for rapid revenue generation and strong
   - [ ] Indexing
     - [ ] Per‑company namespace; include `doc_type`, `region`, `effective_date` in metadata
     - [ ] On‑startup Pinecone index existence check and creation
+    - Cron to check every n days (could start with 7) if there's an update in the documents (we do a sha 256 comparison between stored content and crawled content)
 
 ### Compliance Engine
 

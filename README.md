@@ -19,6 +19,7 @@ Toast AI democratizes legal understanding by making complex privacy policies, te
 ## 🚀 Features
 
 ### Core Capabilities
+
 - **Document Analysis**: Upload any legal document for instant AI analysis
 - **Risk Scoring**: Get quantified risk assessments (0-10 scale)
 - **Plain Language Summaries**: Complex legal jargon made accessible
@@ -27,6 +28,7 @@ Toast AI democratizes legal understanding by making complex privacy policies, te
 - **Comparison Tools**: Side-by-side policy comparisons
 
 ### Technical Features
+
 - **Multi-Model AI**: Combines GPT-4, Claude, and specialized models
 - **Real-time Processing**: <10 second analysis for standard documents
 - **95%+ Accuracy**: Validated against legal expert annotations
@@ -54,6 +56,7 @@ toast/
 ## 🛠️ Tech Stack
 
 ### Backend
+
 - **FastAPI**: Modern, fast web framework
 - **Python 3.11+**: Latest Python with type hints
 - **uv**: Fast Python package manager
@@ -63,6 +66,7 @@ toast/
 - **Pydantic**: Data validation and settings
 
 ### Frontend
+
 - **Next.js 15**: React framework with App Router
 - **TypeScript 5.6**: Type-safe JavaScript
 - **bun**: Fast JavaScript runtime and package manager
@@ -71,12 +75,14 @@ toast/
 - **Clerk**: Authentication and user management
 
 ### AI & ML
+
 - **OpenAI GPT-4**: Complex legal reasoning
 - **Anthropic Claude**: Nuanced risk assessment
 - **LangChain**: LLM orchestration
 - **Pinecone**: Vector database for embeddings
 
 ### Development Tools
+
 - **Pre-commit**: Automated code quality checks
 - **ESLint 9**: JavaScript/TypeScript linting
 - **Prettier**: Code formatting
@@ -85,12 +91,14 @@ toast/
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - **Python 3.11+** with [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - **Node.js 18+** with [bun](https://bun.sh/)
 - **MongoDB** (local or cloud)
 - **OpenAI API key** and **Anthropic API key**
 
 ### 1. Clone & Setup
+
 ```bash
 git clone https://github.com/your-org/toast.git
 cd toast
@@ -100,6 +108,7 @@ cd toast
 ```
 
 ### 2. Environment Configuration
+
 ```bash
 # Backend environment
 cp apps/backend/.env.example apps/backend/.env
@@ -111,6 +120,7 @@ cp apps/frontend/.env.example apps/frontend/.env
 ```
 
 ### 3. Start Development
+
 ```bash
 # Start both frontend and backend
 ./dev.sh
@@ -121,6 +131,7 @@ cd apps/frontend && bun run dev
 ```
 
 ### 4. Access the Application
+
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
@@ -129,6 +140,7 @@ cd apps/frontend && bun run dev
 ## 🧪 Development Workflow
 
 ### Code Quality Setup
+
 ```bash
 # Set up pre-commit hooks
 ./setup-precommit.sh
@@ -142,6 +154,7 @@ cd apps/frontend && bun run dev
 ```
 
 ### Development Commands
+
 ```bash
 # Backend
 cd apps/backend
@@ -160,6 +173,7 @@ bun run build                               # Production build
 ```
 
 ### Git Workflow
+
 ```bash
 # Pre-commit hooks run automatically on:
 git add .
@@ -176,6 +190,7 @@ pre-commit run eslint      # Frontend only
 ### Core Endpoints
 
 #### Document Analysis
+
 ```bash
 POST /api/v1/analysis
 Content-Type: multipart/form-data
@@ -189,6 +204,7 @@ Content-Type: multipart/form-data
 ```
 
 #### Analysis Results
+
 ```json
 {
   "id": "analysis_123",
@@ -214,6 +230,7 @@ Content-Type: multipart/form-data
 ```
 
 ### Webhook Integration
+
 ```bash
 POST /api/v1/webhooks/analysis-complete
 {
@@ -228,18 +245,21 @@ POST /api/v1/webhooks/analysis-complete
 ## 🏢 Enterprise Features
 
 ### Team Collaboration
+
 - **Role-based access control**
 - **Document sharing and commenting**
 - **Approval workflows for high-risk findings**
 - **Audit trails and compliance reporting**
 
 ### API Access
+
 - **RESTful API with comprehensive documentation**
 - **Webhook support for real-time notifications**
 - **Rate limiting and usage tracking**
 - **SDK support for multiple languages**
 
 ### Security & Compliance
+
 - **SOC2 Type II compliance**
 - **Data encryption at rest and in transit**
 - **GDPR and CCPA compliance by design**
@@ -250,6 +270,7 @@ POST /api/v1/webhooks/analysis-complete
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ### Development Setup
+
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Set up development environment: `./dev.sh`
@@ -260,6 +281,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 8. Open a Pull Request
 
 ### Code Standards
+
 - **Python**: Follow PEP 8, use type hints, write docstrings
 - **TypeScript**: Use strict mode, prefer interfaces over types
 - **React**: Use functional components with hooks
@@ -277,25 +299,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Community**: [Discord](https://discord.gg/toast-ai)
 - **Email**: support@toast.ai
 
-## 🗺️ Roadmap
-
-### Q1 2024
-- [ ] Multi-language document support
-- [ ] Advanced compliance checking
-- [ ] Mobile app (React Native)
-
-### Q2 2024
-- [ ] Custom model fine-tuning
-- [ ] Advanced analytics dashboard
-- [ ] Enterprise SSO integration
-
-### Q3 2024
-- [ ] Real-time collaboration features
-- [ ] Advanced risk modeling
-- [ ] API marketplace
-
 ---
 
 **Built with ❤️ by the Toast AI team**
 
-*Making legal intelligence accessible to everyone.*
+_Making legal intelligence accessible to everyone._

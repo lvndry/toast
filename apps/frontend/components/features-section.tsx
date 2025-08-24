@@ -2,11 +2,12 @@
 
 import { Box, Link } from "@chakra-ui/react";
 import { Features } from "@components/features";
+import { FallInPlace } from "@components/motion/fall-in-place";
 import { FiBookOpen, FiCheck, FiCode, FiFlag, FiGrid, FiSearch, FiShield, FiSmile, FiTrendingUp } from "react-icons/fi";
 
 export default function FeaturesSection() {
   return (
-    <Box as="section" id="features">
+    <Box as="section" id="features" py={24} bg="gray.50" _dark={{ bg: "gray.800" }}>
       <Features
         title={
           <>AI-powered legal<br /> document analysis.</>
@@ -20,6 +21,8 @@ export default function FeaturesSection() {
         align="left"
         columns={[1, 2, 3]}
         iconSize={4}
+        spacing={10}
+        reveal={FallInPlace}
         features={[
           {
             title: "Instant Search.",

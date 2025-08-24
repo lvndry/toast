@@ -23,6 +23,7 @@ export function Pricing(props: PricingProps) {
       border="1px"
       borderColor="gray.200"
       gap={6}
+      _dark={{ bg: "gray.800", borderColor: "gray.700" }}
       {...rest}
     >
       <VStack gap={4}>
@@ -30,7 +31,7 @@ export function Pricing(props: PricingProps) {
           {title}
         </Heading>
         {description && (
-          <Text color="gray.600" textAlign="center">
+          <Text color="gray.600" textAlign="center" _dark={{ color: "gray.300" }}>
             {description}
           </Text>
         )}

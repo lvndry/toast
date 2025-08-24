@@ -16,7 +16,7 @@ export function Footer(props: FooterProps) {
         <VStack gap={6}>
           {children}
           <Text color="gray.500" fontSize="sm">
-            © 2024 Toast AI. All rights reserved.
+            © {new Date().getFullYear()} Toast AI. All rights reserved.
           </Text>
         </VStack>
       </Container>
