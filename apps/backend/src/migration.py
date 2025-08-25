@@ -1,3 +1,7 @@
+"""
+This module contains the MigrationManager class, which is used to migrate data from the local database to the production database.
+"""
+
 import os
 from datetime import datetime
 from typing import Any
@@ -6,6 +10,7 @@ import certifi
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
+from src.core.config import settings
 from src.core.logging import get_logger
 from src.user import UserTier
 
@@ -14,17 +19,20 @@ logger = get_logger(__name__)
 
 
 class MigrationManager:
+    """
+    This class is used to migrate data from the local database to the production database.
+    """
+
     def __init__(self) -> None:
         local_uri = os.getenv("MONGO_URI")
         production_uri = os.getenv("PRODUCTION_MONGO_URI")
-        self.database_name = "toast"
+        self.database_name = settings.database.mongodb_database
 
         if not local_uri:
             raise ValueError("MONGO_URI is not set")
         if not production_uri:
             raise ValueError("PRODUCTION_MONGO_URI is not set")
 
-        # After validation, we know these are strings
         self.local_uri: str = local_uri
         self.production_uri: str = production_uri
 

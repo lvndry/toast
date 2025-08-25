@@ -6,6 +6,13 @@
 !.env.example
 .env*.local
 
+# misc
+.DS_Store
+*.pem
+
+# Pre-commit reports
+bandit-report.json
+
 ### Backend
 
 # Python-generated files
@@ -22,13 +29,11 @@ wheels/
 # streamlit
 .streamlit/
 
+
 ### Frontend
 
 # dependencies
 node_modules
-.pnp
-.pnp.js
-.yarn/install-state.gz
 
 # testing
 coverage
@@ -37,24 +42,11 @@ coverage
 .next/
 out/
 
-# production
-build/
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
-# Pre-commit reports
-bandit-report.json
+# production
+build/
+# debug
+bun-debug.log*

@@ -160,6 +160,7 @@ cd apps/frontend && bun run dev
 - **Backend API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/health
+- **Streamlit Dashboard**: http://localhost:8501 (see [Streamlit Setup Guide](apps/backend/docs/STREAMLIT_SETUP.md))
 
 ## 🧪 Development Workflow
 
@@ -187,6 +188,11 @@ uv run ruff check .                          # Lint Python code
 uv run ruff format .                         # Format Python code
 uv run pytest                               # Run tests
 
+# Streamlit Dashboard
+cd apps/backend
+source .venv/bin/activate                    # Activate virtual environment
+streamlit run src/dashboard/app.py          # Run dashboard (see [Streamlit Setup Guide](apps/backend/docs/STREAMLIT_SETUP.md))
+
 # Frontend
 cd apps/frontend
 bun run dev                                 # Development server
@@ -209,63 +215,6 @@ pre-commit run ruff        # Python only
 pre-commit run eslint      # Frontend only
 ```
 
-## 📚 API Documentation
-
-### Core Endpoints
-
-#### Document Analysis
-
-```bash
-POST /api/v1/analysis
-Content-Type: multipart/form-data
-
-{
-  "document": <file>,
-  "analysis_type": "privacy_policy|terms_of_service|contract",
-  "jurisdiction": "US|EU|CA",
-  "user_type": "individual|business|enterprise"
-}
-```
-
-#### Analysis Results
-
-```json
-{
-  "id": "analysis_123",
-  "risk_score": 7.8,
-  "risk_level": "HIGH",
-  "confidence_score": 0.95,
-  "summary": "This privacy policy allows broad data sharing...",
-  "key_findings": [
-    {
-      "category": "data_sharing",
-      "risk_level": "HIGH",
-      "description": "Company may share personal data with unlimited third parties",
-      "location": "Section 4.2",
-      "recommendation": "Consider using alternative service"
-    }
-  ],
-  "compliance": {
-    "gdpr_compliant": false,
-    "ccpa_compliant": true,
-    "violations": ["Right to deletion not clearly specified"]
-  }
-}
-```
-
-### Webhook Integration
-
-```bash
-POST /api/v1/webhooks/analysis-complete
-{
-  "event": "analysis_complete",
-  "analysis_id": "analysis_123",
-  "risk_score": 7.8,
-  "summary": "Analysis summary...",
-  "timestamp": "2024-01-15T10:30:00Z"
-}
-```
-
 ## 🏢 Enterprise Features
 
 ### Team Collaboration
@@ -281,6 +230,13 @@ POST /api/v1/webhooks/analysis-complete
 - **Webhook support for real-time notifications**
 - **Rate limiting and usage tracking**
 - **SDK support for multiple languages**
+
+### Admin Dashboard
+
+- **Streamlit-based admin dashboard** for database management and monitoring
+- **Data migration tools** for moving between environments
+- **System health monitoring** and performance analytics
+- **Bulk operations** for managing companies and documents
 
 ### Security & Compliance
 

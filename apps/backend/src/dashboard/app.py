@@ -2,6 +2,7 @@ import warnings
 
 import streamlit as st
 
+from src.core.logging import setup_logging
 from src.dashboard.components.company_creation import show_company_creation
 from src.dashboard.components.company_view import show_company_view
 from src.dashboard.components.crawling import show_crawling
@@ -15,6 +16,8 @@ warnings.filterwarnings("ignore", message="missing ScriptRunContext")
 
 
 st.set_page_config(page_title="Toast Dashboard", page_icon="🍞", layout="wide")
+
+setup_logging()
 
 
 def main() -> None:
