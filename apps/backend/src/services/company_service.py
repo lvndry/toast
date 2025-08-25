@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
+
+from fastapi import HTTPException
 
 from src.company import Company
 from src.core.logging import get_logger
 from src.document import Document, DocumentAnalysis
 from src.exceptions import CompanyNotFoundError
 from src.services.base_service import BaseService
-from src.services.document_service import document_service
+from src.user import UserTier
 
 logger = get_logger(__name__)
 
@@ -38,10 +41,66 @@ class CompanyService(BaseService):
             raise CompanyNotFoundError(slug=slug)
         return Company(**company)
 
+    async def get_companies_by_tier(self, user_tier: UserTier) -> list[Company]:
+        """Get companies visible to a specific user tier."""
+        companies = await self.db.companies.find(
+            {"visible_to_tiers": {"$in": [user_tier.value]}}
+        ).to_list(length=None)
+
+        return [Company(**company) for company in companies]
+
+    async def get_company_by_slug_with_tier_check(
+        self, slug: str, user_tier: UserTier
+    ) -> Company | None:
+        """Get company by slug, checking tier visibility."""
+        company = await self.db.companies.find_one({"slug": slug})
+        if not company:
+            return None
+
+        company_obj = Company(**company)
+        if user_tier not in company_obj.visible_to_tiers:
+            next_tier = self._get_next_tier(user_tier)
+            raise HTTPException(
+                status_code=403, detail=f"This company requires {next_tier.value} tier or higher"
+            )
+        return company_obj
+
+    def _get_next_tier(self, current_tier: UserTier) -> UserTier:
+        """Get the next tier up from current tier."""
+        tier_order = [UserTier.FREE, UserTier.BUSINESS, UserTier.ENTERPRISE]
+        try:
+            current_index = tier_order.index(current_tier)
+            if current_index < len(tier_order) - 1:
+                return tier_order[current_index + 1]
+            return current_tier
+        except ValueError:
+            return UserTier.BUSINESS
+
     async def get_all_companies(self) -> list[Company]:
         """Get all companies from the database."""
         companies = await self.db.companies.find().to_list(length=None)
         return [Company(**company) for company in companies]
+
+    async def list_companies_with_documents(self, has_documents: bool = True) -> list[Company]:
+        """Get companies that have documents."""
+        if has_documents:
+            # Get companies that have associated documents
+            companies_with_docs = await self.db.companies.aggregate(
+                [
+                    {
+                        "$lookup": {
+                            "from": "documents",
+                            "localField": "id",
+                            "foreignField": "company_id",
+                            "as": "documents",
+                        }
+                    },
+                    {"$match": {"documents": {"$ne": []}}},
+                ]
+            ).to_list(length=None)
+            return [Company(**company) for company in companies_with_docs]
+        else:
+            return await self.get_all_companies()
 
     async def create_company(self, company: Company) -> Company:
         """Create a new company in the database."""
@@ -92,9 +151,9 @@ class CompanyService(BaseService):
         return company
 
     async def get_company_documents(self, company_id: str) -> list[Document]:
-        """Get all documents for a company."""
-        documents: list[Document] = await document_service.get_company_documents(company_id)
-        return documents
+        """Get all documents for a specific company."""
+        documents = await self.db.documents.find({"company_id": company_id}).to_list(length=None)
+        return [Document(**doc) for doc in documents]
 
     async def get_company_meta_summary(self, company_slug: str) -> DocumentAnalysis | None:
         """Get a meta summary for a company from the database."""
@@ -131,17 +190,26 @@ class CompanyService(BaseService):
             logger.error(f"Error storing meta summary for {company_slug}: {e}")
             raise e
 
-    async def list_companies_with_documents(self, has_documents: bool = True) -> list[Company]:
-        """Get companies, optionally filtered by whether they have documents."""
-        companies = await self.get_all_companies()
-        if has_documents:
-            filtered = []
-            for company in companies:
-                documents = await self.get_company_documents(company.id)
-                if documents:
-                    filtered.append(company)
-            return filtered
-        return companies
+    async def update_many(self, filter: dict[str, Any], update: dict[str, Any]) -> int:
+        """Generic bulk update on companies, hides raw DB access from callers."""
+        result = await self.db.companies.update_many(filter, update)
+        return int(result.modified_count)
+
+    async def ensure_visibility_default(self, default_tiers: list[UserTier]) -> int:
+        """Set default visible_to_tiers where missing."""
+        result = await self.db.companies.update_many(
+            {"visible_to_tiers": {"$exists": False}},
+            {"$set": {"visible_to_tiers": [t.value for t in default_tiers]}},
+        )
+        return int(result.modified_count)
+
+    async def set_visibility_for_all(self, tiers: list[UserTier]) -> int:
+        """Overwrite visible_to_tiers for all companies."""
+        result = await self.db.companies.update_many(
+            {},
+            {"$set": {"visible_to_tiers": [t.value for t in tiers]}},
+        )
+        return int(result.modified_count)
 
 
 # Global instance

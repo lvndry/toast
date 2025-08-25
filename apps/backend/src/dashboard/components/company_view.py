@@ -7,6 +7,7 @@ from src.dashboard.db_utils import (
     update_company_isolated,
 )
 from src.dashboard.utils import run_async_with_retry
+from src.user import UserTier
 
 
 def show_edit_form(company: Company) -> None:
@@ -26,6 +27,36 @@ def show_edit_form(company: Company) -> None:
         domains = st.text_area("Domains (one per line)", value=domains_text)
         categories = st.text_area("Categories (one per line)", value=categories_text)
         crawl_base_urls = st.text_area("Crawl Base URLs (one per line)", value=crawl_urls_text)
+
+        # Tier visibility section
+        st.write("**Tier Visibility:**")
+        st.write("Select which user tiers can access this company:")
+
+        # Get current tier visibility
+        current_tiers = (
+            company.visible_to_tiers
+            if hasattr(company, "visible_to_tiers")
+            else [UserTier.FREE, UserTier.BUSINESS, UserTier.ENTERPRISE]
+        )
+
+        free_tier = st.checkbox(
+            "Free Tier", value=UserTier.FREE in current_tiers, key=f"free_tier_{company.id}"
+        )
+        business_tier = st.checkbox(
+            "Business Tier",
+            value=UserTier.BUSINESS in current_tiers,
+            key=f"business_tier_{company.id}",
+        )
+        enterprise_tier = st.checkbox(
+            "Enterprise Tier",
+            value=UserTier.ENTERPRISE in current_tiers,
+            key=f"enterprise_tier_{company.id}",
+        )
+
+        # Validate that at least one tier is selected
+        if not any([free_tier, business_tier, enterprise_tier]):
+            st.error("At least one tier must be selected!")
+            return
 
         col1, col2 = st.columns(2)
         with col1:
@@ -52,6 +83,15 @@ def show_edit_form(company: Company) -> None:
                     else None
                 )
 
+                # Build tier visibility list
+                visible_tiers = []
+                if free_tier:
+                    visible_tiers.append(UserTier.FREE)
+                if business_tier:
+                    visible_tiers.append(UserTier.BUSINESS)
+                if enterprise_tier:
+                    visible_tiers.append(UserTier.ENTERPRISE)
+
                 # Create updated company instance
                 updated_company = Company(
                     id=company.id,  # Keep the same ID
@@ -60,6 +100,7 @@ def show_edit_form(company: Company) -> None:
                     domains=domains_list,
                     categories=categories_list,
                     crawl_base_urls=crawl_base_urls_list,
+                    visible_to_tiers=visible_tiers,
                 )
 
                 # Update in database with retry
@@ -205,6 +246,27 @@ def show_company_view() -> None:
                         else:
                             st.write("**Crawl Base URLs:** None configured")
 
+                    # Tier visibility section
+                    st.write("**Tier Visibility:**")
+                    if hasattr(company, "visible_to_tiers") and company.visible_to_tiers:
+                        tier_labels = []
+                        for tier in company.visible_to_tiers:
+                            if tier == UserTier.FREE:
+                                tier_labels.append("🟢 Free")
+                            elif tier == UserTier.BUSINESS:
+                                tier_labels.append("🔵 Business")
+                            elif tier == UserTier.ENTERPRISE:
+                                tier_labels.append("🟣 Enterprise")
+
+                        if len(tier_labels) == 3:
+                            st.success("✅ Accessible to all tiers")
+                        elif len(tier_labels) == 1:
+                            st.warning(f"⚠️ Premium content: {tier_labels[0]}")
+                        else:
+                            st.info(f"📊 Limited access: {', '.join(tier_labels)}")
+                    else:
+                        st.info("📊 Accessible to all tiers (default)")
+
                     # Action buttons
                     st.write("---")
                     col3, col4, col5, col6, col7 = st.columns(5)
@@ -253,6 +315,54 @@ def show_company_view() -> None:
             for company in companies:
                 unique_categories.update(company.categories)
             st.metric("Unique Categories", len(unique_categories))
+
+        # Tier visibility statistics
+        st.write("---")
+        st.subheader("Tier Visibility Statistics")
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            # Count companies accessible to each tier
+            free_accessible = len(
+                [
+                    c
+                    for c in companies
+                    if hasattr(c, "visible_to_tiers") and UserTier.FREE in c.visible_to_tiers
+                ]
+            )
+            st.metric("Free Tier Accessible", free_accessible)
+
+        with col2:
+            business_accessible = len(
+                [
+                    c
+                    for c in companies
+                    if hasattr(c, "visible_to_tiers") and UserTier.BUSINESS in c.visible_to_tiers
+                ]
+            )
+            st.metric("Business Tier Accessible", business_accessible)
+
+        with col3:
+            enterprise_accessible = len(
+                [
+                    c
+                    for c in companies
+                    if hasattr(c, "visible_to_tiers") and UserTier.ENTERPRISE in c.visible_to_tiers
+                ]
+            )
+            st.metric("Enterprise Tier Accessible", enterprise_accessible)
+
+        with col4:
+            # Count premium-only companies (business+ only)
+            premium_only = len(
+                [
+                    c
+                    for c in companies
+                    if hasattr(c, "visible_to_tiers") and UserTier.FREE not in c.visible_to_tiers
+                ]
+            )
+            st.metric("Premium Only", premium_only, delta=f"{premium_only}/{len(companies)}")
 
         # Companies without crawl URLs
         companies_without_crawl_urls = [c for c in companies if not c.crawl_base_urls]

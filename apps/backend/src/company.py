@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from src.user import UserTier
+
 
 class Company(BaseModel):
     id: str
@@ -10,3 +12,4 @@ class Company(BaseModel):
     categories: list[str] = []
     crawl_base_urls: list[str] = []
     logo: str | None = None
+    visible_to_tiers: list[UserTier] = [UserTier.FREE, UserTier.BUSINESS, UserTier.ENTERPRISE]
