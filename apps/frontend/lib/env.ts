@@ -1,24 +1,25 @@
 import { z } from "zod";
 
+// Single schema for all environments since Clerk requires keys at build time
 const envSchema = z.object({
   // Backend configuration
-  BACKEND_BASE_URL: z.url().default("http://localhost:8000"),
+  BACKEND_BASE_URL: z.string().default("http://localhost:8000"),
 
-  // Authentication (Clerk) - Optional in development
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1).optional(),
-  CLERK_SECRET_KEY: z.string().min(1).optional(),
+  // App configuration
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  NEXT_PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
+
+  // Authentication (Clerk) - Required in all environments for build
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+  CLERK_SECRET_KEY: z.string().min(1),
   NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().default("/sign-in"),
   NEXT_PUBLIC_CLERK_SIGN_UP_URL: z.string().default("/sign-up"),
   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: z.string().default("/dashboard"),
   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: z.string().default("/dashboard"),
 
-  // Analytics (PostHog)
+  // Analytics (PostHog) - Optional in all environments
   NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
-  NEXT_PUBLIC_POSTHOG_HOST: z.url().optional(),
-
-  // App configuration
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-  NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
+  NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
 
   // Feature flags
   NEXT_PUBLIC_ENABLE_ANALYTICS: z.string().default("false").transform((val) => val === "true"),
@@ -59,6 +60,17 @@ if (!envParseResult.success) {
 
   if (missingVars.length > 0) {
     console.error("Missing required environment variables:", missingVars);
+  }
+
+  // In CI/test environments, provide more helpful error messages
+  if (process.env.NODE_ENV === "test" || process.env.CI) {
+    console.error("💡 For CI/Test environments, ensure these variables are set:");
+    console.error("   - NODE_ENV=test");
+    console.error("   - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (required for build)");
+    console.error("   - CLERK_SECRET_KEY (required for build)");
+    console.error("   - BACKEND_BASE_URL (optional, defaults to http://localhost:8000)");
+    console.error("   - NEXT_PUBLIC_APP_URL (optional, defaults to http://localhost:3000)");
+    console.error("   - Other variables are optional in test mode");
   }
 
   throw new Error(`Invalid environment variables: ${Object.keys(errors).join(", ")}`);
