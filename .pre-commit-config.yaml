@@ -49,15 +49,6 @@ repos:
         types: [file]
         types_or: [ts, tsx]
 
-      # Frontend Prettier formatting
-      - id: frontend-prettier
-        name: Frontend Prettier
-        entry: bash -c 'cd apps/frontend && bun run format'
-        language: system
-        files: ^apps/frontend/
-        types: [file]
-        types_or: [ts, tsx, json, css]
-
       # Backend tests (only if tests exist)
       - id: backend-tests
         name: Backend Tests

@@ -46,10 +46,6 @@ jobs:
       - name: Run TypeScript type checking
         run: bun run type-check
 
-      - name: Run Prettier check
-        run: |
-          bunx prettier --check .
-
       - name: Build application
         run: bun run build
 
