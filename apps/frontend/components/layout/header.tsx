@@ -23,7 +23,7 @@ export function Header(props: HeaderProps) {
         if (isPrimary) {
           return (
             <Link key={item.label} href={href}>
-              <Button as="a" colorScheme="primary" size="sm">
+              <Button colorScheme="primary" size="sm">
                 {item.label}
               </Button>
             </Link>
@@ -41,7 +41,7 @@ export function Header(props: HeaderProps) {
   const authenticatedNav = (
     <HStack gap={6}>
       <Link href="/companies">
-        <Button as="a" colorScheme="primary" size="sm">
+        <Button colorScheme="primary" size="sm">
           Go to App
         </Button>
       </Link>

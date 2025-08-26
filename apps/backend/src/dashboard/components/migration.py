@@ -6,6 +6,10 @@ from typing import Any
 import aiohttp
 import streamlit as st
 
+from src.dashboard.db_utils import get_all_companies_isolated, update_company_isolated
+from src.dashboard.utils import run_async_with_retry
+from src.user import UserTier
+
 
 async def make_api_request(
     session: aiohttp.ClientSession,
@@ -374,3 +378,279 @@ def display_migration_results(data: dict[str, Any]) -> None:
                         st.info("This was a dry run - no actual data was migrated")
                     else:
                         st.success("Data was successfully migrated")
+
+    # Tier Visibility Migration Section
+    st.write("---")
+    st.header("Tier Visibility Management")
+    st.markdown("Manage which user tiers can access specific companies")
+
+    # Get current companies
+    try:
+        with st.spinner("Loading companies..."):
+            companies = run_async_with_retry(get_all_companies_isolated())
+
+        if companies is None:
+            st.error("Failed to load companies from database.")
+            return
+
+        if not companies:
+            st.info("No companies found. Create some companies first!")
+            return
+
+        st.success(f"✅ Loaded {len(companies)} companies")
+
+        # Bulk tier visibility operations
+        st.subheader("Bulk Tier Visibility Operations")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.write("**Make All Companies Accessible to All Tiers**")
+            if st.button("🔄 Reset All to Free", type="secondary"):
+                try:
+                    with st.spinner("Updating all companies..."):
+                        updated_count = 0
+                        for company in companies:
+                            company.visible_to_tiers = [
+                                UserTier.FREE,
+                                UserTier.BUSINESS,
+                                UserTier.ENTERPRISE,
+                            ]
+                            success = run_async_with_retry(update_company_isolated(company))
+                            if success:
+                                updated_count += 1
+
+                        if updated_count == len(companies):
+                            st.success(
+                                f"✅ All {updated_count} companies are now accessible to all tiers!"
+                            )
+                        else:
+                            st.warning(f"⚠️ Updated {updated_count}/{len(companies)} companies")
+                except Exception as e:
+                    st.error(f"Error updating companies: {str(e)}")
+
+        with col2:
+            st.write("**Add Tier Visibility Fields to Missing Companies**")
+            if st.button("🔧 Fix Missing Tier Fields", type="secondary"):
+                try:
+                    with st.spinner("Checking for missing tier fields..."):
+                        missing_tier_fields = [
+                            c
+                            for c in companies
+                            if not hasattr(c, "visible_to_tiers") or not c.visible_to_tiers
+                        ]
+
+                        if not missing_tier_fields:
+                            st.info("✅ All companies already have tier visibility fields!")
+                        else:
+                            st.info(
+                                f"Found {len(missing_tier_fields)} companies without tier fields"
+                            )
+
+                            for company in missing_tier_fields:
+                                company.visible_to_tiers = [
+                                    UserTier.FREE,
+                                    UserTier.BUSINESS,
+                                    UserTier.ENTERPRISE,
+                                ]
+                                run_async_with_retry(update_company_isolated(company))
+
+                            st.success(
+                                f"✅ Added tier fields to {len(missing_tier_fields)} companies!"
+                            )
+                except Exception as e:
+                    st.error(f"Error fixing tier fields: {str(e)}")
+
+        # Strategic tier assignments
+        st.subheader("Strategic Tier Assignments")
+
+        # Define company categories for strategic gating
+        st.write("**Premium Content Strategy**")
+        st.info("Make high-value companies premium-only to drive conversions")
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            if st.button("🔒 Make Social Media Premium", type="primary"):
+                try:
+                    with st.spinner("Making social media companies premium..."):
+                        social_companies = [
+                            "facebook",
+                            "tiktok",
+                            "instagram",
+                            "twitter",
+                            "linkedin",
+                            "snapchat",
+                        ]
+                        updated_count = 0
+
+                        for company in companies:
+                            if company.slug in social_companies:
+                                company.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
+                                success = run_async_with_retry(update_company_isolated(company))
+                                if success:
+                                    updated_count += 1
+
+                        st.success(f"✅ Made {updated_count} social media companies premium-only!")
+                except Exception as e:
+                    st.error(f"Error updating social media companies: {str(e)}")
+
+        with col2:
+            if st.button("🔒 Make Data Brokers Premium", type="primary"):
+                try:
+                    with st.spinner("Making data broker companies premium..."):
+                        data_brokers = ["palantir", "snowflake", "databricks", "splunk"]
+                        updated_count = 0
+
+                        for company in companies:
+                            if company.slug in data_brokers:
+                                company.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
+                                success = run_async_with_retry(update_company_isolated(company))
+                                if success:
+                                    updated_count += 1
+
+                        st.success(f"✅ Made {updated_count} data broker companies premium-only!")
+                except Exception as e:
+                    st.error(f"Error updating data broker companies: {str(e)}")
+
+        with col3:
+            if st.button("🔒 Make Financial Services Premium", type="primary"):
+                try:
+                    with st.spinner("Making financial services companies premium..."):
+                        financial_companies = ["stripe", "paypal", "square", "robinhood"]
+                        updated_count = 0
+
+                        for company in companies:
+                            if company.slug in financial_companies:
+                                company.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
+                                success = run_async_with_retry(update_company_isolated(company))
+                                if success:
+                                    updated_count += 1
+
+                        st.success(
+                            f"✅ Made {updated_count} financial services companies premium-only!"
+                        )
+                except Exception as e:
+                    st.error(f"Error updating financial services companies: {str(e)}")
+
+        # Custom tier assignment
+        st.subheader("Custom Tier Assignment")
+
+        # Company selector
+        company_options = {f"{c.name} ({c.slug})": c.slug for c in companies}
+        selected_company = st.selectbox(
+            "Select Company",
+            options=list(company_options.keys()),
+            help="Choose a company to modify its tier visibility",
+        )
+
+        if selected_company:
+            company_slug = company_options[selected_company]
+            company = next((c for c in companies if c.slug == company_slug), None)
+
+            if company:
+                current_tiers = (
+                    company.visible_to_tiers
+                    if hasattr(company, "visible_to_tiers")
+                    else [UserTier.FREE, UserTier.BUSINESS, UserTier.ENTERPRISE]
+                )
+
+                st.write(f"**Current tier visibility for {company.name}:**")
+                tier_labels = []
+                for tier in current_tiers:
+                    if tier == UserTier.FREE:
+                        tier_labels.append("🟢 Free")
+                    elif tier == UserTier.BUSINESS:
+                        tier_labels.append("🔵 Business")
+                    elif tier == UserTier.ENTERPRISE:
+                        tier_labels.append("🟣 Enterprise")
+
+                st.info(f"Current: {', '.join(tier_labels)}")
+
+                # Tier selection
+                st.write("**Set new tier visibility:**")
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    free_tier = st.checkbox("🟢 Free Tier", value=UserTier.FREE in current_tiers)
+                with col2:
+                    business_tier = st.checkbox(
+                        "🔵 Business Tier", value=UserTier.BUSINESS in current_tiers
+                    )
+                with col3:
+                    enterprise_tier = st.checkbox(
+                        "🟣 Enterprise Tier", value=UserTier.ENTERPRISE in current_tiers
+                    )
+
+                if st.button("Update Tier Visibility", type="primary"):
+                    if not any([free_tier, business_tier, enterprise_tier]):
+                        st.error("At least one tier must be selected!")
+                    else:
+                        try:
+                            new_tiers = []
+                            if free_tier:
+                                new_tiers.append(UserTier.FREE)
+                            if business_tier:
+                                new_tiers.append(UserTier.BUSINESS)
+                            if enterprise_tier:
+                                new_tiers.append(UserTier.ENTERPRISE)
+
+                            company.visible_to_tiers = new_tiers
+                            success = run_async_with_retry(update_company_isolated(company))
+
+                            if success:
+                                st.success(f"✅ Updated {company.name} tier visibility!")
+                                st.rerun()
+                            else:
+                                st.error("Failed to update company tier visibility")
+                        except Exception as e:
+                            st.error(f"Error updating company: {str(e)}")
+
+        # Tier visibility statistics
+        st.subheader("Current Tier Visibility Statistics")
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            free_accessible = len(
+                [
+                    c
+                    for c in companies
+                    if hasattr(c, "visible_to_tiers") and UserTier.FREE in c.visible_to_tiers
+                ]
+            )
+            st.metric("Free Tier Accessible", free_accessible)
+
+        with col2:
+            business_accessible = len(
+                [
+                    c
+                    for c in companies
+                    if hasattr(c, "visible_to_tiers") and UserTier.BUSINESS in c.visible_to_tiers
+                ]
+            )
+            st.metric("Business Tier Accessible", business_accessible)
+
+        with col3:
+            enterprise_accessible = len(
+                [
+                    c
+                    for c in companies
+                    if hasattr(c, "visible_to_tiers") and UserTier.ENTERPRISE in c.visible_to_tiers
+                ]
+            )
+            st.metric("Enterprise Tier Accessible", enterprise_accessible)
+
+        with col4:
+            premium_only = len(
+                [
+                    c
+                    for c in companies
+                    if hasattr(c, "visible_to_tiers") and UserTier.FREE not in c.visible_to_tiers
+                ]
+            )
+            st.metric("Premium Only", premium_only, delta=f"{premium_only}/{len(companies)}")
+
+    except Exception as e:
+        st.error(f"Error loading companies: {str(e)}")
+        st.write("Please check your database connection and try again.")
