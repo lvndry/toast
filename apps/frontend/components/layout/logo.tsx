@@ -1,22 +1,21 @@
-import { Box, Flex, Heading, VisuallyHidden, Link } from "@chakra-ui/react";
-
-import siteConfig from "@data/config";
+import { Box, Flex, Heading, Link, VisuallyHidden } from "@chakra-ui/react"
+import siteConfig from "@data/config"
 
 export interface LogoProps {
-  href?: string;
-  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  href?: string
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
 }
 
 export function Logo({ href = "/", onClick }: LogoProps) {
-  let logo;
+  let logo
   if (siteConfig.logo) {
-    logo = <Box as={siteConfig.logo} height="32px" mt="-4px" />;
+    logo = <Box as={siteConfig.logo} height="32px" mt="-4px" />
   } else {
     logo = (
       <Heading as="h1" size="md">
         {siteConfig.seo?.title}
       </Heading>
-    );
+    )
   }
 
   return (
@@ -32,5 +31,5 @@ export function Logo({ href = "/", onClick }: LogoProps) {
         <VisuallyHidden>{siteConfig.seo?.title}</VisuallyHidden>
       </Link>
     </Flex>
-  );
+  )
 }

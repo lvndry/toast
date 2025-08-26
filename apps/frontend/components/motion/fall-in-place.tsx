@@ -1,10 +1,11 @@
-"use client";
+"use client"
 
+import { MotionBox, MotionBoxProps } from "./box"
 
-import { MotionBox, MotionBoxProps } from "./box";
-
-export function FallInPlace(props: MotionBoxProps & { delay?: number; children: React.ReactNode; }) {
-  const { children, delay = 0.2, ...rest } = props;
+export function FallInPlace(
+  props: MotionBoxProps & { delay?: number; children: React.ReactNode },
+) {
+  const { children, delay = 0.2, ...rest } = props
   return (
     <MotionBox
       initial={{ scale: 1, opacity: 0, translateY: "20px" }}
@@ -19,5 +20,5 @@ export function FallInPlace(props: MotionBoxProps & { delay?: number; children: 
     >
       {children}
     </MotionBox>
-  );
+  )
 }

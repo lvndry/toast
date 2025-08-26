@@ -1,14 +1,15 @@
-
 const faq = {
   title: "Frequently asked questions",
-  description: "We're here to help you understand how Toast AI works and answer any questions you may have.",
+  description:
+    "We're here to help you understand how Toast AI works and answer any questions you may have.",
   items: [
     {
       q: "How many companies can I search per month?",
       a: (
         <>
-          The free plan includes 100 company searches per month. Pro plan includes 100 searches,
-          and Enterprise plan includes unlimited searches. <br /> You can upgrade your plan at any time.
+          The free plan includes 100 company searches per month. Pro plan
+          includes 100 searches, and Enterprise plan includes unlimited
+          searches. <br /> You can upgrade your plan at any time.
         </>
       ),
     },
@@ -33,6 +34,6 @@ const faq = {
       a: "Pro and Enterprise plans include export functionality. You can download reports, summaries, and analysis results in various formats for your records.",
     },
   ],
-};
+}
 
-export default faq;
+export default faq

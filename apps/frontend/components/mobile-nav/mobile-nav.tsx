@@ -1,18 +1,18 @@
-"use client";
+"use client"
 
-import { Box, IconButton, VStack } from "@chakra-ui/react";
+import { Box, IconButton, VStack } from "@chakra-ui/react"
 
 export interface MobileNavProps {
-  isOpen: boolean;
-  onClose: () => void;
-  children?: React.ReactNode;
-  [key: string]: any;
+  isOpen: boolean
+  onClose: () => void
+  children?: React.ReactNode
+  [key: string]: any
 }
 
 export function MobileNav(props: MobileNavProps) {
-  const { isOpen, onClose, children, ...rest } = props;
+  const { isOpen, onClose, children, ...rest } = props
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <Box
@@ -35,5 +35,5 @@ export function MobileNav(props: MobileNavProps) {
         {children}
       </VStack>
     </Box>
-  );
+  )
 }

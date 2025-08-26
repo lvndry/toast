@@ -1,22 +1,22 @@
 import {
-  Box,
-  Container,
-  Icon,
-  SimpleGrid,
-  Text,
-  VStack
-} from "@chakra-ui/react";
-
-import { Highlight } from "@components/highlights";
-import { FallInPlace } from "@components/motion/fall-in-place";
-import {
   FiClock,
   FiFileText,
   FiSearch,
   FiShield,
   FiTrendingUp,
-  FiZap
-} from "react-icons/fi";
+  FiZap,
+} from "react-icons/fi"
+
+import {
+  Box,
+  Container,
+  Icon,
+  SimpleGrid,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { Highlight } from "@components/highlights"
+import { FallInPlace } from "@components/motion/fall-in-place"
 
 export function FeaturesSection() {
   return (
@@ -137,5 +137,5 @@ export function FeaturesSection() {
         </VStack>
       </Container>
     </Box>
-  );
+  )
 }

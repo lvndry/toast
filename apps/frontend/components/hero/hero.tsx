@@ -1,17 +1,17 @@
-"use client";
+"use client"
 
-import { Box, Flex, Heading, Text, VStack } from "@chakra-ui/react";
+import { Box, Flex, Heading, Text, VStack } from "@chakra-ui/react"
 
 export interface HeroProps {
-  title: React.ReactNode;
-  description?: React.ReactNode;
-  action?: React.ReactNode;
-  image?: React.ReactNode;
-  [key: string]: any;
+  title: React.ReactNode
+  description?: React.ReactNode
+  action?: React.ReactNode
+  image?: React.ReactNode
+  [key: string]: any
 }
 
 export function Hero(props: HeroProps) {
-  const { title, description, action, image, ...rest } = props;
+  const { title, description, action, image, ...rest } = props
 
   return (
     <Flex
@@ -34,5 +34,5 @@ export function Hero(props: HeroProps) {
       </VStack>
       {image && <Box flex="1">{image}</Box>}
     </Flex>
-  );
+  )
 }

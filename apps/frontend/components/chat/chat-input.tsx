@@ -1,24 +1,35 @@
-"use client";
+"use client"
 
-import { Button, HStack, Input } from "@chakra-ui/react";
-import { useCallback } from "react";
-import { FiSend } from "react-icons/fi";
+import { FiSend } from "react-icons/fi"
+
+import { useCallback } from "react"
+
+import { Button, HStack, Input } from "@chakra-ui/react"
 
 interface ChatInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  onSend: () => void;
-  disabled?: boolean;
-  placeholder?: string;
+  value: string
+  onChange: (value: string) => void
+  onSend: () => void
+  disabled?: boolean
+  placeholder?: string
 }
 
-export function ChatInput({ value, onChange, onSend, disabled = false, placeholder }: ChatInputProps) {
-  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      onSend();
-    }
-  }, [onSend]);
+export function ChatInput({
+  value,
+  onChange,
+  onSend,
+  disabled = false,
+  placeholder,
+}: ChatInputProps) {
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault()
+        onSend()
+      }
+    },
+    [onSend],
+  )
 
   return (
     <HStack spacing={3}>
@@ -39,7 +50,7 @@ export function ChatInput({ value, onChange, onSend, disabled = false, placehold
         <FiSend />
       </Button>
     </HStack>
-  );
+  )
 }
 
-export default ChatInput;
+export default ChatInput

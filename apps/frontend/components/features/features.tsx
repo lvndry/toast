@@ -1,4 +1,6 @@
-"use client";
+"use client"
+
+import { Section, SectionTitle, SectionTitleProps } from "components/section"
 
 import {
   Box,
@@ -9,49 +11,41 @@ import {
   Stack,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { Section, SectionTitle, SectionTitleProps } from "components/section";
+} from "@chakra-ui/react"
 
 function Revealer({ children }: any) {
-  return children;
+  return children
 }
 
 export interface FeaturesProps extends Omit<SectionTitleProps, "title"> {
-  id?: string;
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  features: Array<FeatureProps>;
-  columns?: number | number[];
-  spacing?: string | number;
-  aside?: React.ReactNode;
-  reveal?: React.FC<any>;
-  iconSize?: number;
-  innerWidth?: string;
+  id?: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  features: Array<FeatureProps>
+  columns?: number | number[]
+  spacing?: string | number
+  aside?: React.ReactNode
+  reveal?: React.FC<any>
+  iconSize?: number
+  innerWidth?: string
 }
 
 export interface FeatureProps {
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  icon?: any;
-  iconPosition?: "left" | "top";
-  iconSize?: number;
-  ip?: "left" | "top";
-  variant?: string;
-  delay?: number;
+  title?: React.ReactNode
+  description?: React.ReactNode
+  icon?: any
+  iconPosition?: "left" | "top"
+  iconSize?: number
+  ip?: "left" | "top"
+  variant?: string
+  delay?: number
 }
 
 export function Feature(props: FeatureProps) {
-  const {
-    title,
-    description,
-    icon,
-    iconPosition,
-    iconSize = 8,
-    ip,
-  } = props;
+  const { title, description, icon, iconPosition, iconSize = 8, ip } = props
 
-  const pos = iconPosition || ip;
-  const direction = pos === "left" ? "row" : "column";
+  const pos = iconPosition || ip
+  const direction = pos === "left" ? "row" : "column"
 
   return (
     <Stack direction={direction} gap={4}>
@@ -61,11 +55,13 @@ export function Feature(props: FeatureProps) {
         </Circle>
       )}
       <Box>
-        <Heading size="md" mb={2}>{title}</Heading>
+        <Heading size="md" mb={2}>
+          {title}
+        </Heading>
         <Text color="gray.600">{description}</Text>
       </Box>
     </Stack>
-  );
+  )
 }
 
 export function Features(props: FeaturesProps) {
@@ -80,11 +76,11 @@ export function Features(props: FeaturesProps) {
     aside,
     reveal: Wrap = Revealer,
     ...rest
-  } = props;
+  } = props
 
-  const align = !!aside ? "left" : alignProp;
+  const align = !!aside ? "left" : alignProp
 
-  const ip = align === "left" ? "left" : "top";
+  const ip = align === "left" ? "left" : "top"
 
   return (
     <Section {...rest}>
@@ -105,7 +101,7 @@ export function Features(props: FeaturesProps) {
                 <Wrap key={i} delay={feature.delay}>
                   <Feature iconSize={iconSize} {...feature} ip={ip} />
                 </Wrap>
-              );
+              )
             })}
           </SimpleGrid>
         </VStack>
@@ -116,5 +112,5 @@ export function Features(props: FeaturesProps) {
         )}
       </Stack>
     </Section>
-  );
+  )
 }

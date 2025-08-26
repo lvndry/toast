@@ -1,19 +1,32 @@
-"use client";
+"use client"
 
-import { Box, Button, Container, Flex, HStack, Menu, MenuButton, MenuItem, MenuList, Text } from "@chakra-ui/react";
-import { useClerk, useUser } from "@clerk/nextjs";
-import NextLink from "next/link";
-import { Logo } from "./logo";
+import NextLink from "next/link"
+
+import {
+  Box,
+  Button,
+  Container,
+  Flex,
+  HStack,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Text,
+} from "@chakra-ui/react"
+import { useClerk, useUser } from "@clerk/nextjs"
+
+import { Logo } from "./logo"
 
 export interface DashboardHeaderProps {
-  children?: React.ReactNode;
-  [key: string]: any;
+  children?: React.ReactNode
+  [key: string]: any
 }
 
 export function DashboardHeader(props: DashboardHeaderProps) {
-  const { children, ...rest } = props;
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { children, ...rest } = props
+  const { user } = useUser()
+  const { signOut } = useClerk()
 
   const userMenu = (
     <Menu>
@@ -28,23 +41,25 @@ export function DashboardHeader(props: DashboardHeaderProps) {
         <MenuItem as={NextLink} href="/profile">
           Profile
         </MenuItem>
-        <MenuItem onClick={() => signOut()}>
-          Sign Out
-        </MenuItem>
+        <MenuItem onClick={() => signOut()}>Sign Out</MenuItem>
       </MenuList>
     </Menu>
-  );
+  )
 
   return (
-    <Box as="header" bg="white" borderBottom="1px" borderColor="gray.200" {...rest}>
+    <Box
+      as="header"
+      bg="white"
+      borderBottom="1px"
+      borderColor="gray.200"
+      {...rest}
+    >
       <Container maxW="container.xl">
         <Flex justify="space-between" align="center" py={4}>
           <Logo />
-          <HStack gap={6}>
-            {children ?? userMenu}
-          </HStack>
+          <HStack gap={6}>{children ?? userMenu}</HStack>
         </Flex>
       </Container>
     </Box>
-  );
+  )
 }

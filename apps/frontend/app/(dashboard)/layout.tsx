@@ -1,51 +1,53 @@
-"use client";
+"use client"
 
-import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react";
-import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter } from "next/navigation"
 
-import { DashboardHeader } from "../../components/layout/dashboard-header";
-import { useAnalytics } from "../../hooks/useAnalytics";
+import { useEffect } from "react"
+
+import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react"
+import { useAuth } from "@clerk/nextjs"
+
+import { DashboardHeader } from "../../components/layout/dashboard-header"
+import { useAnalytics } from "../../hooks/useAnalytics"
 
 export default function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
-  const { isLoaded, isSignedIn } = useAuth();
-  const router = useRouter();
-  const { trackPageView } = useAnalytics();
+  const { isLoaded, isSignedIn } = useAuth()
+  const router = useRouter()
+  const { trackPageView } = useAnalytics()
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded) return
     if (!isSignedIn) {
-      router.push("/sign-in");
-      return;
+      router.push("/sign-in")
+      return
     }
 
     // Check onboarding status and redirect if incomplete
-    (async () => {
+    ;(async () => {
       try {
-        const res = await fetch("/api/users/me", { cache: "no-store" });
+        const res = await fetch("/api/users/me", { cache: "no-store" })
         if (res.ok) {
-          const me = await res.json();
+          const me = await res.json()
           if (!me?.onboarding_completed) {
-            router.push("/onboarding");
+            router.push("/onboarding")
           }
         }
       } catch (_) {
         // ignore
       }
-    })();
-  }, [isLoaded, isSignedIn, router]);
+    })()
+  }, [isLoaded, isSignedIn, router])
 
   // Track dashboard page view
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      trackPageView("dashboard");
+      trackPageView("dashboard")
     }
-  }, [isLoaded, isSignedIn, trackPageView]);
+  }, [isLoaded, isSignedIn, trackPageView])
 
   if (!isLoaded) {
     return (
@@ -55,11 +57,11 @@ export default function DashboardLayout({
           <Text>Please wait while we verify your authentication.</Text>
         </VStack>
       </Container>
-    );
+    )
   }
 
   if (!isSignedIn) {
-    return null;
+    return null
   }
 
   return (
@@ -69,5 +71,5 @@ export default function DashboardLayout({
         {children}
       </Container>
     </Box>
-  );
+  )
 }

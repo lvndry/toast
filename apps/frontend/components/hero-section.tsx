@@ -1,16 +1,24 @@
-"use client";
+"use client"
 
-import { Box, Container, HStack, Icon, Stack, Text, VStack } from "@chakra-ui/react";
+import { FiArrowRight, FiCheckCircle } from "react-icons/fi"
 
-import { ButtonLink } from "@components/button-link/button-link";
-import { BackgroundGradient } from "@components/gradients/background-gradient";
-import { Hero } from "@components/hero";
-import { FallInPlace } from "@components/motion/fall-in-place";
-import { useAuthStatus } from "@hooks/useAuthStatus";
-import { FiArrowRight, FiCheckCircle } from "react-icons/fi";
+import {
+  Box,
+  Container,
+  HStack,
+  Icon,
+  Stack,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { ButtonLink } from "@components/button-link/button-link"
+import { BackgroundGradient } from "@components/gradients/background-gradient"
+import { Hero } from "@components/hero"
+import { FallInPlace } from "@components/motion/fall-in-place"
+import { useAuthStatus } from "@hooks/useAuthStatus"
 
 export default function HeroSection() {
-  const { isSignedIn, isLoading } = useAuthStatus();
+  const { isSignedIn, isLoading } = useAuthStatus()
 
   return (
     <Box position="relative" overflow="hidden">
@@ -29,8 +37,10 @@ export default function HeroSection() {
             }
             description={
               <FallInPlace delay={0.4} fontWeight="medium">
-                Search thousands of pre-analyzed companies and instantly understand their terms of service,
-                <br /> privacy policies, and legal agreements. Plus, ask our AI assistant any follow-up questions.
+                Search thousands of pre-analyzed companies and instantly
+                understand their terms of service,
+                <br /> privacy policies, and legal agreements. Plus, ask our AI
+                assistant any follow-up questions.
               </FallInPlace>
             }
             action={
@@ -38,11 +48,19 @@ export default function HeroSection() {
                 <FallInPlace delay={0.8}>
                   <Stack direction="row" spacing={4}>
                     {!isLoading && isSignedIn ? (
-                      <ButtonLink colorScheme="primary" size="lg" href="/companies">
+                      <ButtonLink
+                        colorScheme="primary"
+                        size="lg"
+                        href="/companies"
+                      >
                         Go to App
                       </ButtonLink>
                     ) : (
-                      <ButtonLink colorScheme="primary" size="lg" href="#pricing">
+                      <ButtonLink
+                        colorScheme="primary"
+                        size="lg"
+                        href="#pricing"
+                      >
                         Get started free
                       </ButtonLink>
                     )}
@@ -71,11 +89,15 @@ export default function HeroSection() {
                   <HStack spacing={6} color="gray.600">
                     <HStack>
                       <Icon as={FiCheckCircle} color="green.500" />
-                      <Text fontSize="sm">95%+ accuracy on validated legal patterns</Text>
+                      <Text fontSize="sm">
+                        95%+ accuracy on validated legal patterns
+                      </Text>
                     </HStack>
                     <HStack>
                       <Icon as={FiCheckCircle} color="green.500" />
-                      <Text fontSize="sm">Sub-10s analysis for standard policies</Text>
+                      <Text fontSize="sm">
+                        Sub-10s analysis for standard policies
+                      </Text>
                     </HStack>
                     <HStack>
                       <Icon as={FiCheckCircle} color="green.500" />
@@ -89,5 +111,5 @@ export default function HeroSection() {
         </Stack>
       </Container>
     </Box>
-  );
+  )
 }

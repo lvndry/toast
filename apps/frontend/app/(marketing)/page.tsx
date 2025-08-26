@@ -1,4 +1,6 @@
-"use client";
+"use client"
+
+import { useEffect, useMemo } from "react"
 
 import {
   Box,
@@ -8,37 +10,35 @@ import {
   Spinner,
   Stack,
   Text,
-  VStack
-} from "@chakra-ui/react";
+  VStack,
+} from "@chakra-ui/react"
+import { ButtonLink } from "@components/button-link/button-link"
+import { Faq } from "@components/faq"
+import { FeaturesSection } from "@components/features-section"
+import HeroSection from "@components/hero-section"
+import { Pricing } from "@components/pricing/pricing"
+import { Testimonial, Testimonials } from "@components/testimonials"
+import faq from "@data/faq"
+import pricing from "@data/pricing"
+import testimonials from "@data/testimonials"
 
-import { ButtonLink } from "@components/button-link/button-link";
-import { Faq } from "@components/faq";
-import { FeaturesSection } from "@components/features-section";
-import HeroSection from "@components/hero-section";
-import { Pricing } from "@components/pricing/pricing";
-import { Testimonial, Testimonials } from "@components/testimonials";
-import faq from "@data/faq";
-import pricing from "@data/pricing";
-import testimonials from "@data/testimonials";
-import { useEffect, useMemo } from "react";
-
-import { useAnalytics } from "../../hooks/useAnalytics";
-import { useTierLimits } from "../../hooks/useTierLimits";
+import { useAnalytics } from "../../hooks/useAnalytics"
+import { useTierLimits } from "../../hooks/useTierLimits"
 
 function Home() {
-  const { trackPageView, trackUserJourney } = useAnalytics();
+  const { trackPageView, trackUserJourney } = useAnalytics()
 
   // Track landing page view
   useEffect(() => {
-    trackPageView("landing_page");
-  }, [trackPageView]);
+    trackPageView("landing_page")
+  }, [trackPageView])
 
   const handleGetStartedClick = (planId: string) => {
     trackUserJourney.featureUsed("get_started_clicked", {
       plan_id: planId,
       location: "pricing_section",
-    });
-  };
+    })
+  }
 
   return (
     <Box>
@@ -56,21 +56,20 @@ function Home() {
         <FaqSection />
       </Box>
     </Box>
-  );
+  )
 }
-
 
 function TestimonialsSection() {
   const columns = useMemo(() => {
     return testimonials.items.reduce<Array<typeof testimonials.items>>(
       (columns, t, i) => {
-        columns[i % 3].push(t);
+        columns[i % 3].push(t)
 
-        return columns;
+        return columns
       },
       [[], [], []],
-    );
-  }, []);
+    )
+  }, [])
 
   return (
     <Testimonials
@@ -88,11 +87,16 @@ function TestimonialsSection() {
         ))}
       </>
     </Testimonials>
-  );
+  )
 }
 
-function PricingSection({ onGetStartedClick }: { onGetStartedClick: (planId: string) => void; }) {
-  const { tierLimits, loading, error, getTierLimit, formatLimitText } = useTierLimits();
+function PricingSection({
+  onGetStartedClick,
+}: {
+  onGetStartedClick: (planId: string) => void
+}) {
+  const { tierLimits, loading, error, getTierLimit, formatLimitText } =
+    useTierLimits()
 
   if (loading) {
     return (
@@ -114,7 +118,7 @@ function PricingSection({ onGetStartedClick }: { onGetStartedClick: (planId: str
           </VStack>
         </Container>
       </Box>
-    );
+    )
   }
 
   if (error) {
@@ -136,27 +140,27 @@ function PricingSection({ onGetStartedClick }: { onGetStartedClick: (planId: str
           </VStack>
         </Container>
       </Box>
-    );
+    )
   }
 
   // Create enhanced plans with dynamic limits
-  const enhancedPlans = pricing.plans.map(plan => {
-    const tierLimit = getTierLimit(plan.id);
-    const enhancedFeatures = plan.features.map(feature => {
+  const enhancedPlans = pricing.plans.map((plan) => {
+    const tierLimit = getTierLimit(plan.id)
+    const enhancedFeatures = plan.features.map((feature) => {
       if (feature.dynamicKey === "monthly_limit" && tierLimit) {
         return {
           ...feature,
-          title: formatLimitText(tierLimit.monthly_limit)
-        };
+          title: formatLimitText(tierLimit.monthly_limit),
+        }
       }
-      return feature;
-    });
+      return feature
+    })
 
     return {
       ...plan,
-      features: enhancedFeatures
-    };
-  });
+      features: enhancedFeatures,
+    }
+  })
 
   return (
     <Box py={24}>
@@ -175,8 +179,22 @@ function PricingSection({ onGetStartedClick }: { onGetStartedClick: (planId: str
             {enhancedPlans.map((plan) => (
               <Box key={plan.id} position="relative">
                 {plan.isRecommended ? (
-                  <Box position="absolute" top="-3" left="50%" transform="translateX(-50%)" zIndex={1}>
-                    <Text fontSize="xs" fontWeight="semibold" bg="purple.500" color="white" px={3} py={1} borderRadius="full">
+                  <Box
+                    position="absolute"
+                    top="-3"
+                    left="50%"
+                    transform="translateX(-50%)"
+                    zIndex={1}
+                  >
+                    <Text
+                      fontSize="xs"
+                      fontWeight="semibold"
+                      bg="purple.500"
+                      color="white"
+                      px={3}
+                      py={1}
+                      borderRadius="full"
+                    >
                       Most popular
                     </Text>
                   </Box>
@@ -185,7 +203,7 @@ function PricingSection({ onGetStartedClick }: { onGetStartedClick: (planId: str
                   title={plan.title}
                   description={plan.description}
                   price={`${plan.price}${plan.pricePeriod ? ` ${plan.pricePeriod}` : ""}`}
-                  features={plan.features.map(f => f.title)}
+                  features={plan.features.map((f) => f.title)}
                   border="1px"
                   borderColor={plan.isRecommended ? "purple.500" : "gray.200"}
                   shadow={plan.isRecommended ? "xl" : "md"}
@@ -208,11 +226,11 @@ function PricingSection({ onGetStartedClick }: { onGetStartedClick: (planId: str
         </VStack>
       </Container>
     </Box>
-  );
+  )
 }
 
 function FaqSection() {
-  return <Faq {...faq} />;
+  return <Faq {...faq} />
 }
 
-export default Home;
+export default Home

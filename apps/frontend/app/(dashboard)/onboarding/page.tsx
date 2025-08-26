@@ -1,44 +1,57 @@
-"use client";
+"use client"
 
-import { Box, Button, Container, Heading, Input, Select, Stack, Text, Textarea, useToast } from "@chakra-ui/react";
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation"
 
-import { useAnalytics } from "../../../hooks/useAnalytics";
-import { posthog } from "../../../lib/analytics";
+import { useEffect, useState } from "react"
+
+import {
+  Box,
+  Button,
+  Container,
+  Heading,
+  Input,
+  Select,
+  Stack,
+  Text,
+  Textarea,
+  useToast,
+} from "@chakra-ui/react"
+import { useUser } from "@clerk/nextjs"
+
+import { useAnalytics } from "../../../hooks/useAnalytics"
+import { posthog } from "../../../lib/analytics"
 
 export default function OnboardingPage() {
-  const { user } = useUser();
-  const router = useRouter();
-  const toast = useToast();
-  const { trackUserJourney } = useAnalytics();
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { user } = useUser()
+  const router = useRouter()
+  const toast = useToast()
+  const { trackUserJourney } = useAnalytics()
+  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   // Form state
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState("");
-  const [useCase, setUseCase] = useState("");
-  const [goal, setGoal] = useState("");
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [role, setRole] = useState("")
+  const [useCase, setUseCase] = useState("")
+  const [goal, setGoal] = useState("")
 
   useEffect(() => {
     // Track onboarding start
-    trackUserJourney.onboardingStarted();
+    trackUserJourney.onboardingStarted()
 
     if (user) {
-      setFirstName(user.firstName || "");
-      setLastName(user.lastName || "");
-      setEmail(user.primaryEmailAddress?.emailAddress || "");
+      setFirstName(user.firstName || "")
+      setLastName(user.lastName || "")
+      setEmail(user.primaryEmailAddress?.emailAddress || "")
 
       // Identify user in PostHog early
       posthog.identify(user.id, {
         email: user.primaryEmailAddress?.emailAddress,
         first_name: user.firstName,
         last_name: user.lastName,
-      });
+      })
 
       // Ensure user exists in backend
       void fetch("/api/users", {
@@ -49,42 +62,42 @@ export default function OnboardingPage() {
           first_name: user.firstName,
           last_name: user.lastName,
         }),
-      }).catch(() => { });
+      }).catch(() => {})
     }
-  }, [user, trackUserJourney]);
+  }, [user, trackUserJourney])
 
   function validateForm() {
-    const newErrors: Record<string, string> = {};
+    const newErrors: Record<string, string> = {}
 
     if (!email.trim()) {
-      newErrors.email = "Email is required";
+      newErrors.email = "Email is required"
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Please enter a valid email address";
+      newErrors.email = "Please enter a valid email address"
     }
 
     if (!role) {
-      newErrors.role = "Please select your role";
+      newErrors.role = "Please select your role"
     }
 
     if (!useCase) {
-      newErrors.useCase = "Please select how you want to use Toast AI";
+      newErrors.useCase = "Please select how you want to use Toast AI"
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   function handleKeyDown(event: React.KeyboardEvent) {
     if (event.key === "Enter" && !loading) {
-      event.preventDefault();
-      void handleSubmit(event as any);
+      event.preventDefault()
+      void handleSubmit(event as any)
     }
   }
 
   async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+    event.preventDefault()
 
-    if (!user) return;
+    if (!user) return
 
     // Validate form before submitting
     if (!validateForm()) {
@@ -92,11 +105,11 @@ export default function OnboardingPage() {
         title: "Please fill in all required fields",
         status: "error",
         duration: 3000,
-      });
-      return;
+      })
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
 
     try {
       // Capture onboarding answers in PostHog
@@ -104,10 +117,10 @@ export default function OnboardingPage() {
         role,
         use_case: useCase,
         goal,
-      });
+      })
 
       // Mark onboarding completed in backend
-      await fetch("/api/users/complete-onboarding", { method: "POST" });
+      await fetch("/api/users/complete-onboarding", { method: "POST" })
 
       // Track onboarding completion
       trackUserJourney.onboardingCompleted({
@@ -116,21 +129,25 @@ export default function OnboardingPage() {
         role,
         use_case: useCase,
         goal,
-      });
+      })
 
-      toast({ title: "Thanks! You're all set.", status: "success" });
-      router.push("/companies");
+      toast({ title: "Thanks! You're all set.", status: "success" })
+      router.push("/companies")
     } catch (error) {
-      toast({ title: "Submission failed", status: "error" });
+      toast({ title: "Submission failed", status: "error" })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   return (
     <Container maxW="container.md" py={12}>
-      <Heading size="lg" mb={6}>Tell us about you</Heading>
-      <Text color="gray.600" mb={8}>This helps tailor legal analysis to your needs.</Text>
+      <Heading size="lg" mb={6}>
+        Tell us about you
+      </Heading>
+      <Text color="gray.600" mb={8}>
+        This helps tailor legal analysis to your needs.
+      </Text>
       <Box as="form" onSubmit={handleSubmit}>
         <Stack spacing={4}>
           <Stack direction={{ base: "column", md: "row" }} spacing={4}>
@@ -156,7 +173,11 @@ export default function OnboardingPage() {
               onKeyDown={handleKeyDown}
               isInvalid={!!errors.email}
             />
-            {errors.email && <Text color="red.500" fontSize="sm" mt={1}>{errors.email}</Text>}
+            {errors.email && (
+              <Text color="red.500" fontSize="sm" mt={1}>
+                {errors.email}
+              </Text>
+            )}
           </Box>
           <Box>
             <Select
@@ -172,7 +193,11 @@ export default function OnboardingPage() {
               <option value="legal_team">Legal team</option>
               <option value="other">Other</option>
             </Select>
-            {errors.role && <Text color="red.500" fontSize="sm" mt={1}>{errors.role}</Text>}
+            {errors.role && (
+              <Text color="red.500" fontSize="sm" mt={1}>
+                {errors.role}
+              </Text>
+            )}
           </Box>
           <Box>
             <Select
@@ -182,12 +207,20 @@ export default function OnboardingPage() {
               onKeyDown={handleKeyDown}
               isInvalid={!!errors.useCase}
             >
-              <option value="analyze_privacy_policies">Understand privacy policies</option>
-              <option value="vendor_risk">Assess vendor and contract risk</option>
+              <option value="analyze_privacy_policies">
+                Understand privacy policies
+              </option>
+              <option value="vendor_risk">
+                Assess vendor and contract risk
+              </option>
               <option value="monitor_changes">Monitor policy changes</option>
               <option value="bulk_review">Bulk review for legal team</option>
             </Select>
-            {errors.useCase && <Text color="red.500" fontSize="sm" mt={1}>{errors.useCase}</Text>}
+            {errors.useCase && (
+              <Text color="red.500" fontSize="sm" mt={1}>
+                {errors.useCase}
+              </Text>
+            )}
           </Box>
           <Textarea
             placeholder="What success looks like for you"
@@ -206,5 +239,5 @@ export default function OnboardingPage() {
         </Stack>
       </Box>
     </Container>
-  );
+  )
 }

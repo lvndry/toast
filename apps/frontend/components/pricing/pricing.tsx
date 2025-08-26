@@ -1,18 +1,18 @@
-"use client";
+"use client"
 
-import { Box, Heading, Text, VStack } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack } from "@chakra-ui/react"
 
 export interface PricingProps {
-  title: React.ReactNode;
-  description?: React.ReactNode;
-  price: React.ReactNode;
-  features?: React.ReactNode[];
-  action?: React.ReactNode;
-  [key: string]: any;
+  title: React.ReactNode
+  description?: React.ReactNode
+  price: React.ReactNode
+  features?: React.ReactNode[]
+  action?: React.ReactNode
+  [key: string]: any
 }
 
 export function Pricing(props: PricingProps) {
-  const { title, description, price, features, action, ...rest } = props;
+  const { title, description, price, features, action, ...rest } = props
 
   return (
     <VStack
@@ -31,7 +31,11 @@ export function Pricing(props: PricingProps) {
           {title}
         </Heading>
         {description && (
-          <Text color="gray.600" textAlign="center" _dark={{ color: "gray.300" }}>
+          <Text
+            color="gray.600"
+            textAlign="center"
+            _dark={{ color: "gray.300" }}
+          >
             {description}
           </Text>
         )}
@@ -52,5 +56,5 @@ export function Pricing(props: PricingProps) {
 
       {action && <Box w="full">{action}</Box>}
     </VStack>
-  );
+  )
 }

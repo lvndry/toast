@@ -1,8 +1,8 @@
-import posthog from "posthog-js";
+import posthog from "posthog-js"
 
 // User identification
 export function identifyUser(user: any) {
-  if (!user) return;
+  if (!user) return
 
   posthog.identify(user.id, {
     email: user.primaryEmailAddress?.emailAddress,
@@ -11,39 +11,42 @@ export function identifyUser(user: any) {
     created_at: user.createdAt,
     updated_at: user.updatedAt,
     last_sign_in_at: user.lastSignInAt,
-  });
+  })
 }
 
 // Page view tracking
-export function trackPageView(pageName: string, properties?: Record<string, any>) {
+export function trackPageView(
+  pageName: string,
+  properties?: Record<string, any>,
+) {
   posthog.capture("page_viewed", {
     page_name: pageName,
     ...properties,
-  });
+  })
 }
 
 // User journey tracking
 export const trackUserJourney = {
   // Onboarding
   onboardingStarted() {
-    posthog.capture("onboarding_started");
+    posthog.capture("onboarding_started")
   },
 
   onboardingCompleted(properties?: Record<string, any>) {
-    posthog.capture("onboarding_completed", properties);
+    posthog.capture("onboarding_completed", properties)
   },
 
   // Authentication
   signIn(method: string) {
-    posthog.capture("user_signed_in", { method });
+    posthog.capture("user_signed_in", { method })
   },
 
   signUp(method: string) {
-    posthog.capture("user_signed_up", { method });
+    posthog.capture("user_signed_up", { method })
   },
 
   signOut() {
-    posthog.capture("user_signed_out");
+    posthog.capture("user_signed_out")
   },
 
   // Company interactions
@@ -51,14 +54,14 @@ export const trackUserJourney = {
     posthog.capture("company_viewed", {
       company_slug: companySlug,
       company_name: companyName,
-    });
+    })
   },
 
   companySearched(searchTerm: string, resultsCount: number) {
     posthog.capture("company_searched", {
       search_term: searchTerm,
       results_count: resultsCount,
-    });
+    })
   },
 
   // Document uploads
@@ -66,35 +69,48 @@ export const trackUserJourney = {
     posthog.capture("document_upload_started", {
       file_type: fileType,
       file_size: fileSize,
-    });
+    })
   },
 
-  documentUploadCompleted(fileType: string, fileSize: number, companyName: string) {
+  documentUploadCompleted(
+    fileType: string,
+    fileSize: number,
+    companyName: string,
+  ) {
     posthog.capture("document_upload_completed", {
       file_type: fileType,
       file_size: fileSize,
       company_name: companyName,
-    });
+    })
   },
 
   documentUploadFailed(fileType: string, error: string) {
     posthog.capture("document_upload_failed", {
       file_type: fileType,
       error: error,
-    });
+    })
   },
 
   // Conversation tracking
-  conversationStarted(conversationId: string, companyName: string, isNewConversation: boolean) {
+  conversationStarted(
+    conversationId: string,
+    companyName: string,
+    isNewConversation: boolean,
+  ) {
     posthog.capture("conversation_started", {
       conversation_id: conversationId,
       company_name: companyName,
       is_new_conversation: isNewConversation,
-    });
+    })
   },
 
   // Question tracking
-  questionAsked(question: string, questionLength: number, conversationId?: string, companySlug?: string) {
+  questionAsked(
+    question: string,
+    questionLength: number,
+    conversationId?: string,
+    companySlug?: string,
+  ) {
     posthog.capture("question_asked", {
       question_length: questionLength,
       conversation_id: conversationId,
@@ -102,23 +118,28 @@ export const trackUserJourney = {
       // Don't capture the full question for privacy, but track patterns
       question_category: categorizeQuestion(question),
       has_legal_terms: containsLegalTerms(question),
-    });
+    })
   },
 
-  questionAnswered(questionLength: number, answerLength: number, responseTime: number, conversationId?: string) {
+  questionAnswered(
+    questionLength: number,
+    answerLength: number,
+    responseTime: number,
+    conversationId?: string,
+  ) {
     posthog.capture("question_answered", {
       question_length: questionLength,
       answer_length: answerLength,
       response_time_ms: responseTime,
       conversation_id: conversationId,
-    });
+    })
   },
 
   questionFailed(error: string, conversationId?: string) {
     posthog.capture("question_failed", {
       error: error,
       conversation_id: conversationId,
-    });
+    })
   },
 
   // Feature usage
@@ -126,68 +147,96 @@ export const trackUserJourney = {
     posthog.capture("feature_used", {
       feature_name: featureName,
       ...properties,
-    });
+    })
   },
 
   // Error tracking
-  errorOccurred(error: string, context: string, properties?: Record<string, any>) {
+  errorOccurred(
+    error: string,
+    context: string,
+    properties?: Record<string, any>,
+  ) {
     posthog.capture("error_occurred", {
       error: error,
       context: context,
       ...properties,
-    });
+    })
   },
-};
+}
 
 // Helper functions for question categorization
 function categorizeQuestion(question: string): string {
-  const lowerQuestion = question.toLowerCase();
+  const lowerQuestion = question.toLowerCase()
 
-  if (lowerQuestion.includes("privacy") || lowerQuestion.includes("data collection")) {
-    return "privacy_policy";
+  if (
+    lowerQuestion.includes("privacy") ||
+    lowerQuestion.includes("data collection")
+  ) {
+    return "privacy_policy"
   }
   if (lowerQuestion.includes("terms") || lowerQuestion.includes("liability")) {
-    return "terms_of_service";
+    return "terms_of_service"
   }
-  if (lowerQuestion.includes("gdpr") || lowerQuestion.includes("ccpa") || lowerQuestion.includes("compliance")) {
-    return "compliance";
+  if (
+    lowerQuestion.includes("gdpr") ||
+    lowerQuestion.includes("ccpa") ||
+    lowerQuestion.includes("compliance")
+  ) {
+    return "compliance"
   }
-  if (lowerQuestion.includes("delete") || lowerQuestion.includes("remove") || lowerQuestion.includes("opt out")) {
-    return "data_rights";
+  if (
+    lowerQuestion.includes("delete") ||
+    lowerQuestion.includes("remove") ||
+    lowerQuestion.includes("opt out")
+  ) {
+    return "data_rights"
   }
-  if (lowerQuestion.includes("share") || lowerQuestion.includes("third party")) {
-    return "data_sharing";
+  if (
+    lowerQuestion.includes("share") ||
+    lowerQuestion.includes("third party")
+  ) {
+    return "data_sharing"
   }
   if (lowerQuestion.includes("security") || lowerQuestion.includes("breach")) {
-    return "security";
+    return "security"
   }
 
-  return "general";
+  return "general"
 }
 
 function containsLegalTerms(question: string): boolean {
   const legalTerms = [
-    "liability", "indemnification", "warranty", "damages", "breach",
-    "termination", "arbitration", "governing law", "jurisdiction",
-    "intellectual property", "copyright", "trademark", "patent"
-  ];
+    "liability",
+    "indemnification",
+    "warranty",
+    "damages",
+    "breach",
+    "termination",
+    "arbitration",
+    "governing law",
+    "jurisdiction",
+    "intellectual property",
+    "copyright",
+    "trademark",
+    "patent",
+  ]
 
-  const lowerQuestion = question.toLowerCase();
-  return legalTerms.some(term => lowerQuestion.includes(term));
+  const lowerQuestion = question.toLowerCase()
+  return legalTerms.some((term) => lowerQuestion.includes(term))
 }
 
 // Session tracking
 export const trackSession = {
   started() {
-    posthog.capture("session_started");
+    posthog.capture("session_started")
   },
 
   ended(duration: number) {
     posthog.capture("session_ended", {
       duration_seconds: duration,
-    });
+    })
   },
-};
+}
 
 // Performance tracking
 export const trackPerformance = {
@@ -195,7 +244,7 @@ export const trackPerformance = {
     posthog.capture("page_load_time", {
       page_name: pageName,
       load_time_ms: loadTime,
-    });
+    })
   },
 
   apiCall(endpoint: string, responseTime: number, success: boolean) {
@@ -203,8 +252,8 @@ export const trackPerformance = {
       endpoint: endpoint,
       response_time_ms: responseTime,
       success: success,
-    });
+    })
   },
-};
+}
 
-export { posthog };
+export { posthog }

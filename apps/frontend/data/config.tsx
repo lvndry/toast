@@ -1,9 +1,10 @@
-import { Link } from "@chakra-ui/react";
-import { NextSeoProps } from "next-seo";
-import { FaGithub } from "react-icons/fa";
-import { FiCheck } from "react-icons/fi";
+import { NextSeoProps } from "next-seo"
+import { FaGithub } from "react-icons/fa"
+import { FiCheck } from "react-icons/fi"
 
-import { Logo } from "./logo";
+import { Link } from "@chakra-ui/react"
+
+import { Logo } from "./logo"
 
 const siteConfig = {
   logo: Logo,
@@ -41,8 +42,7 @@ const siteConfig = {
   footer: {
     copyright: (
       <>
-        Built by{" "}
-        <Link href="https://github.com/lvndry">lvndry</Link>
+        Built by <Link href="https://github.com/lvndry">lvndry</Link>
       </>
     ),
     links: [
@@ -62,7 +62,8 @@ const siteConfig = {
       {
         icon: FiCheck,
         title: "Smart Analysis",
-        description: "AI-powered extraction and analysis of legal documents with high accuracy.",
+        description:
+          "AI-powered extraction and analysis of legal documents with high accuracy.",
       },
       {
         icon: FiCheck,
@@ -84,6 +85,6 @@ const siteConfig = {
       },
     ],
   },
-};
+}
 
-export default siteConfig;
+export default siteConfig

@@ -1,20 +1,22 @@
-import { Stack } from "@chakra-ui/react";
-import { Testimonial } from "@components/testimonials/testimonial";
-import { Testimonials } from "@components/testimonials/testimonials";
-import { useMemo } from "react";
-import testimonials from "../data/testimonials";
+import { useMemo } from "react"
+
+import { Stack } from "@chakra-ui/react"
+import { Testimonial } from "@components/testimonials/testimonial"
+import { Testimonials } from "@components/testimonials/testimonials"
+
+import testimonials from "../data/testimonials"
 
 export function TestimonialsSection() {
   const columns = useMemo(() => {
     return testimonials.items.reduce<Array<typeof testimonials.items>>(
       (columns, t, i) => {
-        columns[i % 3].push(t);
+        columns[i % 3].push(t)
 
-        return columns;
+        return columns
       },
       [[], [], []],
-    );
-  }, []);
+    )
+  }, [])
 
   return (
     <Testimonials
@@ -32,5 +34,5 @@ export function TestimonialsSection() {
         ))}
       </>
     </Testimonials>
-  );
+  )
 }

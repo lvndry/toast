@@ -1,9 +1,20 @@
-import { Box, Container, Heading, SimpleGrid, Text, VStack } from "@chakra-ui/react";
-import { ButtonLink } from "@components/button-link/button-link";
-import { Pricing } from "@components/pricing/pricing";
-import pricing from "@data/pricing";
+import {
+  Box,
+  Container,
+  Heading,
+  SimpleGrid,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { ButtonLink } from "@components/button-link/button-link"
+import { Pricing } from "@components/pricing/pricing"
+import pricing from "@data/pricing"
 
-export function PricingSection({ onGetStartedClick }: { onGetStartedClick: (planId: string) => void; }) {
+export function PricingSection({
+  onGetStartedClick,
+}: {
+  onGetStartedClick: (planId: string) => void
+}) {
   return (
     <Box py={24}>
       <Container maxW="container.xl">
@@ -21,8 +32,22 @@ export function PricingSection({ onGetStartedClick }: { onGetStartedClick: (plan
             {pricing.plans.map((plan) => (
               <Box key={plan.id} position="relative">
                 {plan.isRecommended ? (
-                  <Box position="absolute" top="-3" left="50%" transform="translateX(-50%)" zIndex={1}>
-                    <Text fontSize="xs" fontWeight="semibold" bg="purple.500" color="white" px={3} py={1} borderRadius="full">
+                  <Box
+                    position="absolute"
+                    top="-3"
+                    left="50%"
+                    transform="translateX(-50%)"
+                    zIndex={1}
+                  >
+                    <Text
+                      fontSize="xs"
+                      fontWeight="semibold"
+                      bg="purple.500"
+                      color="white"
+                      px={3}
+                      py={1}
+                      borderRadius="full"
+                    >
                       Most popular
                     </Text>
                   </Box>
@@ -31,7 +56,7 @@ export function PricingSection({ onGetStartedClick }: { onGetStartedClick: (plan
                   title={plan.title}
                   description={plan.description}
                   price={`${plan.price}${plan.pricePeriod ? ` ${plan.pricePeriod}` : ""}`}
-                  features={plan.features.map(f => f.title)}
+                  features={plan.features.map((f) => f.title)}
                   border="1px"
                   borderColor={plan.isRecommended ? "purple.500" : "gray.200"}
                   shadow={plan.isRecommended ? "xl" : "md"}
@@ -53,10 +78,11 @@ export function PricingSection({ onGetStartedClick }: { onGetStartedClick: (plan
           </SimpleGrid>
 
           <Text p="8" textAlign="center" color="gray.500">
-            Free tier includes 10 company searches per month. VAT may be applicable depending on your location.
+            Free tier includes 10 company searches per month. VAT may be
+            applicable depending on your location.
           </Text>
         </VStack>
       </Container>
     </Box>
-  );
+  )
 }

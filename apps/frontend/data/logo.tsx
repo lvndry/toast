@@ -1,7 +1,7 @@
-import { HTMLChakraProps, chakra, useColorModeValue } from "@chakra-ui/react";
+import { HTMLChakraProps, chakra, useColorModeValue } from "@chakra-ui/react"
 
 export function Logo(props: HTMLChakraProps<"svg">) {
-  const color = useColorModeValue("#231f20", "#fff");
+  const color = useColorModeValue("#231f20", "#fff")
 
   return (
     <chakra.svg
@@ -28,5 +28,5 @@ export function Logo(props: HTMLChakraProps<"svg">) {
         ToastAI
       </text>
     </chakra.svg>
-  );
+  )
 }

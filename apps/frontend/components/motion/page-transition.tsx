@@ -1,4 +1,4 @@
-import { MotionBox, MotionBoxProps } from "./box";
+import { MotionBox, MotionBoxProps } from "./box"
 
 export function PageTransition(props: MotionBoxProps) {
   return (
@@ -7,5 +7,5 @@ export function PageTransition(props: MotionBoxProps) {
       animate={{ y: 0, opacity: 1 }}
       {...props}
     />
-  );
+  )
 }

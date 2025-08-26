@@ -1,8 +1,6 @@
-
 export default {
   title: "Pricing for every legal team",
-  description:
-    "Choose the plan that fits your legal document analysis needs.",
+  description: "Choose the plan that fits your legal document analysis needs.",
   plans: [
     {
       id: "free",
@@ -121,4 +119,4 @@ export default {
       },
     },
   ],
-};
+}

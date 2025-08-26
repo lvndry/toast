@@ -1,15 +1,16 @@
-"use client";
+"use client"
 
-import { Box } from "@chakra-ui/react";
-import { motion } from "framer-motion";
+import { motion } from "framer-motion"
+
+import { Box } from "@chakra-ui/react"
 
 export interface MotionBoxProps {
-  children?: React.ReactNode;
-  [key: string]: any;
+  children?: React.ReactNode
+  [key: string]: any
 }
 
-export const MotionBox = motion(Box);
+export const MotionBox = motion(Box)
 
 export function AnimatedBox(props: MotionBoxProps) {
-  return <MotionBox {...props} />;
+  return <MotionBox {...props} />
 }

@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import { useColorModeValue } from "@chakra-ui/react"
 

@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useColorModeValue } from "@chakra-ui/react";
+import { useColorModeValue } from "@chakra-ui/react"
 
 export const ChakraLogo = (props) => {
   return (
@@ -20,5 +20,5 @@ export const ChakraLogo = (props) => {
         fill={useColorModeValue("white", "black")}
       ></path>
     </svg>
-  );
-};
+  )
+}

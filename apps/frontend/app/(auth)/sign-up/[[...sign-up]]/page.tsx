@@ -1,31 +1,33 @@
-"use client";
+"use client"
 
-import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react";
-import { SignUp } from "@clerk/nextjs";
-import { useEffect } from "react";
-import { useAnalytics } from "../../../../hooks/useAnalytics";
+import { useEffect } from "react"
+
+import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react"
+import { SignUp } from "@clerk/nextjs"
+
+import { useAnalytics } from "../../../../hooks/useAnalytics"
 
 export default function SignUpPage() {
-  const { trackPageView, trackUserJourney } = useAnalytics();
+  const { trackPageView, trackUserJourney } = useAnalytics()
 
   // Track sign-up page view
   useEffect(() => {
-    trackPageView("sign_up_page");
-  }, [trackPageView]);
+    trackPageView("sign_up_page")
+  }, [trackPageView])
 
   // Track sign-up events
   useEffect(() => {
     const handleSignUp = () => {
-      trackUserJourney.signUp("clerk");
-    };
+      trackUserJourney.signUp("clerk")
+    }
 
     // Listen for sign-up success
-    window.addEventListener('clerk-sign-up-complete', handleSignUp);
+    window.addEventListener("clerk-sign-up-complete", handleSignUp)
 
     return () => {
-      window.removeEventListener('clerk-sign-up-complete', handleSignUp);
-    };
-  }, [trackUserJourney]);
+      window.removeEventListener("clerk-sign-up-complete", handleSignUp)
+    }
+  }, [trackUserJourney])
 
   return (
     <Container maxW="container.sm" py={20}>
@@ -44,7 +46,7 @@ export default function SignUpPage() {
                 card: "shadow-none border-0",
                 headerTitle: "hidden",
                 headerSubtitle: "hidden",
-              }
+              },
             }}
             signInUrl="/sign-in"
             fallbackRedirectUrl="/onboarding"
@@ -52,5 +54,5 @@ export default function SignUpPage() {
         </Box>
       </VStack>
     </Container>
-  );
+  )
 }

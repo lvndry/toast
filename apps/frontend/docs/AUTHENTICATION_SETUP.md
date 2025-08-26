@@ -53,9 +53,11 @@ In your Clerk dashboard:
 ## Protected Routes
 
 The following routes require authentication:
+
 - `/(dashboard)/*` - All dashboard routes (including companies)
 
 Public routes:
+
 - `/` - Home page (marketing)
 - `/sign-in` - Sign in page
 - `/sign-up` - Sign up page

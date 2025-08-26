@@ -1,19 +1,25 @@
-"use client";
+"use client"
 
-import { HStack, IconButton, useDisclosure, useUpdateEffect } from "@chakra-ui/react";
-import { useScrollSpy } from "hooks/use-scrollspy";
-import { usePathname } from "next/navigation";
-import { useRef } from "react";
+import { useScrollSpy } from "hooks/use-scrollspy"
+import { usePathname } from "next/navigation"
 
-import { MobileNav } from "@components/mobile-nav";
-import { NavLink } from "@components/nav-link";
-import siteConfig from "@data/config";
+import { useRef } from "react"
 
-import ThemeToggle from "./theme-toggle";
+import {
+  HStack,
+  IconButton,
+  useDisclosure,
+  useUpdateEffect,
+} from "@chakra-ui/react"
+import { MobileNav } from "@components/mobile-nav"
+import { NavLink } from "@components/nav-link"
+import siteConfig from "@data/config"
+
+import ThemeToggle from "./theme-toggle"
 
 function Navigation() {
-  const mobileNav = useDisclosure();
-  const path = usePathname();
+  const mobileNav = useDisclosure()
+  const path = usePathname()
   const activeId = useScrollSpy(
     siteConfig.header.links
       .filter(({ id }) => id)
@@ -21,13 +27,13 @@ function Navigation() {
     {
       threshold: 0.75,
     },
-  );
+  )
 
-  const mobileNavBtnRef = useRef<HTMLButtonElement>(null);
+  const mobileNavBtnRef = useRef<HTMLButtonElement>(null)
 
   useUpdateEffect(() => {
-    mobileNavBtnRef.current?.focus();
-  }, [mobileNav.isOpen]);
+    mobileNavBtnRef.current?.focus()
+  }, [mobileNav.isOpen])
 
   return (
     <HStack spacing="2" flexShrink={0}>
@@ -47,7 +53,7 @@ function Navigation() {
           >
             {props.label}
           </NavLink>
-        );
+        )
       })}
 
       <ThemeToggle />
@@ -77,7 +83,7 @@ function Navigation() {
         ))}
       </MobileNav>
     </HStack>
-  );
+  )
 }
 
-export default Navigation;
+export default Navigation

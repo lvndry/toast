@@ -1,16 +1,16 @@
-"use client";
+"use client"
 
-import { Box, Heading, Text, VStack } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack } from "@chakra-ui/react"
 
 export interface HighlightProps {
-  title: React.ReactNode;
-  description?: React.ReactNode;
-  icon?: React.ReactNode;
-  [key: string]: any;
+  title: React.ReactNode
+  description?: React.ReactNode
+  icon?: React.ReactNode
+  [key: string]: any
 }
 
 export function Highlight(props: HighlightProps) {
-  const { title, description, icon, ...rest } = props;
+  const { title, description, icon, ...rest } = props
 
   return (
     <VStack
@@ -39,5 +39,5 @@ export function Highlight(props: HighlightProps) {
         )}
       </VStack>
     </VStack>
-  );
+  )
 }

@@ -1,10 +1,9 @@
-import { extendTheme } from "@chakra-ui/react";
-import { theme as baseTheme } from "@saas-ui/react";
+import { extendTheme } from "@chakra-ui/react"
+import "@fontsource-variable/inter"
+import { theme as baseTheme } from "@saas-ui/react"
 
-import components from "./components";
-import { fontSizes } from "./foundations/typography";
-
-import "@fontsource-variable/inter";
+import components from "./components"
+import { fontSizes } from "./foundations/typography"
 
 export const theme = extendTheme(
   {
@@ -33,4 +32,4 @@ export const theme = extendTheme(
     components,
   },
   baseTheme,
-);
+)

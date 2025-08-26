@@ -1,15 +1,16 @@
-"use client";
+"use client"
 
-import { Box } from "@chakra-ui/react";
-import type { ChatMessage } from "./message-item";
-import { MessageItem } from "./message-item";
+import { Box } from "@chakra-ui/react"
+
+import type { ChatMessage } from "./message-item"
+import { MessageItem } from "./message-item"
 
 interface MessageListProps {
-  messages: ChatMessage[];
-  isLoading?: boolean;
-  loadingBubbleBg?: string;
-  assistantBubbleBg?: string;
-  userBubbleBg?: string;
+  messages: ChatMessage[]
+  isLoading?: boolean
+  loadingBubbleBg?: string
+  assistantBubbleBg?: string
+  userBubbleBg?: string
 }
 
 export function MessageList({
@@ -17,12 +18,17 @@ export function MessageList({
   isLoading = false,
   loadingBubbleBg = "white",
   assistantBubbleBg = "white",
-  userBubbleBg = "blue.500"
+  userBubbleBg = "blue.500",
 }: MessageListProps) {
   return (
     <Box>
       {messages.map((message) => (
-        <MessageItem key={message.id} message={message} bubbleBgAssistant={assistantBubbleBg} bubbleBgUser={userBubbleBg} />
+        <MessageItem
+          key={message.id}
+          message={message}
+          bubbleBgAssistant={assistantBubbleBg}
+          bubbleBgUser={userBubbleBg}
+        />
       ))}
       {isLoading && (
         <Box display="flex" justifyContent="flex-start" mb={4}>
@@ -32,7 +38,7 @@ export function MessageList({
         </Box>
       )}
     </Box>
-  );
+  )
 }
 
-export default MessageList;
+export default MessageList

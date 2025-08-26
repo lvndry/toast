@@ -1,26 +1,34 @@
-"use client";
+"use client"
 
-import { Box, Button, HStack, Heading, Text, useColorModeValue } from "@chakra-ui/react";
-import { FiArrowLeft, FiUpload } from "react-icons/fi";
+import { FiArrowLeft, FiUpload } from "react-icons/fi"
+
+import {
+  Box,
+  Button,
+  HStack,
+  Heading,
+  Text,
+  useColorModeValue,
+} from "@chakra-ui/react"
 
 interface ConversationMeta {
-  id: string;
-  pinned?: boolean;
-  archived?: boolean;
+  id: string
+  pinned?: boolean
+  archived?: boolean
 }
 
 interface QHeaderProps {
-  title: string;
-  subtitle?: string;
-  conversation?: ConversationMeta | null;
-  onBack: () => void;
-  onUploadClick?: () => void;
-  onDeleteClick?: () => void;
-  onTogglePinned?: () => void;
-  onToggleArchived?: () => void;
-  uploadLoading?: boolean;
-  onToggleSummarySidebar?: () => void;
-  isSummarySidebarOpen?: boolean;
+  title: string
+  subtitle?: string
+  conversation?: ConversationMeta | null
+  onBack: () => void
+  onUploadClick?: () => void
+  onDeleteClick?: () => void
+  onTogglePinned?: () => void
+  onToggleArchived?: () => void
+  uploadLoading?: boolean
+  onToggleSummarySidebar?: () => void
+  isSummarySidebarOpen?: boolean
 }
 
 export default function QHeader({
@@ -34,18 +42,26 @@ export default function QHeader({
   onToggleArchived,
   uploadLoading,
   onToggleSummarySidebar,
-  isSummarySidebarOpen
+  isSummarySidebarOpen,
 }: QHeaderProps) {
-  const cardBg = useColorModeValue("white", "gray.800");
+  const cardBg = useColorModeValue("white", "gray.800")
 
   return (
-    <Box bg={cardBg} shadow="sm" borderBottom="1px" borderColor="gray.200" flexShrink={0}>
+    <Box
+      bg={cardBg}
+      shadow="sm"
+      borderBottom="1px"
+      borderColor="gray.200"
+      flexShrink={0}
+    >
       <Box maxW="7xl" mx="auto" px={6} py={4}>
         <HStack justify="space-between">
           <Box>
             <Heading size="lg">{title}</Heading>
             {subtitle && (
-              <Text color="gray.600" mt={1}>{subtitle}</Text>
+              <Text color="gray.600" mt={1}>
+                {subtitle}
+              </Text>
             )}
             {conversation && (
               <HStack spacing={2} mt={2}>
@@ -84,7 +100,7 @@ export default function QHeader({
                 isLoading={uploadLoading}
                 loadingText="Uploading..."
               >
-                <FiUpload style={{ marginRight: '8px' }} />
+                <FiUpload style={{ marginRight: "8px" }} />
                 Upload More Documents
               </Button>
             )}
@@ -98,17 +114,13 @@ export default function QHeader({
                 Delete
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onBack}
-            >
-              <FiArrowLeft style={{ marginRight: '8px' }} />
+            <Button size="sm" variant="outline" onClick={onBack}>
+              <FiArrowLeft style={{ marginRight: "8px" }} />
               Back
             </Button>
           </HStack>
         </HStack>
       </Box>
     </Box>
-  );
+  )
 }
