@@ -1,32 +1,31 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server";
 
-import { http } from "@lib/http"
-
-const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "http://localhost:8000"
+import { apiEndpoints } from "@lib/config";
+import { http } from "@lib/http";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string; }>; },
 ) {
-  const { id } = await params
+  const { id } = await params;
   try {
-    const formData = await request.formData()
+    const formData = await request.formData();
 
     const response = await http(
-      `${BACKEND_BASE_URL}/conversations/${id}/upload`,
+      `${apiEndpoints.conversations()}/${id}/upload`,
       {
         method: "POST",
         body: formData,
       },
-    )
+    );
 
-    const result = await response.json()
-    return NextResponse.json(result)
+    const result = await response.json();
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("Error uploading document:", error)
+    console.error("Error uploading document:", error);
     return NextResponse.json(
       { error: `Failed to upload document: ${error}` },
       { status: 500 },
-    )
+    );
   }
 }
