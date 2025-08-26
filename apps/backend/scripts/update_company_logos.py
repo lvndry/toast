@@ -19,9 +19,9 @@ from typing import Any
 from urllib.parse import urlparse
 
 import aiohttp
-from core.logging import get_logger
 
 from src.company import Company
+from src.core.logging import get_logger
 from src.services.company_service import company_service
 
 logger = get_logger(__name__)
