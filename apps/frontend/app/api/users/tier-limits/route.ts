@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:8000"
+    const backendUrl = process.env.BACKEND_BASE_URL || "http://localhost:8000"
     const response = await fetch(`${backendUrl}/toast/users/tier-limits`, {
       method: "GET",
       headers: {
