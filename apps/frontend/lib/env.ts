@@ -66,11 +66,12 @@ if (!envParseResult.success) {
   if (process.env.NODE_ENV === "test" || process.env.CI) {
     console.error("💡 For CI/Test environments, ensure these variables are set:");
     console.error("   - NODE_ENV=test");
-    console.error("   - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (required for build)");
-    console.error("   - CLERK_SECRET_KEY (required for build)");
+    console.error("   - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (use development key from Clerk)");
+    console.error("   - CLERK_SECRET_KEY (use development key from Clerk)");
     console.error("   - BACKEND_BASE_URL (optional, defaults to http://localhost:8000)");
     console.error("   - NEXT_PUBLIC_APP_URL (optional, defaults to http://localhost:3000)");
     console.error("   - Other variables are optional in test mode");
+    console.error("   - Note: Use Clerk development keys, not production keys");
   }
 
   throw new Error(`Invalid environment variables: ${Object.keys(errors).join(", ")}`);
