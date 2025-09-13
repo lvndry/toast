@@ -84,21 +84,17 @@ class CompanyService(BaseService):
     async def list_companies_with_documents(self, has_documents: bool = True) -> list[Company]:
         """Get companies that have documents."""
         if has_documents:
-            # Get companies that have associated documents
-            companies_with_docs = await self.db.companies.aggregate(
-                [
-                    {
-                        "$lookup": {
-                            "from": "documents",
-                            "localField": "id",
-                            "foreignField": "company_id",
-                            "as": "documents",
-                        }
-                    },
-                    {"$match": {"documents": {"$ne": []}}},
-                ]
+            # Get company IDs that have documents using a simple aggregation
+            company_ids_with_docs = await self.db.documents.distinct("company_id")
+
+            # Get companies by their IDs
+            companies = await self.db.companies.find(
+                {"id": {"$in": company_ids_with_docs}},
+                {"_id": 0},
             ).to_list(length=None)
-            return [Company(**company) for company in companies_with_docs]
+            logger.info("companies with docs", companies=companies)
+            logger.info(f"Found {len(companies)} companies with documents")
+            return [Company(**company) for company in companies]
         else:
             return await self.get_all_companies()
 

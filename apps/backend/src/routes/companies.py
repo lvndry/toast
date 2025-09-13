@@ -52,7 +52,7 @@ async def get_companies(
     return companies
 
 
-@router.get("/slug/{slug}")
+@router.get("/{slug}")
 async def get_company(slug: str, user: ClerkUser | None = Depends(get_optional_user)) -> Company:
     """Get a company by its slug with tier visibility check."""
 
@@ -70,7 +70,7 @@ async def get_company(slug: str, user: ClerkUser | None = Depends(get_optional_u
     return company
 
 
-@router.get("/slug/{slug}/meta-summary")
+@router.get("/{slug}/meta-summary")
 async def get_company_meta_summary(
     slug: str, user: ClerkUser | None = Depends(get_optional_user)
 ) -> MetaSummary:
@@ -89,11 +89,11 @@ async def get_company_meta_summary(
         raise HTTPException(status_code=404, detail="Company not found")
 
     # Generate meta summary
-    meta_summary = await generate_company_meta_summary(company)
+    meta_summary = await generate_company_meta_summary(slug)
     return meta_summary
 
 
-@router.get("/slug/{slug}/documents")
+@router.get("/{slug}/documents")
 async def get_company_documents(
     slug: str, user: ClerkUser | None = Depends(get_optional_user)
 ) -> list[Document]:

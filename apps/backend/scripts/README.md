@@ -1,10 +1,53 @@
-# Company Logo Update Scripts
+use# Backend Scripts
 
-This directory contains scripts to fetch and update company logos in the database.
+This directory contains various utility scripts for managing the Toast AI backend database and services.
 
 ## Scripts
 
-### 1. `simple_logo_update.py` (Recommended)
+### Company Tier Management
+
+#### `populate_company_tiers.py`
+
+Comprehensive script for managing company tier visibility. Supports multiple strategies for setting which user tiers can access specific companies.
+
+**Features:**
+
+- Multiple population strategies (all, category-based, domain-based, specific companies)
+- Configuration file support for complex rules
+- Safety features (dry-run, validation, error handling)
+- Current state inspection
+
+**Usage:**
+
+```bash
+# Show current tier visibility
+python scripts/populate_company_tiers.py --strategy show
+
+# Set all companies to all tiers
+python scripts/populate_company_tiers.py --strategy all
+
+# Set fintech companies to business tier
+python scripts/populate_company_tiers.py --strategy category --tier business --categories "fintech,saas"
+
+# Use configuration file
+python scripts/populate_company_tiers.py --strategy config --config-file tier_config.json
+```
+
+See `POPULATE_TIERS_README.md` for detailed documentation.
+
+#### `test_tier_population.py`
+
+Test script to verify tier population functionality and demonstrate usage.
+
+**Usage:**
+
+```bash
+python scripts/test_tier_population.py
+```
+
+### Company Logo Management
+
+#### `simple_logo_update.py` (Recommended)
 
 A simple script that fetches logos by checking common paths on company domains. This script doesn't require any external API keys.
 
@@ -22,7 +65,7 @@ cd apps/backend
 python scripts/simple_logo_update.py
 ```
 
-### 2. `update_company_logos.py` (Advanced)
+#### `update_company_logos.py` (Advanced)
 
 A comprehensive script that uses multiple sources to find company logos.
 
