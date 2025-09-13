@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 from typing import Any
 
-from core.logging import get_logger
+import structlog
 
 from src.services.user_service import user_service
 from src.user import UserTier
@@ -18,7 +18,7 @@ from src.user import UserTier
 # Add the src directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
-logger = get_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 async def migrate_users_to_tier_system() -> dict[str, Any]:
