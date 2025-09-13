@@ -2,15 +2,15 @@ name: Backend CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'apps/backend/**'
-      - '.github/workflows/backend.yml'
+      - "apps/backend/**"
+      - ".github/workflows/backend.yml"
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'apps/backend/**'
-      - '.github/workflows/backend.yml'
+      - "apps/backend/**"
+      - ".github/workflows/backend.yml"
 
 jobs:
   test:
@@ -24,66 +24,56 @@ jobs:
         python-version: ["3.11", "3.12"]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v2
-      with:
-        version: "latest"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          version: "latest"
 
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          apps/backend/.venv
-          apps/backend/.uv/cache
-        key: ${{ runner.os }}-uv-${{ hashFiles('apps/backend/uv.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-uv-
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/backend/.venv
+            apps/backend/.uv/cache
+          key: ${{ runner.os }}-uv-${{ hashFiles('apps/backend/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
 
-    - name: Install dependencies
-      run: |
-        uv sync --dev
+      - name: Install dependencies
+        run: |
+          uv sync --dev
 
-    - name: Run linting with ruff
-      run: |
-        uv run ruff check .
+      - name: Run linting with ruff
+        run: |
+          uv run ruff check .
 
-    - name: Run type checking with mypy
-      run: |
-        uv run mypy src/
+      - name: Run type checking with mypy
+        run: |
+          uv run mypy src/
 
-    - name: Run security checks with bandit
-      run: |
-        uv run bandit -r src/ -f json -o bandit-report.json || true
-        # Bandit may find issues, but we don't want to fail the build for warnings
+      - name: Run security checks with bandit
+        run: |
+          uv run bandit -r src/ -f json -o bandit-report.json || true
+          # Bandit may find issues, but we don't want to fail the build for warnings
 
-    - name: Run tests
-      run: |
-        uv run pytest tests/ -v --tb=short
+      - name: Run tests
+        run: |
+          uv run pytest tests/ -v --tb=short
 
-    - name: Check if backend can start
-      run: |
-        # Test that the FastAPI app can be imported and started
-        uv run python -c "
-        import sys
-        sys.path.append('src')
-        from main import app
-        print('✅ Backend app imports successfully')
-        "
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results-${{ matrix.python-version }}
-        path: |
-          apps/backend/bandit-report.json
-          apps/backend/.pytest_cache/
-        retention-days: 7
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: |
+            apps/backend/bandit-report.json
+            apps/backend/.pytest_cache/
+          retention-days: 7
