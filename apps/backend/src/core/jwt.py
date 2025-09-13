@@ -32,7 +32,7 @@ class ClerkAuthService:
                 response.raise_for_status()
                 jwks = response.json()
                 self.jwks_cache[jwks_url] = jwks
-                return jwks  # type: ignore
+                return cast(dict[str, Any], jwks)
         except httpx.RequestError as e:
             raise HTTPException(status_code=500, detail=f"Failed to fetch JWKS: {str(e)}") from e
 
@@ -91,7 +91,7 @@ class ClerkAuthService:
                 logger.exception(f"Failed to decode token: {e}")
                 raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}") from e
 
-            return payload
+            return cast(dict[str, Any], payload)
 
         except JWTError as e:
             raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}") from e
