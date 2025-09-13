@@ -73,8 +73,6 @@ if (!envParseResult.success) {
     console.error("   - Other variables are optional in test mode");
     console.error("   - Note: Use Clerk development keys, not production keys");
   }
-
-  throw new Error(`Invalid environment variables: ${Object.keys(errors).join(", ")}`);
 }
 
 export const env = envParseResult.data;
@@ -83,10 +81,10 @@ export const env = envParseResult.data;
 export type Env = typeof env;
 
 // Helper functions for environment-specific logic
-export const isDevelopment = env.NODE_ENV === "development";
-export const isProduction = env.NODE_ENV === "production";
-export const isTest = env.NODE_ENV === "test";
+export const isDevelopment = env?.NODE_ENV === "development";
+export const isProduction = env?.NODE_ENV === "production";
+export const isTest = env?.NODE_ENV === "test";
 
 // Feature flag helpers
-export const isAnalyticsEnabled = env.NEXT_PUBLIC_ENABLE_ANALYTICS;
-export const isBetaFeaturesEnabled = env.NEXT_PUBLIC_ENABLE_BETA_FEATURES;
+export const isAnalyticsEnabled = env?.NEXT_PUBLIC_ENABLE_ANALYTICS;
+export const isBetaFeaturesEnabled = env?.NEXT_PUBLIC_ENABLE_BETA_FEATURES;

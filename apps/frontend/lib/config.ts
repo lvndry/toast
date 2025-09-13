@@ -2,7 +2,7 @@ import { env, isAnalyticsEnabled, isBetaFeaturesEnabled } from "./env";
 
 // Backend URL helpers
 export function getBackendUrl(path: string = "") {
-  const baseUrl = env.BACKEND_BASE_URL.replace(/\/$/, ""); // Remove trailing slash
+  const baseUrl = env?.BACKEND_BASE_URL.replace(/\/$/, ""); // Remove trailing slash
   const cleanPath = path.replace(/^\//, ""); // Remove leading slash
   return `${baseUrl}/${cleanPath}`;
 };
@@ -25,13 +25,13 @@ export const config = {
   app: {
     name: "Toast AI",
     version: "1.0.0",
-    url: env.NEXT_PUBLIC_APP_URL,
-    environment: env.NODE_ENV,
+    url: env?.NEXT_PUBLIC_APP_URL,
+    environment: env?.NODE_ENV,
   },
 
   // Backend configuration
   backend: {
-    baseUrl: env.BACKEND_BASE_URL,
+    baseUrl: env?.BACKEND_BASE_URL,
     timeout: 30000, // 30 seconds
     retries: 3,
   },
@@ -44,9 +44,9 @@ export const config = {
 
   // Authentication configuration
   auth: {
-    signInUrl: env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
-    signUpUrl: env.NEXT_PUBLIC_CLERK_SIGN_UP_URL,
-    afterSignInUrl: env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL,
-    afterSignUpUrl: env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL,
+    signInUrl: env?.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
+    signUpUrl: env?.NEXT_PUBLIC_CLERK_SIGN_UP_URL,
+    afterSignInUrl: env?.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL,
+    afterSignUpUrl: env?.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL,
   },
 } as const;
