@@ -50,7 +50,8 @@ toast/
 │       ├── components/  # React components
 │       └── lib/         # Utilities and types
 ├── dev.sh              # Development environment script
-├── setup-precommit.sh  # Pre-commit setup
+├── dev/
+│   └── setup-precommit.sh  # Pre-commit setup
 └── .pre-commit-config.yaml
 ```
 
@@ -168,7 +169,7 @@ cd apps/frontend && bun run dev
 
 ```bash
 # Set up pre-commit hooks
-./setup-precommit.sh
+./dev/setup-precommit.sh
 
 # This installs:
 # - Ruff (Python linting + formatting)

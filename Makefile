@@ -52,13 +52,13 @@ setup-frontend:
 # Setup pre-commit hooks
 setup-precommit: setup-permissions
 	@echo "🔧 Setting up pre-commit hooks..."
-	@./setup-precommit.sh
+	@./dev/setup-precommit.sh
 
 # Set executable permissions on scripts
 setup-permissions:
 	@echo "🔧 Setting executable permissions on scripts..."
 	@chmod +x dev.sh
-	@chmod +x setup-precommit.sh
+	@chmod +x dev/setup-precommit.sh
 	@chmod +x apps/backend/scripts/run_logo_update.sh
 	@echo "✅ Script permissions set"
 

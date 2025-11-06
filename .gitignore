@@ -27,7 +27,7 @@ wheels/
 .venv
 
 # streamlit
-.streamlit/
+secrets.toml
 
 
 ### Frontend
