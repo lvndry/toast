@@ -1,6 +1,6 @@
 "use client"
 
-import { FiArrowRight, FiCheckCircle } from "react-icons/fi"
+import { FiArrowRight, FiCheckCircle } from "react-icons/fi";
 
 import {
   Box,
@@ -10,12 +10,12 @@ import {
   Stack,
   Text,
   VStack,
-} from "@chakra-ui/react"
-import { ButtonLink } from "@components/button-link/button-link"
-import { BackgroundGradient } from "@components/gradients/background-gradient"
-import { Hero } from "@components/hero"
-import { FallInPlace } from "@components/motion/fall-in-place"
-import { useAuthStatus } from "@hooks/useAuthStatus"
+} from "@chakra-ui/react";
+import { ButtonLink } from "@components/button-link/button-link";
+import { BackgroundGradient } from "@components/gradients/background-gradient";
+import { Hero } from "@components/hero";
+import { FallInPlace } from "@components/motion/fall-in-place";
+import { useAuthStatus } from "@hooks/useAuthStatus";
 
 export default function HeroSection() {
   const { isSignedIn, isLoading } = useAuthStatus()
@@ -38,9 +38,8 @@ export default function HeroSection() {
             description={
               <FallInPlace delay={0.4} fontWeight="medium">
                 Search thousands of pre-analyzed companies and instantly
-                understand their terms of service,
-                <br /> privacy policies, and legal agreements. Plus, ask our AI
-                assistant any follow-up questions.
+                understand their terms of service, privacy policies, and legal agreements.
+                <br /> Plus, ask our AI assistant any follow-up questions.
               </FallInPlace>
             }
             action={

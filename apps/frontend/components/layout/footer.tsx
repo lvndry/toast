@@ -1,6 +1,6 @@
 "use client"
 
-import NextLink from "next/link"
+import NextLink from "next/link";
 
 import {
   Box,
@@ -9,8 +9,8 @@ import {
   HStack,
   Text,
   VStack,
-} from "@chakra-ui/react"
-import siteConfig from "@data/config"
+} from "@chakra-ui/react";
+import siteConfig from "@data/config";
 
 export interface FooterProps {
   children?: React.ReactNode
@@ -37,9 +37,6 @@ export function Footer(props: FooterProps) {
             </ChakraLink>
             <ChakraLink as={NextLink} href="/contact">
               Contact
-            </ChakraLink>
-            <ChakraLink as={NextLink} href="/status">
-              Status
             </ChakraLink>
           </HStack>
           <Text color="gray.500" fontSize="sm">

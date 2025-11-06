@@ -1,6 +1,6 @@
 "use client"
 
-import { Box, Flex, Heading, Text, VStack } from "@chakra-ui/react"
+import { Box, Flex, Heading, Text, VStack } from "@chakra-ui/react";
 
 export interface HeroProps {
   title: React.ReactNode
