@@ -50,3 +50,5 @@ next-env.d.ts
 build/
 # debug
 bun-debug.log*
+
+logs/

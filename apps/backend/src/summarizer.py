@@ -3,12 +3,11 @@
 import asyncio
 
 from dotenv import load_dotenv
-from litellm import acompletion
 from pydantic import BaseModel
 
 from src.core.logging import get_logger
 from src.document import Document, DocumentAnalysis
-from src.llm import get_model
+from src.llm import acompletion_with_fallback
 from src.services.document_service import document_service
 
 load_dotenv()
@@ -125,10 +124,7 @@ Document content:
 """
 
     try:
-        model = get_model("mistral-small")
-        response = await acompletion(
-            model=model.model,
-            api_key=model.api_key,
+        response = await acompletion_with_fallback(
             messages=[
                 {
                     "role": "system",
@@ -287,10 +283,7 @@ Your task is to create a clear and accessible summary of the of the following do
 """
 
     try:
-        model = get_model("mistral-small")
-        response = await acompletion(
-            model=model.model,
-            api_key=model.api_key,
+        response = await acompletion_with_fallback(
             messages=[
                 {
                     "role": "system",

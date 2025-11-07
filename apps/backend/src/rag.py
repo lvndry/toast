@@ -2,10 +2,9 @@ import asyncio
 from typing import Any
 
 from dotenv import load_dotenv
-from litellm import EmbeddingResponse, completion, embedding
 
 from src.core.logging import get_logger
-from src.llm import get_model
+from src.llm import completion_with_fallback, get_embeddings
 from src.vector_db import INDEX_NAME, pc
 
 load_dotenv()
@@ -22,12 +21,9 @@ async def embed_query(query: str) -> list[float]:
     Returns:
         list[float]: The vector embedding of the query
     """
-    model = get_model("voyage-law-2")
     try:
-        response: EmbeddingResponse = await embedding(
-            model=model.model,
-            api_key=model.api_key,
-            input=[query],
+        response = await get_embeddings(
+            input=query,
             input_type="query",
         )
 
@@ -144,10 +140,7 @@ Document URL: {match["metadata"]["url"]}
     ]
 
     try:
-        model = get_model("mistral-small")
-        response = completion(
-            model=model.model,
-            api_key=model.api_key,
+        response = completion_with_fallback(
             messages=messages,
             temperature=0.3,
         )

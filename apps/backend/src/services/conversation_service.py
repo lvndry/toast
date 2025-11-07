@@ -5,13 +5,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from litellm import acompletion
-
 from src.conversation import Conversation, Message
 from src.core.logging import get_logger
 from src.document_processor import DocumentProcessingResult, DocumentProcessor
 from src.embedding import embed_document
-from src.llm import get_model
+from src.llm import acompletion_with_fallback
 from src.rag import get_answer
 from src.services.base_service import BaseService
 
@@ -254,11 +252,8 @@ class ConversationService(BaseService):
             "Title:"
         )
 
-        model = get_model("mistral-small")
         try:
-            resp = await acompletion(
-                model=model.model,
-                api_key=model.api_key,
+            resp = await acompletion_with_fallback(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content},
