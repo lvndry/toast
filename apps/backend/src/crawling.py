@@ -53,13 +53,12 @@ from datetime import datetime
 from typing import Any, cast
 
 from dotenv import load_dotenv
-from litellm import acompletion
 from pydantic import BaseModel
 
 from src.company import Company
 from src.core.logging import get_logger
 from src.document import Document, Region
-from src.llm import SupportedModel, get_model
+from src.llm import SupportedModel, acompletion_with_fallback
 from src.services.company_service import company_service
 from src.services.document_service import document_service
 from src.toast_crawler import CrawlResult, ToastCrawler
@@ -112,7 +111,7 @@ class DocumentAnalyzer:
 
     def __init__(
         self,
-        model_name: SupportedModel = "mistral-small",
+        model_name: SupportedModel | None = None,
         temperature: float = 0.1,
         max_content_length: int = 5000,
     ):
@@ -120,15 +119,12 @@ class DocumentAnalyzer:
         Initialize the document analyzer.
 
         Args:
-            model: LLM model to use for analysis
+            model_name: Optional LLM model to use for analysis. If None, uses default priority list with fallback.
             temperature: Sampling temperature for LLM responses
             max_content_length: Maximum content length to send to LLM
-            api_key: API key for LLM service (loaded from env if not provided)
         """
-        model = get_model(model_name)
-
-        self.model = model.model
-        self.api_key = model.api_key
+        # Store model_name for potential future use, but we'll use fallback system
+        self.model_name = model_name
         self.temperature = temperature
         self.max_content_length = max_content_length
 
@@ -199,9 +195,7 @@ Be specific with locale (include country when possible)."""
         system_prompt = """You are a language detection expert. Analyze text and determine language/locale accurately."""
 
         try:
-            response = await acompletion(
-                model=self.model,
-                api_key=self.api_key,
+            response = await acompletion_with_fallback(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt},
@@ -260,9 +254,7 @@ Note: Cookie banners, navigation elements, or links to legal documents don't cou
         system_prompt = """You are a legal document classifier. Identify substantive legal content and categorize accurately."""
 
         try:
-            response = await acompletion(
-                model=self.model,
-                api_key=self.api_key,
+            response = await acompletion_with_fallback(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt},
@@ -324,9 +316,7 @@ Return JSON:
         system_prompt = """You are a legal geographic scope analyst. Determine document applicability accurately."""
 
         try:
-            response = await acompletion(
-                model=self.model,
-                api_key=self.api_key,
+            response = await acompletion_with_fallback(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt},
@@ -553,9 +543,7 @@ IMPORTANT: Return null for effective_date if you cannot find a clear effective d
         system_prompt = """You are an expert at extracting effective dates from legal documents. Only return dates that are explicitly stated as effective dates, last updated dates, or similar. Do not guess or infer dates."""
 
         try:
-            response = await acompletion(
-                model=self.model,
-                api_key=self.api_key,
+            response = await acompletion_with_fallback(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt},
@@ -683,6 +671,12 @@ class LegalDocumentPipeline:
 
     def _create_crawler_for_company(self, company: Company) -> ToastCrawler:
         """Create a configured crawler instance for a specific company."""
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_filename = f"{timestamp}_{company.slug}_crawl.log"
+        log_file_path = f"logs/{log_filename}"
+
         return ToastCrawler(
             max_depth=self.max_depth,
             max_pages=self.max_pages,
@@ -695,6 +689,7 @@ class LegalDocumentPipeline:
             follow_external_links=False,
             min_legal_score=0.0,
             strategy=self.crawler_strategy,
+            log_file_path=log_file_path,
         )
 
     async def _store_documents(self, documents: list[Document]) -> int:
@@ -712,7 +707,12 @@ class LegalDocumentPipeline:
         for document in documents:
             try:
                 # Check for existing document
-                existing_doc = await document_service.get_document_by_url(document.url)
+                # get_document_by_url raises ValueError if not found, which is expected for new documents
+                try:
+                    existing_doc = await document_service.get_document_by_url(document.url)
+                except ValueError:
+                    # Document doesn't exist yet - this is normal, create it
+                    existing_doc = None
 
                 if existing_doc:
                     # Calculate content hashes for comparison
@@ -874,10 +874,14 @@ class LegalDocumentPipeline:
             crawler = self._create_crawler_for_company(company)
             crawl_results = []
 
-            for base_url in company.crawl_base_urls:
-                logger.info(f"Crawling base URL: {base_url}")
-                results = await crawler.crawl(base_url)
-                crawl_results.extend(results)
+            try:
+                for base_url in company.crawl_base_urls:
+                    logger.info(f"Crawling base URL: {base_url}")
+                    results = await crawler.crawl(base_url)
+                    crawl_results.extend(results)
+            finally:
+                # Clean up file logging after all base URLs are processed
+                crawler._cleanup_file_logging()
 
             self.stats.total_urls_crawled += len(crawl_results)
             self.stats.total_documents_found += len(crawl_results)
@@ -898,7 +902,7 @@ class LegalDocumentPipeline:
             if processed_documents:
                 stored_count = await self._store_documents(processed_documents)
                 self.stats.legal_documents_stored += stored_count
-                logger.success(
+                logger.info(
                     f"💾 Stored {stored_count}/{len(processed_documents)} "
                     f"legal documents for {company.name}"
                 )
@@ -909,7 +913,7 @@ class LegalDocumentPipeline:
 
             company_duration = time.time() - company_start_time
             log_memory_usage(f"Completed {company.name}")
-            logger.success(
+            logger.info(
                 f"✅ Completed {company.name} in {company_duration:.2f}s "
                 f"({len(processed_documents)} legal docs)"
             )
@@ -962,7 +966,7 @@ class LegalDocumentPipeline:
             self.stats.processing_time_seconds = time.time() - pipeline_start_time
 
             # Log comprehensive results
-            logger.success("🎉 Pipeline completed successfully!")
+            logger.info("🎉 Pipeline completed successfully!")
             logger.info(f"📊 Companies processed: {self.stats.companies_processed}")
             logger.info(f"❌ Companies failed: {self.stats.companies_failed}")
             if self.stats.failed_company_slugs:
@@ -1017,7 +1021,7 @@ async def main() -> None:
                 f"Pipeline completed with {stats.companies_failed} failures: {failed_slugs}"
             )
         else:
-            logger.success("Pipeline completed successfully")
+            logger.info("Pipeline completed successfully")
         exit(0)
 
     except KeyboardInterrupt:

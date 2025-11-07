@@ -7,12 +7,11 @@ from typing import Any
 import pdfplumber
 from docx import Document as DocxDocument
 from dotenv import load_dotenv
-from litellm import acompletion
 from pydantic import BaseModel
 
 from src.core.logging import get_logger
 from src.document import Document, DocumentAnalysis
-from src.llm import SupportedModel, get_model
+from src.llm import SupportedModel, acompletion_with_fallback
 from src.summarizer import summarize_document
 
 load_dotenv()
@@ -34,14 +33,13 @@ class DocumentProcessor:
 
     def __init__(
         self,
-        model: SupportedModel = "mistral-small",
+        model: SupportedModel | None = None,
         temperature: float = 0.1,
         max_content_length: int = 5000,
     ):
         """Initialize the document processor."""
-        model_config = get_model(model)
-        self.model = model_config.model
-        self.api_key = model_config.api_key
+        # Store model_name for potential future use, but we'll use fallback system
+        self.model_name = model
         self.temperature = temperature
         self.max_content_length = max_content_length
 
@@ -219,9 +217,7 @@ Use caution: If the content appears incomplete, vague, or primarily promotional,
         system_prompt = """You are a legal document classifier. Identify substantive legal content and categorize accurately."""
 
         try:
-            response = await acompletion(
-                model=self.model,
-                api_key=self.api_key,
+            response = await acompletion_with_fallback(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt},

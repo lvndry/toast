@@ -4,16 +4,20 @@ Legal document crawler for extracting privacy policies, terms of service, and ot
 
 import asyncio
 import heapq
+import logging
 import re
 import time
-from collections import deque
+from collections import OrderedDict, deque
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import ParseResult, urljoin, urlparse, urlunparse
 
 import aiohttp
 import markdownify
 from bs4 import BeautifulSoup
 from pydantic import BaseModel, Field
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from src.core.logging import get_logger
 
@@ -57,6 +61,73 @@ class URLScorer:
     """Scores URLs based on legal document relevance."""
 
     def __init__(self) -> None:
+        # Compile regex patterns once for efficiency
+        self.compiled_high_value_patterns = {
+            re.compile(pattern, re.IGNORECASE): weight
+            for pattern, weight in {
+                r"privacy-policy": 8.0,
+                r"terms-of-service": 8.0,
+                r"cookie-policy": 7.0,
+                r"data-processing-addendum": 8.0,
+                r"subprocessors": 6.0,
+                r"gdpr": 6.0,
+                r"ccpa": 6.0,
+            }.items()
+        }
+
+        self.compiled_path_patterns = {
+            re.compile(pattern): weight
+            for pattern, weight in {
+                r"/legal/?": 4.0,
+                r"/terms/?": 4.5,
+                r"/tos/?": 4.5,
+                r"/privacy/?": 5.0,
+                r"/policy/?": 4.0,
+                r"/policies/?": 4.0,
+                r"/agreement/?": 3.5,
+                r"/compliance/?": 3.5,
+                r"/cookie/?": 4.0,
+                r"/gdpr/?": 4.5,
+                r"/ccpa/?": 4.5,
+                r"/data-processing/?": 4.0,
+                r"/security/?": 3.0,
+                r"/disclaimer/?": 3.0,
+                r"/company/?": 3.0,
+                r"/data-processing-addendum/?": 5.0,
+                r"/dpa/?": 5.0,
+                r"/addendum/?": 4.5,
+                r"/subprocessors/?": 4.0,
+                r"/vendors/?": 3.0,
+                r"/suppliers/?": 3.0,
+                r"/transparency/?": 3.5,
+                r"/[a-f0-9-]{32,}": 2.0,
+                r"/company/legal/?": 5.0,
+                r"/company/privacy/?": 5.0,
+                r"/company/terms/?": 5.0,
+                r"/company/tos/?": 5.0,
+                r"/about/legal/?": 4.5,
+                r"/about/privacy/?": 4.5,
+                r"/about/terms/?": 4.5,
+                r"/about/tos/?": 4.5,
+                r"/support/legal/?": 4.0,
+                r"/support/privacy/?": 4.0,
+                r"/support/terms/?": 4.0,
+                r"/help/legal/?": 4.0,
+                r"/help/privacy/?": 4.0,
+                r"/help/terms/?": 4.0,
+                r"/policies/privacy/?": 5.0,
+                r"/policies/terms/?": 5.0,
+                r"/policies/cookies/?": 4.5,
+                r"/legal/policies/?": 5.0,
+                r"/legal/policies/privacy/?": 5.0,
+                r"/legal/policies/terms/?": 5.0,
+                r"/legal/policies/cookies/?": 4.5,
+            }.items()
+        }
+
+        # Compile word extraction pattern once
+        self.word_pattern = re.compile(r"\b\w+\b")
+
         self.legal_keywords = {
             # Generic legal terms
             "legal": 3.5,
@@ -118,95 +189,69 @@ class URLScorer:
             "about": -0.5,
         }
 
-        self.path_patterns = {
-            r"/legal/?": 4.0,
-            r"/terms/?": 4.5,
-            r"/tos/?": 4.5,
-            r"/privacy/?": 5.0,
-            r"/policy/?": 4.0,
-            r"/policies/?": 4.0,
-            r"/agreement/?": 3.5,
-            r"/compliance/?": 3.5,
-            r"/cookie/?": 4.0,
-            r"/gdpr/?": 4.5,
-            r"/ccpa/?": 4.5,
-            r"/data-processing/?": 4.0,
-            r"/security/?": 3.0,
-            r"/disclaimer/?": 3.0,
-            r"/company/?": 3.0,
-            # Enhanced patterns for DPAs and similar documents
-            r"/data-processing-addendum/?": 5.0,
-            r"/dpa/?": 5.0,
-            r"/addendum/?": 4.5,
-            r"/subprocessors/?": 4.0,
-            r"/vendors/?": 3.0,
-            r"/suppliers/?": 3.0,
-            r"/transparency/?": 3.5,
-            # Pattern for UUID-based URLs that might be legal documents
-            r"/[a-f0-9-]{32,}": 2.0,  # Boost UUID-like paths slightly
-            # Additional patterns for common legal document structures
-            r"/company/legal/?": 5.0,
-            r"/company/privacy/?": 5.0,
-            r"/company/terms/?": 5.0,
-            r"/company/tos/?": 5.0,
-            r"/about/legal/?": 4.5,
-            r"/about/privacy/?": 4.5,
-            r"/about/terms/?": 4.5,
-            r"/about/tos/?": 4.5,
-            r"/support/legal/?": 4.0,
-            r"/support/privacy/?": 4.0,
-            r"/support/terms/?": 4.0,
-            r"/help/legal/?": 4.0,
-            r"/help/privacy/?": 4.0,
-            r"/help/terms/?": 4.0,
-            r"/policies/privacy/?": 5.0,
-            r"/policies/terms/?": 5.0,
-            r"/policies/cookies/?": 4.5,
-            r"/legal/policies/?": 5.0,
-            r"/legal/policies/privacy/?": 5.0,
-            r"/legal/policies/terms/?": 5.0,
-            r"/legal/policies/cookies/?": 4.5,
-        }
-
-        # High-value legal document patterns that should get maximum score
-        self.high_value_patterns = {
-            r"privacy-policy": 8.0,
-            r"terms-of-service": 8.0,
-            r"cookie-policy": 7.0,
-            r"data-processing-addendum": 8.0,
-            r"subprocessors": 6.0,
-            r"gdpr": 6.0,
-            r"ccpa": 6.0,
-        }
-
+    @lru_cache(maxsize=10000)  # noqa: B019 - Cache is bounded and per-instance
     def score_url(self, url: str) -> float:
-        """Score a URL based on legal document relevance."""
-        parsed = urlparse(url.lower())
+        """
+        Score a URL based on legal document relevance.
+
+        Uses LRU cache to avoid recomputing scores for the same URLs.
+        Lowercases URL once and reuses for all pattern matching.
+        """
+        # Lowercase once and reuse
+        url_lower = url.lower()
+        parsed = urlparse(url_lower)
         path = parsed.path
 
         score = 0.0
 
-        # Check high-value patterns first
-        for pattern, weight in self.high_value_patterns.items():
-            if re.search(pattern, url.lower()):
+        # Check high-value patterns using compiled regex
+        for pattern, weight in self.compiled_high_value_patterns.items():
+            if pattern.search(url_lower):
                 score += weight
 
-        # Score based on path patterns
-        for pattern, weight in self.path_patterns.items():
-            if re.search(pattern, path):
+        # Score based on path patterns using compiled regex
+        for pattern, weight in self.compiled_path_patterns.items():
+            if pattern.search(path):
                 score += weight
 
-        # Score based on keyURLwords in
+        # Score based on keywords in URL
         url_text = (
             f"{path} {parsed.query} {parsed.fragment}".replace("/", " ")
             .replace("-", " ")
             .replace("_", " ")
         )
-        words = re.findall(r"\b\w+\b", url_text)
+        words = self.word_pattern.findall(url_text)
+
+        # Track which keywords we've already scored to avoid double-counting
+        scored_keywords = set()
 
         for word in words:
             if word in self.legal_keywords:
                 score += self.legal_keywords[word]
+                scored_keywords.add(word.lower())
+
+        # Check for legal keywords as substrings in path and words
+        # This catches cases where legal keywords are embedded in compound words
+        path_lower = path.lower()
+        for keyword, weight in self.legal_keywords.items():
+            # Only check positive-weight keywords (skip negative ones like "blog")
+            if weight > 0 and keyword not in scored_keywords:
+                # Check if keyword appears as substring in path
+                # If it's not in scored_keywords, it means it wasn't an exact word match
+                if keyword in path_lower:
+                    # It's a substring match (like "privacy" in "safetyandprivacy")
+                    score += weight * 0.8  # Slightly lower weight for substring matches
+                    scored_keywords.add(keyword)
+                # Also check in extracted words for compound words
+                for word in words:
+                    word_lower = word.lower()
+                    if (
+                        keyword in word_lower
+                        and word_lower != keyword
+                        and keyword not in scored_keywords
+                    ):
+                        score += weight * 0.8
+                        scored_keywords.add(keyword)
 
         return max(0.0, score)
 
@@ -215,6 +260,45 @@ class ContentAnalyzer:
     """Analyzes page content for legal document characteristics."""
 
     def __init__(self) -> None:
+        # Compile regex patterns once at initialization for efficiency
+        self.compiled_legal_phrases = [
+            re.compile(pattern, re.IGNORECASE)
+            for pattern in [
+                r"by using (?:this|our) (?:service|website|platform)",
+                r"you agree to (?:these|our) terms",
+                r"we (?:collect|process|use) your (?:personal )?(?:data|information)",
+                r"this policy (?:describes|explains) how we",
+                r"we may (?:update|modify|change) this policy",
+                r"your (?:privacy|data|personal information) is important",
+                r"we are committed to protecting your privacy",
+                r"cookies (?:are|help us)",
+                r"you have the right to",
+                r"data retention period",
+                r"lawful basis for processing",
+                r"data processing addendum",
+                r"this addendum (?:forms|supplements|amends)",
+                r"subprocessor(?:s)? (?:list|agreement)",
+                r"we (?:engage|use) (?:third.party|sub.?processor)",
+                r"processing (?:activities|operations|purposes)",
+                r"data subject (?:rights|requests)",
+                r"cross.border (?:transfer|data transfer)",
+                r"adequacy decision",
+                r"standard contractual clauses",
+                r"security (?:measures|safeguards|controls)",
+                r"data (?:breach|incident) (?:notification|response)",
+                r"controller (?:and|to) processor",
+                r"processor (?:instructions|obligations)",
+            ]
+        ]
+
+        # Quick check pattern for early exit (compiled once)
+        # This pattern matches common legal keywords for fast filtering
+        self.quick_check_pattern = re.compile(
+            r"\b(?:privacy|terms|policy|agreement|legal|gdpr|ccpa|cookie|data protection|"
+            r"liability|disclaimer|jurisdiction|compliance|consent|rights)\b",
+            re.IGNORECASE,
+        )
+
         self.legal_indicators = [
             "terms of service",
             "privacy policy",
@@ -278,84 +362,8 @@ class ContentAnalyzer:
             "transparency report",
         ]
 
-        self.legal_phrases = [
-            r"by using (?:this|our) (?:service|website|platform)",
-            r"you agree to (?:these|our) terms",
-            r"we (?:collect|process|use) your (?:personal )?(?:data|information)",
-            r"this policy (?:describes|explains) how we",
-            r"we may (?:update|modify|change) this policy",
-            r"your (?:privacy|data|personal information) is important",
-            r"we are committed to protecting your privacy",
-            r"cookies (?:are|help us)",
-            r"you have the right to",
-            r"data retention period",
-            r"lawful basis for processing",
-            # Enhanced phrases for DPAs and compliance documents
-            r"data processing addendum",
-            r"this addendum (?:forms|supplements|amends)",
-            r"subprocessor(?:s)? (?:list|agreement)",
-            r"we (?:engage|use) (?:third.party|sub.?processor)",
-            r"processing (?:activities|operations|purposes)",
-            r"data subject (?:rights|requests)",
-            r"cross.border (?:transfer|data transfer)",
-            r"adequacy decision",
-            r"standard contractual clauses",
-            r"security (?:measures|safeguards|controls)",
-            r"data (?:breach|incident) (?:notification|response)",
-            r"controller (?:and|to) processor",
-            r"processor (?:instructions|obligations)",
-        ]
-
-    def analyze_content(
-        self, content: str, title: str = "", metadata: dict[str, Any] | None = None
-    ) -> tuple[bool, float, list[str]]:
-        """
-        Analyze content to determine if it's a legal document.
-
-        Returns:
-            Tuple of (is_legal, confidence_score, matched_indicators)
-        """
-        if not content:
-            return False, 0.0, []
-
-        content_lower = content.lower()
-        title_lower = title.lower() if title else ""
-
-        matched_indicators = []
-        raw_score = 0.0
-
-        # Calculate content metrics
-        word_count = len(content.split())
-        char_count = len(content)
-
-        # Minimum content thresholds to avoid tiny snippets
-        if word_count < 50 or char_count < 300:
-            return False, 0.0, ["content_too_short"]
-
-        # Track matched content for density calculation
-        matched_content_chars = 0
-
-        # Check for legal indicators in content
-        for indicator in self.legal_indicators:
-            if indicator in content_lower:
-                matched_indicators.append(indicator)
-                raw_score += 1.0
-                # Add to matched content length
-                matched_content_chars += len(indicator) * content_lower.count(indicator)
-
-        # Check for legal phrases using regex
-        for phrase_pattern in self.legal_phrases:
-            matches = re.finditer(phrase_pattern, content_lower)
-            for match in matches:
-                matched_indicators.append(phrase_pattern)
-                raw_score += 2.0
-                matched_content_chars += len(match.group())
-
-        # Calculate legal content density
-        legal_density = matched_content_chars / char_count
-
-        # Bonus for legal terms in title (more important)
-        title_keywords = [
+        # Title keywords for bonus scoring (used in multiple places)
+        self.title_keywords = [
             "terms",
             "privacy",
             "policy",
@@ -365,8 +373,71 @@ class ContentAnalyzer:
             "data",
             "gdpr",
         ]
+
+    def analyze_content(
+        self, content: str, title: str = "", metadata: dict[str, Any] | None = None
+    ) -> tuple[bool, float, list[str]]:
+        """
+        Analyze content to determine if it's a legal document.
+
+        Optimized with:
+        - Compiled regex patterns (compiled once at init)
+        - Early exit for obviously non-legal content
+        - Single-pass analysis where possible
+
+        Returns:
+            Tuple of (is_legal, confidence_score, matched_indicators)
+        """
+        if not content:
+            return False, 0.0, []
+
+        # Calculate content metrics first (needed for early exit)
+        word_count = len(content.split())
+        char_count = len(content)
+
+        # Minimum content thresholds to avoid tiny snippets
+        if word_count < 50 or char_count < 300:
+            return False, 0.0, ["content_too_short"]
+
+        # Early exit: Quick check for obvious non-legal content
+        # This avoids expensive full analysis for clearly non-legal documents
+        if not self.quick_check_pattern.search(content):
+            # No legal keywords found at all - very unlikely to be legal
+            return False, 0.0, ["no_legal_keywords"]
+
+        # Now do full analysis (only if quick check passed)
+        content_lower = content.lower()
+        title_lower = title.lower() if title else ""
+
+        matched_indicators = []
+        raw_score = 0.0
+
+        # Track matched content for density calculation
+        matched_content_chars = 0
+
+        # Check for legal indicators in content
+        for indicator in self.legal_indicators:
+            if indicator in content_lower:
+                matched_indicators.append(indicator)
+                raw_score += 1.0
+                # Add to matched content length (count occurrences)
+                matched_content_chars += len(indicator) * content_lower.count(indicator)
+
+        # Check for legal phrases using compiled regex patterns
+        for compiled_pattern in self.compiled_legal_phrases:
+            matches = compiled_pattern.finditer(content_lower)
+            for match in matches:
+                # Store pattern string for debugging (get from original pattern if needed)
+                matched_indicators.append(compiled_pattern.pattern)
+                raw_score += 2.0
+                matched_content_chars += len(match.group())
+
+        # Calculate legal content density
+        legal_density = matched_content_chars / char_count
+
+        # Bonus for legal terms in title (more important)
         title_bonus = 0.0
-        for keyword in title_keywords:
+        for keyword in self.title_keywords:
             if keyword in title_lower:
                 title_bonus += 3.0
                 matched_indicators.append(f"title:{keyword}")
@@ -378,7 +449,7 @@ class ContentAnalyzer:
             meta_description = metadata.get("description", "").lower()
 
             for text in [meta_title, meta_description]:
-                for keyword in title_keywords:
+                for keyword in self.title_keywords:
                     if keyword in text:
                         metadata_bonus += 1.0
 
@@ -409,11 +480,84 @@ class ContentAnalyzer:
         return is_legal, normalized_score, matched_indicators
 
 
+class DomainRateLimiter:
+    """Per-domain rate limiter for efficient concurrent crawling."""
+
+    def __init__(self, delay_between_requests: float = 1.0) -> None:
+        """
+        Initialize the domain rate limiter.
+
+        Args:
+            delay_between_requests: Minimum delay between requests to the same domain in seconds
+        """
+        self.delay_between_requests = delay_between_requests
+        self.domain_locks: dict[str, asyncio.Lock] = {}
+        self.domain_last_request: dict[str, float] = {}
+        self.lock = asyncio.Lock()  # Protects domain_locks and domain_last_request dicts
+
+    def _normalize_domain(self, url: str) -> str:
+        """Extract and normalize domain from URL."""
+        parsed = urlparse(url)
+        domain = parsed.netloc.lower()
+        # Remove www prefix for consistency
+        if domain.startswith("www."):
+            domain = domain[4:]
+        return domain
+
+    async def rate_limit(self, url: str) -> None:
+        """
+        Apply rate limiting per domain.
+
+        Different domains can be crawled concurrently, but requests to the same
+        domain are rate-limited according to delay_between_requests.
+
+        Args:
+            url: The URL being requested
+        """
+        domain = self._normalize_domain(url)
+
+        # Get or create lock for this domain
+        async with self.lock:
+            if domain not in self.domain_locks:
+                self.domain_locks[domain] = asyncio.Lock()
+                self.domain_last_request[domain] = 0.0
+
+        domain_lock = self.domain_locks[domain]
+
+        # Apply rate limiting for this specific domain
+        async with domain_lock:
+            last_time = self.domain_last_request[domain]
+            elapsed = time.time() - last_time
+            if elapsed < self.delay_between_requests:
+                sleep_time = self.delay_between_requests - elapsed
+                await asyncio.sleep(sleep_time)
+            self.domain_last_request[domain] = time.time()
+
+    def clear_cache(self) -> None:
+        """
+        Clear the rate limiter cache (useful for long-running processes).
+
+        This is a synchronous method that clears the cache. For thread-safety,
+        it should ideally be called when no requests are in progress.
+        """
+        # Clear the dictionaries (this is safe if no concurrent access)
+        # In practice, this should be called between crawl sessions
+        self.domain_locks.clear()
+        self.domain_last_request.clear()
+
+
 class RobotsTxtChecker:
     """Checks robots.txt compliance with improved parsing."""
 
-    def __init__(self) -> None:
-        self.robots_cache: dict[str, dict[str, Any]] = {}
+    def __init__(self, max_cache_size: int = 1000) -> None:
+        """
+        Initialize the robots.txt checker.
+
+        Args:
+            max_cache_size: Maximum number of robots.txt files to cache (LRU eviction)
+        """
+        self.robots_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
+        self.max_cache_size = max_cache_size
         self.user_agent = "ToastCrawler/2.0"
         # Common user agent patterns that should be treated as wildcards
         self.user_agent_patterns = [
@@ -444,19 +588,23 @@ class RobotsTxtChecker:
                         if response.status == 200:
                             robots_content = await response.text()
                             logger.debug(f"Fetched robots.txt from {robots_url}")
-                            self.robots_cache[base_url] = self._parse_robots_txt(robots_content)
+                            parsed_rules = self._parse_robots_txt(robots_content)
                         else:
                             logger.debug(
                                 f"Could not fetch robots.txt from {robots_url} (status: {response.status})"
                             )
                             # If we can't fetch robots.txt, allow all
-                            self.robots_cache[base_url] = {"allow_all": True}
+                            parsed_rules = {"allow_all": True}
                 except Exception as e:
                     logger.debug(f"Error fetching robots.txt from {robots_url}: {e}")
                     # If we can't fetch robots.txt, allow all
-                    self.robots_cache[base_url] = {"allow_all": True}
+                    parsed_rules = {"allow_all": True}
 
-            robots_rules = self.robots_cache[base_url]
+                # Add to cache with LRU eviction
+                self._add_to_cache(base_url, parsed_rules)
+
+            robots_rules = self.robots_cache.pop(base_url)
+            self.robots_cache[base_url] = robots_rules
             if robots_rules.get("allow_all", False):
                 logger.debug(f"No robots.txt rules for {base_url}, allowing access")
                 return True, "No robots.txt rules found"
@@ -466,6 +614,19 @@ class RobotsTxtChecker:
         except Exception as e:
             logger.warning(f"Error checking robots.txt for {url}: {e}")
             return True, f"Error checking robots.txt: {str(e)}"
+
+    def _add_to_cache(self, base_url: str, rules: dict[str, Any]) -> None:
+        """Add robots.txt rules to cache with LRU eviction."""
+        # Remove oldest entry if cache is full
+        if len(self.robots_cache) >= self.max_cache_size:
+            # Remove least recently used (first item in OrderedDict)
+            self.robots_cache.popitem(last=False)
+        # Add new entry (will be at end, most recently used)
+        self.robots_cache[base_url] = rules
+
+    def clear_cache(self) -> None:
+        """Clear the robots.txt cache (useful between crawl sessions)."""
+        self.robots_cache.clear()
 
     def _parse_robots_txt(self, content: str) -> dict[str, Any]:
         """Parse robots.txt content into rules following the standard format."""
@@ -630,6 +791,8 @@ class ToastCrawler:
         strategy: str = "bfs",  # "bfs", "dfs", "best_first"
         ignore_robots_for_domains: list[str]
         | None = None,  # List of domains to ignore robots.txt for
+        max_retries: int = 3,  # Maximum retry attempts for transient errors
+        log_file_path: str | None = None,  # Optional path to log file for crawl session
     ):
         """
         Initialize the ToastCrawler.
@@ -647,6 +810,8 @@ class ToastCrawler:
             min_legal_score: Minimum score to consider a URL legal-relevant
             strategy: Crawling strategy ("bfs", "dfs", "best_first")
             ignore_robots_for_domains: List of domains to ignore robots.txt for
+            max_retries: Maximum retry attempts for transient network errors (default: 3)
+            log_file_path: Optional path to log file for crawl session (e.g., "logs/20240101_123456_companyid_crawl.log")
         """
         self.max_depth = max_depth
         self.max_pages = max_pages
@@ -660,11 +825,18 @@ class ToastCrawler:
         self.min_legal_score = min_legal_score
         self.strategy = strategy
         self.ignore_robots_for_domains = set(ignore_robots_for_domains or [])
+        self.max_retries = max_retries
+        self.log_file_path = log_file_path
 
         # Components
         self.url_scorer = URLScorer()
         self.content_analyzer = ContentAnalyzer()
-        self.robots_checker = RobotsTxtChecker() if respect_robots_txt else None
+        self.robots_checker = RobotsTxtChecker(max_cache_size=1000) if respect_robots_txt else None
+
+        # Set up file logging if log_file_path is provided
+        self.file_handler: logging.FileHandler | None = None
+        if self.log_file_path:
+            self._setup_file_logging()
 
         # State
         self.visited_urls: set[str] = set()
@@ -675,13 +847,101 @@ class ToastCrawler:
         self.results: list[CrawlResult] = []
         self.stats = CrawlStats()
 
-        # Rate limiting
-        self.last_request_time = 0.0
-        self.request_lock = asyncio.Lock()
+        # Per-domain rate limiting (allows concurrent requests to different domains)
+        self.rate_limiter = DomainRateLimiter(delay_between_requests=delay_between_requests)
+
+        # Compile skip patterns once for efficiency
+        self.compiled_skip_patterns = [
+            re.compile(pattern, re.IGNORECASE)
+            for pattern in [
+                r"\.(?:pdf|jpg|jpeg|png|gif|css|js|ico|xml)$",
+                r"#",  # Skip anchor links
+                r"mailto:",
+                r"tel:",
+                r"javascript:",
+                r"/search\?",
+                r"/api/",
+                r"/ajax/",
+            ]
+        ]
+
+    def _setup_file_logging(self) -> None:
+        """Set up file logging for the crawl session."""
+        if not self.log_file_path:
+            return
+
+        try:
+            # Ensure the directory exists
+            log_path = Path(self.log_file_path)
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Create file handler with append mode
+            self.file_handler = logging.FileHandler(self.log_file_path, mode="a", encoding="utf-8")
+            self.file_handler.setLevel(logging.DEBUG)
+
+            # Use a simple format for file logging (more readable than JSON)
+            formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+            self.file_handler.setFormatter(formatter)
+
+            # Add handler to the root logger (structlog uses standard logging underneath)
+            root_logger = logging.getLogger()
+            root_logger.addHandler(self.file_handler)
+
+            logger.info(f"📝 File logging enabled: {self.log_file_path}")
+        except Exception as e:
+            logger.warning(f"Failed to set up file logging: {e}")
+
+    def _cleanup_file_logging(self) -> None:
+        """Clean up file logging handler. Safe to call multiple times."""
+        if self.file_handler:
+            try:
+                root_logger = logging.getLogger()
+                # Remove handler if it's still attached
+                if self.file_handler in root_logger.handlers:
+                    root_logger.removeHandler(self.file_handler)
+                self.file_handler.close()
+                if self.log_file_path:
+                    logger.info(f"📝 File logging closed: {self.log_file_path}")
+            except Exception as e:
+                logger.warning(f"Error closing file handler: {e}")
+            finally:
+                self.file_handler = None
+
+    @staticmethod
+    @lru_cache(maxsize=50000)  # noqa: B019 - Static method cache is safe
+    def _parse_url(url: str) -> ParseResult:
+        """Parse URL with caching to avoid repeated parsing."""
+        return urlparse(url)
+
+    @staticmethod
+    def _normalize_domain(domain: str) -> str:
+        """Normalize domain by lowercasing, removing protocol, and removing www prefix."""
+        domain_lower = domain.lower().strip()
+
+        # Remove protocol if present (http://, https://)
+        if "://" in domain_lower:
+            domain_lower = domain_lower.split("://", 1)[1]
+
+        # Remove path if present
+        if "/" in domain_lower:
+            domain_lower = domain_lower.split("/", 1)[0]
+
+        # Remove port if present
+        if ":" in domain_lower:
+            domain_lower = domain_lower.split(":", 1)[0]
+
+        # Remove www prefix
+        if domain_lower.startswith("www."):
+            domain_lower = domain_lower[4:]
+
+        return domain_lower
 
     def normalize_url(self, url: str) -> str:
         """Normalize URL by removing fragments and unnecessary query params."""
-        parsed = urlparse(url)
+        parsed = self._parse_url(url)
 
         # Remove fragment
         normalized = urlunparse(
@@ -706,29 +966,31 @@ class ToastCrawler:
         if not self.allowed_domains:
             return True
 
-        parsed = urlparse(url)
-        domain = parsed.netloc.lower()
-
-        # Remove www prefix for comparison
-        if domain.startswith("www."):
-            domain = domain[4:]
+        parsed = self._parse_url(url)
+        domain = self._normalize_domain(parsed.netloc)
 
         # Check if domain matches any allowed domain
         return any(
-            domain == allowed.lower().removeprefix("www.")
-            or domain.endswith("." + allowed.lower().removeprefix("www."))
+            domain == self._normalize_domain(allowed)
+            or domain.endswith("." + self._normalize_domain(allowed))
             for allowed in (self.allowed_domains or set())
         )
 
     def is_same_domain(self, url1: str, url2: str) -> bool:
         """Check if two URLs are from the same domain."""
-        domain1 = urlparse(url1).netloc.lower().removeprefix("www.")
-        domain2 = urlparse(url2).netloc.lower().removeprefix("www.")
+        parsed1 = self._parse_url(url1)
+        parsed2 = self._parse_url(url2)
+        domain1 = self._normalize_domain(parsed1.netloc)
+        domain2 = self._normalize_domain(parsed2.netloc)
 
         return domain1 == domain2
 
     def should_crawl_url(self, url: str, base_url: str, depth: int) -> bool:
-        """Determine if URL should be crawled."""
+        """
+        Determine if URL should be crawled.
+
+        Optimized to parse URLs once and reuse parsed components.
+        """
         if depth > self.max_depth:
             logger.debug(f"❌ URL {url} rejected: depth {depth} > max_depth {self.max_depth}")
             return False
@@ -737,29 +999,39 @@ class ToastCrawler:
             logger.debug(f"❌ URL {url} rejected: already visited or failed")
             return False
 
-        if not self.is_allowed_domain(url):
-            logger.debug(f"❌ URL {url} rejected: domain not allowed")
-            return False
+        # Parse URL once and reuse for multiple checks
+        parsed_url = self._parse_url(url)
+        url_domain = self._normalize_domain(parsed_url.netloc)
 
-        if not self.follow_external_links and not self.is_same_domain(url, base_url):
-            logger.debug(f"❌ URL {url} rejected: external link and follow_external_links=False")
-            return False
+        # Check allowed domain
+        if self.allowed_domains:
+            normalized_allowed = [
+                self._normalize_domain(allowed) for allowed in self.allowed_domains
+            ]
+            is_allowed = any(
+                url_domain == normalized or url_domain.endswith("." + normalized)
+                for normalized in normalized_allowed
+            )
+            if not is_allowed:
+                logger.debug(
+                    f"❌ URL {url} rejected: domain '{url_domain}' not in allowed domains: {normalized_allowed}"
+                )
+                return False
 
-        # Skip common non-content URLs
-        skip_patterns = [
-            r"\.(?:pdf|jpg|jpeg|png|gif|css|js|ico|xml)$",
-            r"#",  # Skip anchor links
-            r"mailto:",
-            r"tel:",
-            r"javascript:",
-            r"/search\?",
-            r"/api/",
-            r"/ajax/",
-        ]
+        # Check same domain (only if not following external links)
+        if not self.follow_external_links:
+            parsed_base = self._parse_url(base_url)
+            base_domain = self._normalize_domain(parsed_base.netloc)
+            if url_domain != base_domain:
+                logger.debug(
+                    f"❌ URL {url} rejected: external link and follow_external_links=False"
+                )
+                return False
 
-        for pattern in skip_patterns:
-            if re.search(pattern, url, re.IGNORECASE):
-                logger.debug(f"❌ URL {url} rejected: matches skip pattern {pattern}")
+        # Skip common non-content URLs using compiled patterns
+        for pattern in self.compiled_skip_patterns:
+            if pattern.search(url):
+                logger.debug(f"❌ URL {url} rejected: matches skip pattern {pattern.pattern}")
                 return False
 
         logger.debug(f"✅ URL {url} accepted for crawling at depth {depth}")
@@ -819,17 +1091,56 @@ class ToastCrawler:
 
         return metadata
 
-    async def rate_limit(self) -> None:
-        """Apply rate limiting."""
-        async with self.request_lock:
-            elapsed = time.time() - self.last_request_time
-            if elapsed < self.delay_between_requests:
-                await asyncio.sleep(self.delay_between_requests - elapsed)
-            self.last_request_time = time.time()
+    async def rate_limit(self, url: str) -> None:
+        """
+        Apply per-domain rate limiting.
 
-    async def fetch_page(self, session: aiohttp.ClientSession, url: str) -> CrawlResult:
-        """Fetch and process a single page."""
-        await self.rate_limit()
+        Different domains can be crawled concurrently, but requests to the same
+        domain are rate-limited according to delay_between_requests.
+
+        Args:
+            url: The URL being requested
+        """
+        await self.rate_limiter.rate_limit(url)
+
+    def _is_retryable_error(self, error: Exception) -> bool:
+        """
+        Determine if an error is retryable (transient) or permanent.
+
+        Retryable errors:
+        - Network errors (connection failures, DNS issues)
+        - Timeout errors
+        - Server errors (5xx)
+        - Rate limiting (429)
+
+        Non-retryable errors:
+        - Client errors (4xx except 429)
+        - Content type errors
+        - Robots.txt blocks
+        """
+        # Network and timeout errors are retryable
+        if isinstance(error, aiohttp.ClientError | asyncio.TimeoutError):
+            return True
+
+        # Check if it's an HTTP error with retryable status code
+        if isinstance(error, aiohttp.ClientResponseError):
+            status = error.status
+            # Retry on server errors (5xx) and rate limiting (429)
+            if status >= 500 or status == 429:
+                return True
+            # Don't retry on client errors (4xx except 429)
+            return False
+
+        # Other exceptions are not retryable
+        return False
+
+    async def _fetch_page_internal(self, session: aiohttp.ClientSession, url: str) -> CrawlResult:
+        """
+        Internal method to fetch and process a single page (without retry logic).
+
+        This is the actual implementation that will be retried on transient errors.
+        """
+        await self.rate_limit(url)
 
         try:
             # Check if we should ignore robots.txt for this domain
@@ -974,7 +1285,33 @@ class ToastCrawler:
                     legal_score=legal_score,
                     discovered_urls=discovered_urls,
                 )
+        except aiohttp.ClientResponseError as e:
+            # Handle HTTP errors
+            status = e.status
+            error_msg = f"HTTP {status}: {e.message}"
+
+            # Check if this is a retryable error
+            if status >= 500 or status == 429:
+                # Server error or rate limit - will be retried
+                raise
+            else:
+                # Client error (4xx) - don't retry
+                logger.warning(f"Client error fetching {url}: {error_msg}")
+                return CrawlResult(
+                    url=url,
+                    title="",
+                    content="",
+                    markdown="",
+                    metadata={},
+                    status_code=status,
+                    success=False,
+                    error_message=error_msg,
+                )
+        except (aiohttp.ClientError, TimeoutError):
+            # Network/timeout errors - will be retried
+            raise
         except Exception as e:
+            # Other errors - don't retry
             logger.error(f"Unexpected error fetching {url}: {e}")
             return CrawlResult(
                 url=url,
@@ -985,6 +1322,76 @@ class ToastCrawler:
                 status_code=0,
                 success=False,
                 error_message=str(e),
+            )
+
+    async def fetch_page(self, session: aiohttp.ClientSession, url: str) -> CrawlResult:
+        """
+        Fetch and process a single page with automatic retry logic.
+
+        This method handles retries for transient network errors with exponential backoff.
+        Non-retryable errors (4xx client errors) are returned immediately without retry.
+        """
+        # Adjust retry attempts based on instance configuration
+        # We need to create a new retry decorator with the configured max_retries
+        max_attempts = self.max_retries + 1  # +1 for initial attempt
+
+        @retry(  # type: ignore[misc]
+            stop=stop_after_attempt(max_attempts),
+            wait=wait_exponential(multiplier=1, min=2, max=10),
+            retry=retry_if_exception_type((aiohttp.ClientError, TimeoutError)),
+            reraise=True,
+        )
+        async def _fetch_with_configurable_retry() -> CrawlResult:
+            result = await self._fetch_page_internal(session, url)
+            return result
+
+        try:
+            result: CrawlResult = await _fetch_with_configurable_retry()
+            return result
+        except aiohttp.ClientResponseError as e:
+            # Handle HTTP errors that weren't retried
+            if e.status >= 500 or e.status == 429:
+                # Should have been retried, but if we get here, all retries failed
+                logger.error(
+                    f"Failed to fetch {url} after {self.max_retries} retries: HTTP {e.status}"
+                )
+                return CrawlResult(
+                    url=url,
+                    title="",
+                    content="",
+                    markdown="",
+                    metadata={},
+                    status_code=e.status,
+                    success=False,
+                    error_message=f"HTTP {e.status}: {e.message} (retries exhausted)",
+                )
+            else:
+                # Non-retryable client error
+                logger.warning(f"Client error fetching {url}: HTTP {e.status}: {e.message}")
+                return CrawlResult(
+                    url=url,
+                    title="",
+                    content="",
+                    markdown="",
+                    metadata={},
+                    status_code=e.status,
+                    success=False,
+                    error_message=f"HTTP {e.status}: {e.message}",
+                )
+        except (aiohttp.ClientError, TimeoutError) as e:
+            # All retries exhausted for network/timeout errors
+            logger.error(
+                f"Failed to fetch {url} after {self.max_retries} retries: {type(e).__name__}: {e}"
+            )
+            return CrawlResult(
+                url=url,
+                title="",
+                content="",
+                markdown="",
+                metadata={},
+                status_code=0,
+                success=False,
+                error_message=f"{type(e).__name__}: {str(e)} (retries exhausted)",
             )
 
     def generate_potential_legal_urls(self, base_url: str) -> list[str]:
@@ -1191,7 +1598,7 @@ class ToastCrawler:
                     )
 
         # Final statistics
-        logger.success("🎉 Crawl completed!")
+        logger.info("🎉 Crawl completed!")
         logger.info(f"📊 Total URLs: {self.stats.total_urls}")
         logger.info(f"✅ Successfully crawled: {self.stats.crawled_urls}")
         logger.info(f"❌ Failed: {self.stats.failed_urls}")
@@ -1203,6 +1610,10 @@ class ToastCrawler:
         self.results.sort(key=lambda x: x.legal_score, reverse=True)
 
         return self.results
+
+    def clear_rate_limiter_cache(self) -> None:
+        """Clear the rate limiter cache (useful between crawl sessions)."""
+        self.rate_limiter.clear_cache()
 
     async def crawl_multiple(self, urls: list[str]) -> list[CrawlResult]:
         """Crawl multiple base URLs."""
@@ -1220,6 +1631,12 @@ class ToastCrawler:
             self.url_stack.clear()
             self.url_priority_queue.clear()
             self.results.clear()
+            # Clear caches between different base URLs
+            if self.robots_checker:
+                self.robots_checker.clear_cache()
+            # Optionally clear rate limiter cache between different base URLs
+            # Uncomment if you want to reset rate limiting between different sites:
+            # self.clear_rate_limiter_cache()
 
         return all_results
 

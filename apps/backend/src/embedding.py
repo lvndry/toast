@@ -3,12 +3,11 @@ from typing import Any
 import shortuuid
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from litellm import embedding
 
 from src.core.config import settings
 from src.core.logging import get_logger
 from src.document import Document
-from src.llm import get_model
+from src.llm import get_embeddings
 from src.services.document_service import document_service
 from src.vector_db import INDEX_NAME, init_pinecone_index, pc
 
@@ -131,11 +130,9 @@ async def embed_company_documents(company_id: str, namespace: str | None = None,
             batch_offsets = offsets[i : i + batch_size]
 
             try:
-                model = get_model("voyage-law-2")
-                chunk_embeddings = embedding(
-                    model=model.model,
+                chunk_embeddings = await get_embeddings(
                     input=batch_chunks,
-                    api_key=model.api_key,
+                    input_type="document",
                 )
 
                 logger.info(
@@ -221,11 +218,9 @@ async def embed_document(document: Document, namespace: str) -> None:
         batch_offsets = offsets[i : i + batch_size]
 
         try:
-            model = get_model("voyage-law-2")
-            chunk_embeddings = embedding(
-                model=model.model,
+            chunk_embeddings = await get_embeddings(
                 input=batch_chunks,
-                api_key=model.api_key,
+                input_type="document",
             )
 
             logger.info(f"Embedding batch {i // batch_size + 1}: {len(batch_chunks)} chunks")
