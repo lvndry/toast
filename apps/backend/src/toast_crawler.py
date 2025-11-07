@@ -260,7 +260,6 @@ class ContentAnalyzer:
     """Analyzes page content for legal document characteristics."""
 
     def __init__(self) -> None:
-        # Compile regex patterns once at initialization for efficiency
         self.compiled_legal_phrases = [
             re.compile(pattern, re.IGNORECASE)
             for pattern in [
@@ -379,11 +378,6 @@ class ContentAnalyzer:
     ) -> tuple[bool, float, list[str]]:
         """
         Analyze content to determine if it's a legal document.
-
-        Optimized with:
-        - Compiled regex patterns (compiled once at init)
-        - Early exit for obviously non-legal content
-        - Single-pass analysis where possible
 
         Returns:
             Tuple of (is_legal, confidence_score, matched_indicators)
