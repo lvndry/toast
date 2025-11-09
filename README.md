@@ -36,61 +36,6 @@ Toast AI democratizes legal understanding by making complex privacy policies, te
 - **API-First**: RESTful API with webhook support
 - **Enterprise Ready**: SOC2 compliance, data encryption, team collaboration
 
-## 🏗️ Architecture
-
-```
-toast/
-├── apps/
-│   ├── backend/          # FastAPI + Python 3.11
-│   │   ├── src/         # Core application logic
-│   │   ├── routes/      # API endpoints
-│   │   └── services/    # Business logic services
-│   └── frontend/        # Next.js 15 + TypeScript
-│       ├── app/         # App Router pages
-│       ├── components/  # React components
-│       └── lib/         # Utilities and types
-├── dev.sh              # Development environment script
-├── dev/
-│   └── setup-precommit.sh  # Pre-commit setup
-└── .pre-commit-config.yaml
-```
-
-## 🛠️ Tech Stack
-
-### Backend
-
-- **FastAPI**: Modern, fast web framework
-- **Python 3.11+**: Latest Python with type hints
-- **uv**: Fast Python package manager
-- **Ruff**: Blazingly fast Python linter (replaces black, isort, flake8)
-- **Motor**: Async MongoDB driver
-- **LiteLLM**: Unified LLM interface
-- **Pydantic**: Data validation and settings
-
-### Frontend
-
-- **Next.js 15**: React framework with App Router
-- **TypeScript 5.6**: Type-safe JavaScript
-- **bun**: Fast JavaScript runtime and package manager
-- **Tailwind CSS**: Utility-first CSS framework
-- **Framer Motion**: Animation library
-- **Clerk**: Authentication and user management
-
-### AI & ML
-
-- **OpenAI GPT-4**: Complex legal reasoning
-- **Anthropic Claude**: Nuanced risk assessment
-- **Voyage Law**: Law focused embedding model
-- **LangChain**: LLM orchestration
-- **Pinecone**: Vector database for embeddings
-
-### Development Tools
-
-- **Pre-commit**: Automated code quality checks
-- **ESLint 9**: JavaScript/TypeScript linting
-- **Prettier**: Code formatting
-- **Bandit**: Python security scanning
-
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -105,7 +50,7 @@ toast/
 We provide a comprehensive Makefile for easy development setup and workflow:
 
 ```bash
-git clone https://github.com/your-org/toast.git
+git clone https://github.com/lvndry/toast.git
 
 # Complete project setup (recommended for new developers)
 make setup
@@ -162,89 +107,6 @@ cd apps/frontend && bun run dev
 - **API Docs**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/health
 - **Streamlit Dashboard**: http://localhost:8501 (see [Streamlit Setup Guide](apps/backend/docs/STREAMLIT_SETUP.md))
-
-## 🧪 Development Workflow
-
-### Code Quality Setup
-
-```bash
-# Set up pre-commit hooks
-./dev/setup-precommit.sh
-
-# This installs:
-# - Ruff (Python linting + formatting)
-# - ESLint (TypeScript/JavaScript linting)
-# - Prettier (Code formatting)
-# - Bandit (Security scanning)
-# - Type checking and build validation
-```
-
-### Development Commands
-
-```bash
-# Backend
-cd apps/backend
-uv run python -m uvicorn main:app --reload  # Development server
-uv run ruff check .                          # Lint Python code
-uv run ruff format .                         # Format Python code
-uv run pytest                               # Run tests
-
-# Streamlit Dashboard
-cd apps/backend
-source .venv/bin/activate                    # Activate virtual environment
-streamlit run src/dashboard/app.py          # Run dashboard (see [Streamlit Setup Guide](apps/backend/docs/STREAMLIT_SETUP.md))
-
-# Frontend
-cd apps/frontend
-bun run dev                                 # Development server
-bun run lint                                # Lint TypeScript/JavaScript
-bun run format                              # Format code
-bun run type-check                          # Type checking
-bun run build                               # Production build
-```
-
-### Git Workflow
-
-```bash
-# Pre-commit hooks run automatically on:
-git add .
-git commit -m "feat: add new analysis feature"
-
-# Manual pre-commit checks
-pre-commit run --all-files
-pre-commit run ruff        # Python only
-pre-commit run eslint      # Frontend only
-```
-
-## 🏢 Enterprise Features
-
-### Team Collaboration
-
-- **Role-based access control**
-- **Document sharing and commenting**
-- **Approval workflows for high-risk findings**
-- **Audit trails and compliance reporting**
-
-### API Access
-
-- **RESTful API with comprehensive documentation**
-- **Webhook support for real-time notifications**
-- **Rate limiting and usage tracking**
-- **SDK support for multiple languages**
-
-### Admin Dashboard
-
-- **Streamlit-based admin dashboard** for database management and monitoring
-- **Data migration tools** for moving between environments
-- **System health monitoring** and performance analytics
-- **Bulk operations** for managing companies and documents
-
-### Security & Compliance
-
-- **SOC2 Type II compliance**
-- **Data encryption at rest and in transit**
-- **GDPR and CCPA compliance by design**
-- **Automatic PII detection and redaction**
 
 ## 🤝 Contributing
 
