@@ -2,6 +2,8 @@
 
 **The definitive legal document intelligence platform** - Transform complex legal documents into clear, actionable insights with AI-powered analysis.
 
+[Try now](toast-mu.vercel.app)
+
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Contributing](https://img.shields.io/badge/Contributing-Welcome-brightgreen.svg)](CONTRIBUTING.md)
 
@@ -14,14 +16,14 @@ Toast AI democratizes legal understanding by making complex privacy policies, te
 - **Enterprise teams** automate compliance monitoring and contract review
 - **Developers** integrate legal intelligence into their applications
 
-## 🚀 Features
+## Features
 
 ### Core Capabilities
 
-- **Document Analysis**: Upload any legal document for instant AI analysis
-- **Risk Scoring**: Get quantified risk assessments (0-10 scale)
 - **Plain Language Summaries**: Complex legal jargon made accessible
+- **Risk Scoring**: Get quantified risk assessments (0-10 scale)
 - **Compliance Checking**: Verify GDPR, CCPA, and other regulatory compliance
+- **Document Analysis**: Upload any legal document for instant AI analysis
 - **Change Monitoring**: Track policy changes across websites
 - **Comparison Tools**: Side-by-side policy comparisons
 
@@ -33,7 +35,7 @@ Toast AI democratizes legal understanding by making complex privacy policies, te
 - **API-First**: RESTful API with webhook support
 - **Enterprise Ready**: SOC2 compliance, data encryption, team collaboration
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -102,34 +104,15 @@ cd apps/frontend && bun run dev
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
 - **Streamlit Dashboard**: http://localhost:8501 (see [Streamlit Setup Guide](apps/backend/docs/STREAMLIT_SETUP.md))
 
 ## 🤝 Contributing
-
-We welcome contributions from developers, legal experts, and anyone passionate about making legal documents more accessible!
-
-### Quick Start for Contributors
-
-1. **Fork the repository** and clone your fork
-2. **Set up development environment**: `make setup`
-3. **Start development servers**: `make dev`
-4. **Make your changes** and test them
-5. **Submit a pull request** with clear description
-
-### Special Areas for Contribution
-
-- **Legal Analysis**: Improve AI accuracy for specific jurisdictions
-- **UI/UX**: Make legal insights more accessible and user-friendly
-- **Performance**: Optimize analysis speed and cost efficiency
-- **Documentation**: Help users understand legal concepts better
-- **Testing**: Validate legal accuracy and edge cases
 
 For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 📄 License
 
-This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the AGPL-3.0 License. See the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 

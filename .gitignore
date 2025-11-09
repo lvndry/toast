@@ -1,4 +1,5 @@
 *.log
+logs/
 
 # env
 .env
@@ -48,7 +49,6 @@ next-env.d.ts
 
 # production
 build/
+
 # debug
 bun-debug.log*
-
-logs/
