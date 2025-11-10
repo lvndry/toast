@@ -2,10 +2,10 @@
 
 **The definitive legal document intelligence platform** - Transform complex legal documents into clear, actionable insights with AI-powered analysis.
 
-[Try now](toast-mu.vercel.app)
-
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Contributing](https://img.shields.io/badge/Contributing-Welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+[Try now](toast-mu.vercel.app)
 
 ## 🎯 Mission
 
