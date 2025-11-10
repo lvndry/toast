@@ -131,7 +131,7 @@ update-logos:
 # Run dashboard
 dashboard:
 	@echo "📊 Starting dashboard..."
-	@cd apps/backend && source .venv/bin/activate && python scripts/run_dashboard.py
+	@cd apps/backend && source .venv/bin/activate && streamlit run src/dashboard/app.py
 
 # Stop dashboard
 stop-dashboard:

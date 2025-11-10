@@ -64,7 +64,7 @@ export default function OnboardingPage() {
           first_name: user.firstName,
           last_name: user.lastName,
         }),
-      }).catch(() => { });
+      }).catch(() => {});
     }
   }, [user, trackUserJourney]);
 

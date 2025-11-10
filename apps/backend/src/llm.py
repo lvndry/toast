@@ -25,10 +25,12 @@ SupportedModel = Literal[
     "voyage-law-2",
     "openrouter-qwen-3-4b-free",
     "huggingface-minimax-m2",
+    "gpt-4o-mini",
 ]
 
 # Default model priority list for fallback
 DEFAULT_MODEL_PRIORITY: list[SupportedModel] = [
+    "gpt-4o-mini",
     "gemini-2.5-flash-lite",
     "mistral-small",
     "openrouter-qwen-3-4b-free",
@@ -93,6 +95,15 @@ def get_model(model_name: SupportedModel) -> Model:
         return Model(
             model="huggingface/MiniMaxAI/MiniMax-M2",
             api_key=HUGGINGFACE_API_KEY,
+        )
+    elif model_name == "gpt-4o-mini":
+        OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is not set")
+
+        return Model(
+            model="gpt-4o-mini",
+            api_key=OPENAI_API_KEY,
         )
     else:
         raise ValueError(f"Unsupported model: {model_name}")
