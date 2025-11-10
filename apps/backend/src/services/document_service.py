@@ -8,6 +8,7 @@ from typing import Any
 from src.core.logging import get_logger
 from src.document import Document, DocumentAnalysis
 from src.services.base_service import BaseService
+from src.services.company_service import company_service
 
 logger = get_logger(__name__)
 
@@ -50,8 +51,11 @@ class DocumentService(BaseService):
 
     async def get_company_documents_by_slug(self, company_slug: str) -> list[Document]:
         """Get all documents for a specific company."""
+        company = await company_service.get_company_by_slug(company_slug)
+        if not company:
+            raise ValueError(f"Company with slug {company_slug} not found")
         documents: list[Document] = await self.db.documents.find(
-            {"company_slug": company_slug}
+            {"company_id": company.id}
         ).to_list(length=None)
         return [Document(**document) for document in documents]
 

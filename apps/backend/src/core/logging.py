@@ -54,7 +54,7 @@ def setup_logging() -> None:
     logging.getLogger("pymongo.server").setLevel(logging.INFO)
     logging.getLogger("httpx").setLevel(logging.INFO)
     logging.getLogger("httpcore").setLevel(logging.INFO)
-    logging.getLogger("litellm").setLevel(logging.INFO)
+    logging.getLogger("LiteLLM").setLevel(logging.INFO)
 
 
 def get_logger(name: str = __name__) -> Any:
