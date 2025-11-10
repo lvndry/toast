@@ -8,8 +8,8 @@ from src.core.config import settings
 from src.core.logging import get_logger
 from src.document import Document
 from src.llm import get_embeddings
+from src.pinecone import INDEX_NAME, init_pinecone_index, pc
 from src.services.document_service import document_service
-from src.vector_db import INDEX_NAME, init_pinecone_index, pc
 
 load_dotenv()
 logger = get_logger(__name__)
@@ -17,38 +17,6 @@ logger = get_logger(__name__)
 
 VOYAGE_LAW_2_DIMENSION = 1024
 init_pinecone_index(VOYAGE_LAW_2_DIMENSION)
-
-
-def _truncate_text_for_embedding(
-    text: str, max_size: int = settings.embedding.max_text_size_bytes
-) -> str:
-    """
-    Truncate text to fit within embedding service limits.
-
-    Args:
-        text: The text to truncate
-        max_size: Maximum size in bytes (default from settings)
-
-    Returns:
-        Truncated text that fits within size limits
-    """
-    # Convert to bytes to check actual size
-    text_bytes = text.encode("utf-8")
-
-    if len(text_bytes) <= max_size:
-        return text
-
-    # Calculate how many characters we can keep (approximate)
-    # Use a conservative estimate of 4 bytes per character for UTF-8
-    max_chars = max_size // 4
-
-    # Truncate and add ellipsis
-    truncated = text[:max_chars] + "... [Content truncated due to size limits]"
-
-    logger.warning(
-        f"Document text truncated from {len(text_bytes)} bytes to {len(truncated.encode('utf-8'))} bytes"
-    )
-    return truncated
 
 
 def _log_document_size_info(document: Document) -> None:
@@ -108,7 +76,7 @@ async def embed_company_documents(company_id: str, namespace: str | None = None,
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=settings.embedding.chunk_size,
         chunk_overlap=settings.embedding.chunk_overlap,
-        separators=["\n\n", "\n", ".", ";", " ", ""],
+        separators=["\n\n", "\n", ".", ";"],
     )
     all_vectors: list[dict[str, Any]] = []
 
@@ -116,11 +84,8 @@ async def embed_company_documents(company_id: str, namespace: str | None = None,
         # Log document size information
         _log_document_size_info(doc)
 
-        # Truncate text if it's too large for embedding
-        truncated_text = _truncate_text_for_embedding(doc.text)
-
-        chunks = splitter.split_text(truncated_text)
-        offsets = _compute_chunk_offsets(truncated_text, chunks)
+        chunks = splitter.split_text(doc.text)
+        offsets = _compute_chunk_offsets(doc.text, chunks)
         logger.debug(f"Split into {len(chunks)} chunks")
 
         # Process chunks in batches to avoid overwhelming the embedding service
@@ -197,17 +162,14 @@ async def embed_document(document: Document, namespace: str) -> None:
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=settings.embedding.chunk_size,
         chunk_overlap=settings.embedding.chunk_overlap,
-        separators=["\n\n", "\n", ".", ";", " ", ""],
+        separators=["\n\n", "\n", ".", ";"],
     )
 
     # Log document size information
     _log_document_size_info(document)
 
-    # Truncate text if it's too large for embedding
-    truncated_text = _truncate_text_for_embedding(document.text)
-
-    chunks = splitter.split_text(truncated_text)
-    offsets = _compute_chunk_offsets(truncated_text, chunks)
+    chunks = splitter.split_text(document.text)
+    offsets = _compute_chunk_offsets(document.text, chunks)
 
     all_vectors: list[dict[str, Any]] = []
 

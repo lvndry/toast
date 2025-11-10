@@ -103,16 +103,14 @@ class EmbeddingConfig:
     """Embedding configuration"""
 
     def __init__(self) -> None:
-        # Maximum text size for embedding (4MB limit with buffer)
-        self.max_text_size_bytes: int = int(os.getenv("EMBEDDING_MAX_TEXT_SIZE_BYTES", "3500000"))
         # Batch size for processing chunks
-        self.batch_size: int = int(os.getenv("EMBEDDING_BATCH_SIZE", "50"))
+        self.batch_size: int = int(os.getenv("EMBEDDING_BATCH_SIZE", 50))
         # Pinecone upsert batch size
-        self.upsert_batch_size: int = int(os.getenv("EMBEDDING_UPSERT_BATCH_SIZE", "100"))
-        # Chunk size for text splitting
-        self.chunk_size: int = int(os.getenv("EMBEDDING_CHUNK_SIZE", "1200"))
+        self.upsert_batch_size: int = int(os.getenv("EMBEDDING_UPSERT_BATCH_SIZE", 100))
+        # Chunk size for text splitting (characters not tokens)
+        self.chunk_size: int = int(os.getenv("EMBEDDING_CHUNK_SIZE", 2000))
         # Chunk overlap for text splitting
-        self.chunk_overlap: int = int(os.getenv("EMBEDDING_CHUNK_OVERLAP", "200"))
+        self.chunk_overlap: int = int(os.getenv("EMBEDDING_CHUNK_OVERLAP", 200))
 
 
 class TrackingConfig:

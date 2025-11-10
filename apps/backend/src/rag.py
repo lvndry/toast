@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 
 from src.core.logging import get_logger
 from src.llm import completion_with_fallback, get_embeddings
+from src.pinecone import INDEX_NAME, pc
 from src.prompts.rag_prompts import RAG_SYSTEM_PROMPT
-from src.vector_db import INDEX_NAME, pc
 
 load_dotenv()
 logger = get_logger(__name__)
@@ -35,7 +35,7 @@ async def embed_query(query: str) -> list[float]:
 
 
 async def search_query(
-    query: str, company_slug: str, top_k: int = 12, *, namespace: str | None = None
+    query: str, company_slug: str, top_k: int = 8, *, namespace: str | None = None
 ) -> dict[str, Any]:
     # Convert text query to vector embedding
     query_vector = await embed_query(query)
@@ -64,7 +64,9 @@ async def get_answer(question: str, company_slug: str, *, namespace: str | None 
         str: The answer to the question
     """
     # Search for relevant documents in Pinecone
-    search_results = await search_query(question, company_slug, namespace=namespace)
+    # Fetch top 25 results to give the LLM more context
+    # We get 25 chunks × ~500 tokens/chunk (2000 chars ≈ 500 tokens) = ~12,500 tokens of context
+    search_results = await search_query(question, company_slug, namespace=namespace, top_k=25)
     logger.debug(f"Search results: {search_results}")
 
     if len(search_results["matches"]) == 0:
