@@ -24,8 +24,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { useClerk, useUser } from "@clerk/nextjs";
-
-import { useAnalytics } from "../../../hooks/useAnalytics";
+import { useAnalytics } from "@hooks/useAnalytics";
 
 interface Company {
   id: string;

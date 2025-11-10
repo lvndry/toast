@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import { FiX } from "react-icons/fi"
+import { useRouter } from "next/navigation";
+import { FiX } from "react-icons/fi";
 
-import { use, useEffect, useRef, useState } from "react"
+import { use, useEffect, useRef, useState } from "react";
 
 import {
   Box,
@@ -20,145 +20,162 @@ import {
   VStack,
   useColorModeValue,
   useDisclosure,
-} from "@chakra-ui/react"
-import { useUser } from "@clerk/nextjs"
-import CompanyMetaSummary from "@components/c/CompanyMetaSummary"
-import ConversationsList from "@components/c/ConversationsList"
-import QHeader from "@components/c/QHeader"
-import UploadModal from "@components/c/UploadModal"
-import ChatInput from "@components/chat/chat-input"
-import { useAnalytics } from "@hooks/useAnalytics"
+} from "@chakra-ui/react";
+import { useUser } from "@clerk/nextjs";
+import CompanyDocumentsList from "@components/c/CompanyDocumentsList";
+import CompanyMetaSummary from "@components/c/CompanyMetaSummary";
+import ConversationsList from "@components/c/ConversationsList";
+import QHeader from "@components/c/QHeader";
+import UploadModal from "@components/c/UploadModal";
+import ChatInput from "@components/chat/chat-input";
+import { useAnalytics } from "@hooks/useAnalytics";
 
 interface Company {
-  id: string
-  name: string
-  slug: string
-  description?: string
-  website?: string
-  industry?: string
-  documentsCount?: number
-  logo?: string
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  website?: string;
+  industry?: string;
+  documentsCount?: number;
+  logo?: string;
 }
 
 interface Conversation {
-  id: string
-  user_id: string
-  company_name: string
-  company_slug?: string
-  company_description?: string
-  documents: string[]
-  messages: Message[]
-  title?: string | null
-  mode?: "qa" | "summary" | "compliance" | "custom"
-  archived?: boolean
-  pinned?: boolean
-  tags?: string[]
-  message_count?: number
-  last_message_at?: string | null
-  created_at: string
-  updated_at: string
+  id: string;
+  user_id: string;
+  company_name: string;
+  company_slug?: string;
+  company_description?: string;
+  documents: string[];
+  messages: Message[];
+  title?: string | null;
+  mode?: "qa" | "summary" | "compliance" | "custom";
+  archived?: boolean;
+  pinned?: boolean;
+  tags?: string[];
+  message_count?: number;
+  last_message_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Message {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  timestamp: string
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
 }
 
 interface MetaSummary {
-  summary: string
-  scores: Record<string, { score: number; justification: string }>
-  keypoints: string[]
+  summary: string;
+  scores: Record<string, { score: number; justification: string }>;
+  keypoints: string[];
+}
+
+interface Document {
+  id: string;
+  url: string;
+  title: string | null;
+  doc_type: string;
+  company_id: string;
+  created_at: string;
 }
 
 export default function QPage({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug: string }>;
 }) {
-  const { slug } = use(params)
-  const { user } = useUser()
-  const router = useRouter()
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { slug } = use(params);
+  const { user } = useUser();
+  const router = useRouter();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isSummaryOpen,
     onOpen: onSummaryOpen,
     onClose: onSummaryClose,
-  } = useDisclosure()
-  const { trackUserJourney, trackPageView } = useAnalytics()
+  } = useDisclosure();
+  const { trackUserJourney, trackPageView } = useAnalytics();
 
-  const [company, setCompany] = useState<Company | null>(null)
-  const [conversation, setConversation] = useState<Conversation | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [inputValue, setInputValue] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [initialLoading, setInitialLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [metaSummary, setMetaSummary] = useState<MetaSummary | null>(null)
+  const [company, setCompany] = useState<Company | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [metaSummary, setMetaSummary] = useState<MetaSummary | null>(null);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
 
-  const [uploadLoading, setUploadLoading] = useState(false)
-  const [conversationsList, setConversationsList] = useState<Conversation[]>([])
-  const [convosLoading, setConvosLoading] = useState(false)
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [conversationsList, setConversationsList] = useState<Conversation[]>(
+    [],
+  );
+  const [convosLoading, setConvosLoading] = useState(false);
 
-  const chatContainerRef = useRef<HTMLDivElement>(null)
-  const bgColor = useColorModeValue("gray.50", "gray.900")
-  const cardBg = useColorModeValue("white", "gray.800")
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const bgColor = useColorModeValue("gray.50", "gray.900");
+  const cardBg = useColorModeValue("white", "gray.800");
 
   // Function to scroll to bottom
   function scrollToBottom() {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
     }
   }
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages]);
 
   // Scroll to bottom when loading state changes
   useEffect(() => {
     if (loading) {
-      scrollToBottom()
+      scrollToBottom();
     }
-  }, [loading])
+  }, [loading]);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        setInitialLoading(true)
+        setInitialLoading(true);
 
         // Check if this is a conversation ID (UUID format) or company slug
-        const isConversationId = /^[a-zA-Z0-9]{22}$/.test(slug)
+        const isConversationId = /^[a-zA-Z0-9]{22}$/.test(slug);
 
         if (isConversationId) {
           // Fetch conversation
-          const conversationResponse = await fetch(`/api/conversations/${slug}`)
+          const conversationResponse = await fetch(
+            `/api/conversations/${slug}`,
+          );
           if (!conversationResponse.ok) {
-            throw new Error("Conversation not found")
+            throw new Error("Conversation not found");
           }
           const conversationData: Conversation =
-            await conversationResponse.json()
-          setConversation(conversationData)
-          setMessages(conversationData.messages || [])
+            await conversationResponse.json();
+          setConversation(conversationData);
+          setMessages(conversationData.messages || []);
 
           // Track conversation view
           trackUserJourney.conversationStarted(
             conversationData.id,
             conversationData.company_name,
             false,
-          )
+          );
 
           // Fetch meta summary for the conversation's company if available
           if (conversationData.company_slug) {
             try {
               const metaResponse = await fetch(
                 `/api/meta-summary/${conversationData.company_slug}`,
-              )
+              );
               if (metaResponse.ok) {
-                const metaData: MetaSummary = await metaResponse.json()
-                setMetaSummary(metaData)
+                const metaData: MetaSummary = await metaResponse.json();
+                setMetaSummary(metaData);
               }
             } catch (_) {
               // ignore meta summary errors in conversation mode
@@ -166,83 +183,99 @@ export default function QPage({
           }
         } else {
           // Fetch company data
-          const companyResponse = await fetch(`/api/companies/${slug}`)
+          const companyResponse = await fetch(`/api/companies/${slug}`);
           if (!companyResponse.ok) {
-            throw new Error("Company not found")
+            throw new Error("Company not found");
           }
-          const companyData: Company = await companyResponse.json()
-          setCompany(companyData)
+          const companyData: Company = await companyResponse.json();
+          setCompany(companyData);
 
           // Track company view
-          trackUserJourney.companyViewed(companyData.slug, companyData.name)
+          trackUserJourney.companyViewed(companyData.slug, companyData.name);
 
           // Fetch meta summary
-          const metaResponse = await fetch(`/api/meta-summary/${slug}`)
+          const metaResponse = await fetch(`/api/meta-summary/${slug}`);
           if (metaResponse.ok) {
-            const metaData: MetaSummary = await metaResponse.json()
-            setMetaSummary(metaData)
+            const metaData: MetaSummary = await metaResponse.json();
+            setMetaSummary(metaData);
+          }
+
+          // Fetch company documents
+          try {
+            setDocumentsLoading(true);
+            const documentsResponse = await fetch(
+              `/api/companies/${slug}/documents`,
+            );
+            if (documentsResponse.ok) {
+              const documentsData: Document[] = await documentsResponse.json();
+              setDocuments(documentsData);
+            }
+          } catch (_) {
+            // ignore documents fetch errors
+          } finally {
+            setDocumentsLoading(false);
           }
 
           // Fetch user's conversations for this company
           if (user?.id) {
             try {
-              setConvosLoading(true)
+              setConvosLoading(true);
               const listRes = await fetch(
                 `/api/conversations?user_id=${user.id}&company_slug=${companyData.slug}`,
-              )
+              );
               if (listRes.ok) {
-                const listData: Conversation[] = await listRes.json()
+                const listData: Conversation[] = await listRes.json();
                 // Sort: most recent first (last_message_at desc, fallback to updated_at)
                 listData.sort((a, b) => {
                   const ad = new Date(
                     a.last_message_at || a.updated_at,
-                  ).getTime()
+                  ).getTime();
                   const bd = new Date(
                     b.last_message_at || b.updated_at,
-                  ).getTime()
-                  return bd - ad
-                })
-                setConversationsList(listData)
+                  ).getTime();
+                  return bd - ad;
+                });
+                setConversationsList(listData);
               }
             } finally {
-              setConvosLoading(false)
+              setConvosLoading(false);
             }
           }
         }
       } catch (err) {
-        console.error("Error fetching data:", err)
-        setError(err instanceof Error ? err.message : "Failed to fetch data")
+        console.error("Error fetching data:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch data");
       } finally {
-        setInitialLoading(false)
+        setInitialLoading(false);
       }
     }
 
-    fetchData()
-  }, [slug, trackUserJourney])
+    fetchData();
+  }, [slug, trackUserJourney]);
 
   async function refreshConversationsList() {
-    if (!company || !user?.id) return
+    if (!company || !user?.id) return;
     try {
-      setConvosLoading(true)
+      setConvosLoading(true);
       const listRes = await fetch(
         `/api/conversations?user_id=${user.id}&company_slug=${company.slug}`,
-      )
+      );
       if (listRes.ok) {
-        const listData: Conversation[] = await listRes.json()
+        const listData: Conversation[] = await listRes.json();
         listData.sort((a, b) => {
-          const ad = new Date(a.last_message_at || a.updated_at).getTime()
-          const bd = new Date(b.last_message_at || b.updated_at).getTime()
-          return bd - ad
-        })
-        setConversationsList(listData)
+          const ad = new Date(a.last_message_at || a.updated_at).getTime();
+          const bd = new Date(b.last_message_at || b.updated_at).getTime();
+          return bd - ad;
+        });
+        setConversationsList(listData);
       }
     } finally {
-      setConvosLoading(false)
+      setConvosLoading(false);
     }
   }
 
   async function createConversation() {
-    if (!company || !user?.id) return
+    if (!company || !user?.id) return;
     try {
       const res = await fetch("/api/conversations", {
         method: "POST",
@@ -255,12 +288,12 @@ export default function QPage({
           title: "New Conversation",
           mode: "qa",
         }),
-      })
-      if (!res.ok) throw new Error("Failed to create conversation")
-      const created: Conversation = await res.json()
-      router.push(`/c/${created.id}`)
+      });
+      if (!res.ok) throw new Error("Failed to create conversation");
+      const created: Conversation = await res.json();
+      router.push(`/c/${created.id}`);
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
   }
 
@@ -273,50 +306,50 @@ export default function QPage({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      })
-      if (res.ok) await refreshConversationsList()
+      });
+      if (res.ok) await refreshConversationsList();
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
   }
 
   async function deleteConversationById(id: string) {
     try {
-      const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" })
-      if (res.ok) await refreshConversationsList()
+      const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
+      if (res.ok) await refreshConversationsList();
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
   }
 
   // Track page view
   useEffect(() => {
     if (!initialLoading) {
-      const pageName = conversation ? "conversation" : "company_analysis"
+      const pageName = conversation ? "conversation" : "company_analysis";
       trackPageView(pageName, {
         company_slug: company?.slug || conversation?.company_name,
         conversation_id: conversation?.id,
-      })
+      });
     }
-  }, [initialLoading, conversation, company, trackPageView])
+  }, [initialLoading, conversation, company, trackPageView]);
 
   async function handleSendMessage() {
-    const message = inputValue.trim()
-    if (!message || loading) return
+    const message = inputValue.trim();
+    if (!message || loading) return;
 
-    const startTime = Date.now()
-    const questionLength = inputValue.length
+    const startTime = Date.now();
+    const questionLength = inputValue.length;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       content: message,
       role: "user",
       timestamp: new Date().toISOString(),
-    }
+    };
 
-    setMessages((prev) => [...prev, userMessage])
-    setInputValue("")
-    setLoading(true)
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    setLoading(true);
 
     // Track question asked
     trackUserJourney.questionAsked(
@@ -324,7 +357,7 @@ export default function QPage({
       questionLength,
       conversation?.id,
       company?.slug,
-    )
+    );
 
     try {
       if (conversation) {
@@ -340,30 +373,30 @@ export default function QPage({
               message,
             }),
           },
-        )
+        );
 
         if (!response.ok) {
-          throw new Error(`Failed to send message: ${response.status}`)
+          throw new Error(`Failed to send message: ${response.status}`);
         }
 
-        const data = await response.json()
+        const data = await response.json();
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           content: data.ai_message.content,
           role: "assistant",
           timestamp: new Date().toISOString(),
-        }
+        };
 
-        setMessages((prev) => [...prev, assistantMessage])
+        setMessages((prev) => [...prev, assistantMessage]);
 
         // Track successful answer
-        const responseTime = Date.now() - startTime
+        const responseTime = Date.now() - startTime;
         trackUserJourney.questionAnswered(
           questionLength,
           data.ai_message.content.length,
           responseTime,
           conversation.id,
-        )
+        );
       } else if (company) {
         // Create a conversation on-the-fly, then send the message to it
         const createResponse = await fetch("/api/conversations", {
@@ -379,19 +412,19 @@ export default function QPage({
             title: message.slice(0, 80),
             mode: "qa",
           }),
-        })
+        });
 
         if (!createResponse.ok) {
           throw new Error(
             `Failed to create conversation: ${createResponse.status}`,
-          )
+          );
         }
 
-        const createdConversation: Conversation = await createResponse.json()
-        setConversation(createdConversation)
+        const createdConversation: Conversation = await createResponse.json();
+        setConversation(createdConversation);
         // Update URL to conversation id for resuming later
         try {
-          router.replace(`/c/${createdConversation.id}`)
+          router.replace(`/c/${createdConversation.id}`);
         } catch {}
 
         const sendResponse = await fetch(
@@ -405,71 +438,74 @@ export default function QPage({
               message,
             }),
           },
-        )
+        );
 
         if (!sendResponse.ok) {
-          throw new Error(`Failed to send message: ${sendResponse.status}`)
+          throw new Error(`Failed to send message: ${sendResponse.status}`);
         }
 
-        const data = await sendResponse.json()
+        const data = await sendResponse.json();
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           content: data.ai_message.content,
           role: "assistant",
           timestamp: new Date().toISOString(),
-        }
+        };
 
-        setMessages((prev) => [...prev, assistantMessage])
+        setMessages((prev) => [...prev, assistantMessage]);
 
         // Track successful answer
-        const responseTime = Date.now() - startTime
+        const responseTime = Date.now() - startTime;
         trackUserJourney.questionAnswered(
           questionLength,
           data.ai_message.content.length,
           responseTime,
           createdConversation.id,
-        )
+        );
       }
     } catch (err) {
-      console.error("Error sending message:", err)
+      console.error("Error sending message:", err);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: "Sorry, I encountered an error. Please try again.",
         role: "assistant",
         timestamp: new Date().toISOString(),
-      }
-      setMessages((prev) => [...prev, errorMessage])
+      };
+      setMessages((prev) => [...prev, errorMessage]);
 
       // Track failed question
       trackUserJourney.questionFailed(
         err instanceof Error ? err.message : "Unknown error",
         conversation?.id,
-      )
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   function handleKeyPress(event: React.KeyboardEvent) {
     if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault()
-      handleSendMessage()
+      event.preventDefault();
+      handleSendMessage();
     }
   }
 
   async function handleFileUpload(file: File) {
-    if (!conversation) return
+    if (!conversation) return;
 
-    setUploadLoading(true)
+    setUploadLoading(true);
     try {
       // Track upload start
-      trackUserJourney.documentUploadStarted(file.type, file.size)
+      trackUserJourney.documentUploadStarted(file.type, file.size);
 
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("company_name", conversation.company_name)
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("company_name", conversation.company_name);
       if (conversation.company_description) {
-        formData.append("company_description", conversation.company_description)
+        formData.append(
+          "company_description",
+          conversation.company_description,
+        );
       }
 
       const uploadResponse = await fetch(
@@ -478,51 +514,51 @@ export default function QPage({
           method: "POST",
           body: formData,
         },
-      )
+      );
 
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}))
-        const errorMessage = errorData.detail || "Failed to upload document"
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        const errorMessage = errorData.detail || "Failed to upload document";
 
         // Track upload failure
-        trackUserJourney.documentUploadFailed(file.type, errorMessage)
+        trackUserJourney.documentUploadFailed(file.type, errorMessage);
 
         // Removed toast as per edit hint
-        return
+        return;
       }
 
-      const uploadResult = await uploadResponse.json()
+      const uploadResult = await uploadResponse.json();
 
       // Track successful upload
       trackUserJourney.documentUploadCompleted(
         file.type,
         file.size,
         conversation.company_name,
-      )
+      );
 
       // Removed toast as per edit hint
 
       // Refresh the conversation to get updated data
       const conversationResponse = await fetch(
         `/api/conversations/${conversation.id}`,
-      )
+      );
       if (conversationResponse.ok) {
-        const updatedConversation = await conversationResponse.json()
-        setConversation(updatedConversation)
-        setMessages(updatedConversation.messages || [])
+        const updatedConversation = await conversationResponse.json();
+        setConversation(updatedConversation);
+        setMessages(updatedConversation.messages || []);
       }
 
-      onClose() // Close modal after successful upload
+      onClose(); // Close modal after successful upload
     } catch (error) {
-      console.error("Upload error:", error)
+      console.error("Upload error:", error);
       // Track upload failure
       trackUserJourney.documentUploadFailed(
         file.type,
         error instanceof Error ? error.message : "Unknown error",
-      )
+      );
       // Removed toast as per edit hint
     } finally {
-      setUploadLoading(false)
+      setUploadLoading(false);
     }
   }
 
@@ -557,7 +593,7 @@ export default function QPage({
           </VStack>
         </Box>
       </Box>
-    )
+    );
   }
 
   if (initialLoading) {
@@ -576,12 +612,12 @@ export default function QPage({
           </Text>
         </VStack>
       </Box>
-    )
+    );
   }
 
-  const displayName = conversation?.company_name || company?.name
+  const displayName = conversation?.company_name || company?.name;
   const displayDescription =
-    conversation?.company_description || company?.description
+    conversation?.company_description || company?.description;
 
   return (
     <Box minH="100vh" bg={bgColor} display="flex" flexDirection="column">
@@ -613,8 +649,8 @@ export default function QPage({
                 try {
                   await fetch(`/api/conversations/${conversation.id}`, {
                     method: "DELETE",
-                  })
-                  router.push(`/c/${conversation.company_slug}`)
+                  });
+                  router.push(`/c/${conversation.company_slug}`);
                 } catch {}
               }
             : undefined
@@ -627,11 +663,11 @@ export default function QPage({
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ pinned: !conversation.pinned }),
-                  })
+                  });
                   setConversation({
                     ...conversation,
                     pinned: !conversation.pinned,
-                  })
+                  });
                 } catch {}
               }
             : undefined
@@ -644,11 +680,11 @@ export default function QPage({
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ archived: !conversation.archived }),
-                  })
+                  });
                   setConversation({
                     ...conversation,
                     archived: !conversation.archived,
-                  })
+                  });
                 } catch {}
               }
             : undefined
@@ -666,7 +702,7 @@ export default function QPage({
             onRefresh={refreshConversationsList}
             onCreate={createConversation}
             onRename={async (id, newName) => {
-              await updateConversationMeta(id, { title: newName })
+              await updateConversationMeta(id, { title: newName });
             }}
             onTogglePinned={(id, newVal) =>
               updateConversationMeta(id, { pinned: newVal })
@@ -682,6 +718,11 @@ export default function QPage({
         {/* Inline meta summary only when browsing company view, not conversation */}
         {metaSummary && company && !conversation && (
           <CompanyMetaSummary metaSummary={metaSummary} />
+        )}
+
+        {/* Documents list only when browsing company view, not conversation */}
+        {company && !conversation && (
+          <CompanyDocumentsList documents={documents} />
         )}
       </Box>
 
@@ -743,5 +784,5 @@ export default function QPage({
 
       {/* Create Conversation Modal removed in favor of immediate create */}
     </Box>
-  )
+  );
 }

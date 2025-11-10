@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 
 import {
   Box,
@@ -12,36 +12,26 @@ import {
   Text,
   VStack,
   useColorModeValue,
-} from "@chakra-ui/react"
+} from "@chakra-ui/react";
 
-import MarkdownRenderer from "../markdown/markdown-renderer"
+import MarkdownRenderer from "../markdown/markdown-renderer";
 
 export interface MetaSummaryData {
-  summary: string
-  scores: Record<string, { score: number; justification: string }>
-  keypoints: string[]
+  summary: string;
+  scores: Record<string, { score: number; justification: string }>;
+  keypoints: string[];
 }
 
 interface CompanyMetaSummaryProps {
-  metaSummary: MetaSummaryData
+  metaSummary: MetaSummaryData;
 }
 
 export default function CompanyMetaSummary({
   metaSummary,
 }: CompanyMetaSummaryProps) {
-  const [showAllKeyPoints, setShowAllKeyPoints] = useState(false)
-  const [expandedScores, setExpandedScores] = useState<Set<string>>(new Set())
+  const [showAllKeyPoints, setShowAllKeyPoints] = useState(false);
 
-  const cardBg = useColorModeValue("white", "gray.800")
-
-  function toggleScoreExpansion(scoreKey: string) {
-    setExpandedScores((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(scoreKey)) newSet.delete(scoreKey)
-      else newSet.add(scoreKey)
-      return newSet
-    })
-  }
+  const cardBg = useColorModeValue("white", "gray.800");
 
   return (
     <Box p={6}>
@@ -52,19 +42,9 @@ export default function CompanyMetaSummary({
           </Heading>
           <Grid templateColumns="repeat(auto-fit, minmax(250px, 1fr))" gap={4}>
             {Object.entries(metaSummary.scores).map(([key, score]) => {
-              const isExpanded = expandedScores.has(key)
               return (
                 <GridItem key={key}>
-                  <Box
-                    bg={cardBg}
-                    p={6}
-                    borderRadius="lg"
-                    shadow="sm"
-                    cursor="pointer"
-                    transition="all 0.2s"
-                    _hover={{ transform: "translateY(-2px)", shadow: "md" }}
-                    onClick={() => toggleScoreExpansion(key)}
-                  >
+                  <Box bg={cardBg} p={6} borderRadius="lg" shadow="sm">
                     <VStack spacing={3}>
                       <Text
                         fontSize="sm"
@@ -78,15 +58,13 @@ export default function CompanyMetaSummary({
                       <Text fontSize="2xl" fontWeight="bold" color="blue.500">
                         {score.score}/10
                       </Text>
-                      {isExpanded && (
-                        <Text fontSize="sm" color="gray.600" textAlign="center">
-                          {score.justification}
-                        </Text>
-                      )}
+                      <Text fontSize="sm" color="gray.600" textAlign="center">
+                        {score.justification}
+                      </Text>
                     </VStack>
                   </Box>
                 </GridItem>
-              )
+              );
             })}
           </Grid>
         </Box>
@@ -145,5 +123,5 @@ export default function CompanyMetaSummary({
         </Grid>
       </Box>
     </Box>
-  )
+  );
 }
