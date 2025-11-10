@@ -1,39 +1,32 @@
-import { apiEndpoints } from "@lib/config";
 import { NextRequest, NextResponse } from "next/server";
+
+import { apiEndpoints } from "@lib/config";
+import { httpJson } from "@lib/http";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get("companyId");
-    const domain = searchParams.get("domain");
+    const slug = searchParams.get("slug");
 
-    if (!companyId && !domain) {
+    if (!slug) {
       return NextResponse.json(
-        { error: "Either companyId or domain parameter is required" },
+        { error: "slug parameter is required" },
         { status: 400 },
       );
     }
 
-    // If we have a company ID, fetch the company from backend
-    if (companyId) {
-      const response = await fetch(
-        `${apiEndpoints.companies()}/${companyId}`,
-      );
-      if (response.ok) {
-        const company = await response.json();
-        if (company.logo) {
-          return NextResponse.json({ logo: company.logo });
-        }
-      }
+    const company = await httpJson<{
+      logo?: string | null;
+      domains?: string[];
+    }>(`${apiEndpoints.companies()}/${slug}`, { method: "GET" });
+
+    if (!company.logo && company.domains) {
+      return NextResponse.json({
+        logo: `https://logo.clearbit.com/${company.domains[0]}`,
+      });
     }
 
-    // Fallback to domain-based logo if no company logo found
-    if (domain) {
-      const logoUrl = `https://logo.clearbit.com/${domain}`;
-      return NextResponse.json({ logo: logoUrl });
-    }
-
-    return NextResponse.json({ logo: null });
+    return NextResponse.json({ logo: company.logo });
   } catch (error) {
     console.error("Error fetching logo:", error);
     return NextResponse.json(

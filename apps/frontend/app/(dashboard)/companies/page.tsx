@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import { FiLogOut, FiPlus, FiSearch, FiUpload, FiX } from "react-icons/fi"
+import { useRouter } from "next/navigation";
+import { FiLogOut, FiPlus, FiSearch, FiUpload, FiX } from "react-icons/fi";
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 
 import {
   Box,
@@ -22,59 +22,59 @@ import {
   VStack,
   useDisclosure,
   useToast,
-} from "@chakra-ui/react"
-import { useClerk, useUser } from "@clerk/nextjs"
+} from "@chakra-ui/react";
+import { useClerk, useUser } from "@clerk/nextjs";
 
-import { useAnalytics } from "../../../hooks/useAnalytics"
+import { useAnalytics } from "../../../hooks/useAnalytics";
 
 interface Company {
-  id: string
-  name: string
-  slug: string
-  description?: string
-  website?: string
-  industry?: string
-  documentsCount?: number
-  logo?: string
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  website?: string;
+  industry?: string;
+  documentsCount?: number;
+  logo?: string;
 }
 
 interface Conversation {
-  id: string
-  user_id: string
-  company_name: string
-  company_description?: string
-  documents: string[]
-  messages: any[]
-  created_at: string
-  updated_at: string
+  id: string;
+  user_id: string;
+  company_name: string;
+  company_description?: string;
+  documents: string[];
+  messages: any[];
+  created_at: string;
+  updated_at: string;
 }
 
 export default function CompaniesPage() {
-  const { user } = useUser()
-  const { signOut } = useClerk()
-  const router = useRouter()
-  const toast = useToast()
-  const { isOpen, onOpen, onClose } = useDisclosure()
-  const { trackUserJourney, trackPageView } = useAnalytics()
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const router = useRouter();
+  const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { trackUserJourney, trackPageView } = useAnalytics();
 
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [logoLoadingStates, setLogoLoadingStates] = useState<
     Record<string, boolean>
-  >({})
-  const [uploadLoading, setUploadLoading] = useState(false)
+  >({});
+  const [uploadLoading, setUploadLoading] = useState(false);
 
   // Upload form state
-  const [companyName, setCompanyName] = useState("")
-  const [companyDescription, setCompanyDescription] = useState("")
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [companyName, setCompanyName] = useState("");
+  const [companyDescription, setCompanyDescription] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Track page view
   useEffect(() => {
-    trackPageView("companies")
-  }, [trackPageView])
+    trackPageView("companies");
+  }, [trackPageView]);
 
   // Track search
   useEffect(() => {
@@ -86,93 +86,93 @@ export default function CompaniesPage() {
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
           company.industry?.toLowerCase().includes(searchTerm.toLowerCase()),
-      ).length
+      ).length;
 
-      trackUserJourney.companySearched(searchTerm, filteredCount)
+      trackUserJourney.companySearched(searchTerm, filteredCount);
     }
-  }, [searchTerm, companies, trackUserJourney])
+  }, [searchTerm, companies, trackUserJourney]);
 
   async function fetchCompanyLogo(company: Company): Promise<string | null> {
-    setLogoLoadingStates((prev) => ({ ...prev, [company.id]: true }))
+    setLogoLoadingStates((prev) => ({ ...prev, [company.id]: true }));
 
     try {
       // If company already has a logo, use it
       if (company.logo) {
-        return company.logo
+        return company.logo;
       }
 
       // Try to fetch logo using company ID first
-      const params = new URLSearchParams()
-      params.append("companyId", company.id)
+      const params = new URLSearchParams();
+      params.append("slug", company.slug);
 
-      const response = await fetch(`/api/companies/logos?${params.toString()}`)
+      const response = await fetch(`/api/companies/logos?${params.toString()}`);
       if (response.ok) {
-        const data = await response.json()
-        return data.logo || null
+        const data = await response.json();
+        return data.logo || null;
       }
     } catch (error) {
-      console.warn(`Failed to fetch logo for ${company.name}:`, error)
+      console.warn(`Failed to fetch logo for ${company.name}:`, error);
     } finally {
-      setLogoLoadingStates((prev) => ({ ...prev, [company.id]: false }))
+      setLogoLoadingStates((prev) => ({ ...prev, [company.id]: false }));
     }
-    return null
+    return null;
   }
 
   useEffect(() => {
     async function fetchCompanies() {
       try {
-        setLoading(true)
-        const response = await fetch("/api/companies")
+        setLoading(true);
+        const response = await fetch("/api/companies");
 
         if (!response.ok) {
           throw new Error(
             `Failed to fetch companies: ${response.status}: ${response.statusText}`,
-          )
+          );
         }
 
-        const data = await response.json()
+        const data = await response.json();
 
         const companiesWithLogos = await Promise.all(
           data.map(async (company: Company) => {
-            const logo = await fetchCompanyLogo(company)
-            return { ...company, logo }
+            const logo = await fetchCompanyLogo(company);
+            return { ...company, logo };
           }),
-        )
+        );
 
-        setCompanies(companiesWithLogos)
+        setCompanies(companiesWithLogos);
       } catch (err) {
-        console.error("Error fetching companies:", err)
+        console.error("Error fetching companies:", err);
         setError(
           err instanceof Error ? err.message : "Failed to fetch companies",
-        )
+        );
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    fetchCompanies()
-  }, [])
+    fetchCompanies();
+  }, []);
 
   const filteredCompanies = companies.filter(
     (company) =>
       company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       company.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       company.industry?.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  );
 
   async function handleUpload() {
     if (!selectedFile || !companyName.trim()) {
       // Show error message
-      return
+      return;
     }
 
-    setUploadLoading(true)
+    setUploadLoading(true);
     try {
       // Track upload start
       trackUserJourney.documentUploadStarted(
         selectedFile.type,
         selectedFile.size,
-      )
+      );
 
       // Create conversation first
       const conversationResponse = await fetch("/api/conversations", {
@@ -185,20 +185,20 @@ export default function CompaniesPage() {
           company_name: companyName,
           company_description: companyDescription,
         }),
-      })
+      });
 
       if (!conversationResponse.ok) {
-        throw new Error("Failed to create conversation")
+        throw new Error("Failed to create conversation");
       }
 
-      const conversation: Conversation = await conversationResponse.json()
+      const conversation: Conversation = await conversationResponse.json();
 
       // Upload file to conversation
-      const formData = new FormData()
-      formData.append("file", selectedFile)
-      formData.append("company_name", companyName)
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("company_name", companyName);
       if (companyDescription) {
-        formData.append("company_description", companyDescription)
+        formData.append("company_description", companyDescription);
       }
 
       const uploadResponse = await fetch(
@@ -207,69 +207,69 @@ export default function CompaniesPage() {
           method: "POST",
           body: formData,
         },
-      )
+      );
 
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}))
-        const errorMessage = errorData.detail || "Failed to upload document"
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        const errorMessage = errorData.detail || "Failed to upload document";
 
         // Track upload failure
-        trackUserJourney.documentUploadFailed(selectedFile.type, errorMessage)
+        trackUserJourney.documentUploadFailed(selectedFile.type, errorMessage);
 
         if (uploadResponse.status === 400) {
           // Show error message
         } else {
-          throw new Error(errorMessage)
+          throw new Error(errorMessage);
         }
-        return
+        return;
       }
 
-      const uploadResult = await uploadResponse.json()
+      const uploadResult = await uploadResponse.json();
 
       // Track successful upload
       trackUserJourney.documentUploadCompleted(
         selectedFile.type,
         selectedFile.size,
         companyName,
-      )
+      );
 
       // Navigate to the conversation
-      router.push(`/c/${conversation.id}`)
+      router.push(`/c/${conversation.id}`);
 
       // Reset form
-      setCompanyName("")
-      setCompanyDescription("")
-      setSelectedFile(null)
+      setCompanyName("");
+      setCompanyDescription("");
+      setSelectedFile(null);
     } catch (error) {
-      console.error("Upload error:", error)
+      console.error("Upload error:", error);
       // Track upload failure
       if (selectedFile) {
         trackUserJourney.documentUploadFailed(
           selectedFile.type,
           error instanceof Error ? error.message : "Unknown error",
-        )
+        );
       }
     } finally {
-      setUploadLoading(false)
+      setUploadLoading(false);
     }
   }
 
   function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file) {
-      setSelectedFile(file)
+      setSelectedFile(file);
     }
   }
 
   function handleCompanyClick(company: Company) {
     // Track company view
-    trackUserJourney.companyViewed(company.slug, company.name)
-    router.push(`/c/${company.slug}`)
+    trackUserJourney.companyViewed(company.slug, company.name);
+    router.push(`/c/${company.slug}`);
   }
 
   function handleSignOut() {
-    trackUserJourney.signOut()
-    signOut()
+    trackUserJourney.signOut();
+    signOut();
   }
 
   if (loading) {
@@ -288,7 +288,7 @@ export default function CompaniesPage() {
           </Text>
         </VStack>
       </Box>
-    )
+    );
   }
 
   if (error) {
@@ -308,7 +308,7 @@ export default function CompaniesPage() {
           <Button onClick={() => window.location.reload()}>Try Again</Button>
         </VStack>
       </Box>
-    )
+    );
   }
 
   return (
@@ -591,5 +591,5 @@ export default function CompaniesPage() {
         </Box>
       )}
     </Box>
-  )
+  );
 }

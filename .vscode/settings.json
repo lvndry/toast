@@ -87,7 +87,7 @@
   "typescript.suggest.autoImports": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
   "typescript.preferences.importModuleSpecifier": "relative",
-  "typescript.inlayHints.parameterNames.enabled": "all",
+  "typescript.inlayHints.parameterNames.enabled": "none",
 
   "python.defaultInterpreterPath": "${workspaceFolder}/apps/backend/.venv/bin/python",
   "python.analysis.typeCheckingMode": "basic",
