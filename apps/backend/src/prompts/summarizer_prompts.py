@@ -155,7 +155,7 @@ Expected Output Format:
     }}
   }},
   "keypoints": [
-    "Maximum 15 bullet points, ordered by importance"
+    "Maximum 15 bullet points, ordered by importance",
     ""Key findings extracted ONLY from the provided document, presented as clear, concise bullet points.",
     "Include what personal data is collected (if specified)",
     "Whether data is sold or shared with third parties (if specified)",
