@@ -224,6 +224,7 @@ Use caution: If the content appears incomplete, vague, or primarily promotional,
                 ],
                 response_format={"type": "json_object"},
                 temperature=self.temperature,
+                model_priority=["gpt-5-mini", "grok-4-fast-non-reasoning", "gemini-2.5-flash"],
             )
 
             result: dict[str, Any] = json.loads(response.choices[0].message.content)

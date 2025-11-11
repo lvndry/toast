@@ -258,7 +258,7 @@ class ConversationService(BaseService):
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content},
                 ],
-                temperature=0.2,
+                temperature=0.5,
             )
             title = resp.choices[0].message.content.strip()
             # Post-process length and cleanliness
