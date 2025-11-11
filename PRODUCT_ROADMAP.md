@@ -52,18 +52,26 @@ Toast AI makes legal documents understandable in plain English, identifies risks
 
 **Why start here**: Highest demand, clearest value proposition, fastest path to "aha moment"
 
+**Strategy**: Pre-scraped companies database
+
+- Documents already extracted and analyzed → instant results
+- Users select from popular services (Spotify, Netflix, Stripe, etc.)
+- Upload option available for companies not yet in database
+- **Advantage**: Fast user experience, no waiting for crawling/processing
+
 ### Core User Flow
 
 **1. Landing Experience**
 
 - User arrives → sees "Understand any privacy policy in 60 seconds"
 - Two options:
-  - **Try sample**: Analyze a pre-loaded popular service (Spotify, Netflix, etc.)
-  - **Upload your own**: Upload a PDF or paste a URL
+  - **Browse companies**: Select from pre-scraped popular services (Spotify, Netflix, Stripe, etc.) - instant analysis
+  - **Upload your own**: Upload a PDF (for companies not yet in our database)
 
 **2. Analysis Experience**
 
-- Upload/select → Processing (show progress) → Results in <60 seconds
+- Select company from list → Instant results (documents already analyzed)
+- OR Upload document → Processing (show progress) → Results in <60 seconds
 - Results page shows:
   - **Verdict**: "Safe to proceed" / "Proceed with caution" / "Avoid this service"
   - **Risk score**: Visual (0-10 scale) with color coding
@@ -81,8 +89,8 @@ Toast AI makes legal documents understandable in plain English, identifies risks
 
 **Document Analysis**
 
-- Upload PDF or paste URL
-- Extract and analyze privacy policies
+- **Primary**: Select from pre-scraped companies (instant analysis - documents already processed)
+- **Secondary**: Upload PDF for companies not yet in database (on-demand processing)
 - Return: verdict, risk score, key findings, plain English explanations
 
 **Risk Communication**
@@ -93,9 +101,25 @@ Toast AI makes legal documents understandable in plain English, identifies risks
 
 **Trust Building**
 
-- Show confidence level ("We're 95% confident in this analysis")
-- Citations to exact document passages
-- Clear explanation of what each finding means
+- **Evidence strength** for each finding:
+  - "Strong evidence" - Clear, unambiguous language found
+  - "Moderate evidence" - Somewhat clear, but could be interpreted differently
+  - "Weak evidence" - Ambiguous or incomplete information
+- Citations to exact document passages (show the actual text)
+- Document quality indicators:
+  - "Complete analysis" - All sections reviewed
+  - "Partial analysis" - Some sections unclear or missing
+  - "Limited analysis" - Document is incomplete or poorly structured
+- Uncertainty handling: When we're not sure, say so explicitly ("We couldn't find clear information about data sharing")
+
+**Example of Evidence Strength in Practice:**
+
+- Finding: "This policy allows data sharing with third parties"
+  - Evidence: Strong - Direct quote: "We may share your data with advertising partners..."
+  - Citation: [Link to section 3.2] with highlighted text
+- Finding: "Data retention period is unclear"
+  - Evidence: Weak - Policy mentions "as long as necessary" but no specific timeframe
+  - Citation: [Link to section 5.1] with note: "Ambiguous language found"
 
 **Monetization**
 
@@ -121,13 +145,13 @@ Toast AI makes legal documents understandable in plain English, identifies risks
 
 **1. Vendor Dashboard**
 
-- Add vendors (by URL or upload)
+- Add vendors (select from pre-scraped list OR upload)
 - See all vendors at a glance with risk scores
 - Sort by risk level, date added, compliance status
 
 **2. Vendor Analysis**
 
-- Upload vendor privacy policy or terms
+- Select vendor from pre-scraped list OR upload vendor privacy policy/terms
 - Get business-focused risk assessment:
   - **Data sharing risks**: Will they sell your data?
   - **Liability risks**: What are you responsible for?
@@ -244,10 +268,14 @@ Toast AI makes legal documents understandable in plain English, identifies risks
 
 ### Must-Have (Phase 1)
 
-- [ ] Upload document or paste URL
-- [ ] Get verdict + risk score + key findings in <60 seconds
+- [ ] Browse/search pre-scraped companies list (Spotify, Netflix, Stripe, etc.)
+- [ ] Select company → Instant analysis results (documents already processed)
+- [ ] Upload PDF option for companies not yet in database
+- [ ] Get verdict + risk score + key findings instantly (or <60 seconds for uploads)
 - [ ] Plain English explanations of legal concepts
-- [ ] Citations to exact document passages
+- [ ] Citations to exact document passages with evidence strength indicators
+- [ ] Document quality indicators (complete vs partial analysis)
+- [ ] Explicit uncertainty handling ("We couldn't find clear information about...")
 - [ ] Free tier (3 analyses/month) + Individual tier ($9/month)
 - [ ] Upgrade prompts when high-risk findings detected
 
@@ -281,9 +309,11 @@ Toast AI makes legal documents understandable in plain English, identifies risks
 
 ### Trust Through Transparency
 
-- Show confidence levels
-- Cite exact sources
+- Show evidence strength for each finding (strong/moderate/weak)
+- Cite exact sources with highlighted passages
 - Explain reasoning clearly
+- Be explicit about uncertainty ("We couldn't find clear information about...")
+- Show document quality (complete vs partial analysis)
 
 ### Action-Oriented
 
@@ -374,6 +404,27 @@ Toast AI makes legal documents understandable in plain English, identifies risks
 - Legal document generation (focus on analysis first)
 - Browser extension (focus on web app first)
 - Mobile app (focus on web experience first)
+- On-demand URL crawling (focus on pre-scraped database first - too slow for MVP)
+
+## Company Database Strategy
+
+### Phase 1: Start with Popular Services
+
+- Focus on high-demand companies (Spotify, Netflix, Stripe, Google, etc.)
+- Pre-scrape and analyze their privacy policies
+- Users get instant results when selecting these companies
+
+### Phase 2: Expand Based on Demand
+
+- Track which companies users request (via uploads)
+- Prioritize adding most-requested companies to pre-scraped database
+- Build up library of 100+ popular services
+
+### Phase 3: Automated Expansion
+
+- Automated crawling for new companies
+- User requests trigger background scraping
+- Maintain freshness of existing company documents
 
 ---
 

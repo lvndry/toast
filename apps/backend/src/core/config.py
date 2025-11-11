@@ -108,9 +108,9 @@ class EmbeddingConfig:
         # Pinecone upsert batch size
         self.upsert_batch_size: int = int(os.getenv("EMBEDDING_UPSERT_BATCH_SIZE", 100))
         # Chunk size for text splitting (characters not tokens)
-        self.chunk_size: int = int(os.getenv("EMBEDDING_CHUNK_SIZE", 2000))
-        # Chunk overlap for text splitting
-        self.chunk_overlap: int = int(os.getenv("EMBEDDING_CHUNK_OVERLAP", 200))
+        self.chunk_size: int = int(os.getenv("EMBEDDING_CHUNK_SIZE", 4000))
+        # Chunk overlap for text splitting (characters not tokens)
+        self.chunk_overlap: int = int(os.getenv("EMBEDDING_CHUNK_OVERLAP", 500))
 
 
 class TrackingConfig:
