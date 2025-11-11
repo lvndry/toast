@@ -15,17 +15,17 @@ class DocumentAnalysis(BaseModel):
     Document analysis model.
 
     - summary: A user-oriented explanation of what this document means in practice.
-    - scores: A dictionary with the following keys:
+    - scores: A dictionary with the following required keys (each value is a DocumentAnalysisScores object with score and justification):
         - transparency: A number between 0 and 10 indicating the transparency of the document.
         - data_collection_scope: A number between 0 and 10 indicating the scope of data collection.
         - user_control: A number between 0 and 10 indicating how much control users have over their data.
         - third_party_sharing: A number between 0 and 10 indicating third-party sharing practices.
-        - data_retention_score: (Optional) A number between 0 and 10 indicating data retention practices.
-        - security_score: (Optional) A number between 0 and 10 indicating security practices.
     - risk_score: Overall risk score from 0-10 (calculated from component scores).
     - verdict: Overall verdict ("safe", "caution", "review", "avoid").
     - liability_risk: (Optional) Risk of liability exposure from contract terms (0-10, for business users).
     - compliance_status: (Optional) Compliance scores per regulation (e.g., {"GDPR": 8, "CCPA": 7}).
+    - data_retention_score: (Optional) A number between 0 and 10 indicating data retention practices.
+    - security_score: (Optional) A number between 0 and 10 indicating security practices.
     - keypoints: A list of bullet points capturing the most relevant and impactful ideas.
     """
 

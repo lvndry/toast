@@ -10,7 +10,7 @@ Toast AI transforms complex legal documents into actionable insights using advan
 - **AI-Powered Risk Assessment**: Quantified risk scoring with confidence levels
 - **Compliance Monitoring**: GDPR, CCPA, and regulatory compliance checking
 - **Real-time Processing**: Sub-10-second analysis with async processing
-- **Multi-Model LLM Orchestration**: GPT-4o, Claude (Sonnet, Opus, Haiku), Grok, and specialized legal models
+- **Multi-Model LLM Orchestration**: Best models from OpenAI, Anthropic, Gemini, xAI,...
 - **Document Comparison**: Side-by-side policy analysis and change tracking
 - **Enterprise Scalability**: Bulk processing and team collaboration features
 
