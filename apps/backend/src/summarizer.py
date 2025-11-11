@@ -404,7 +404,7 @@ Your task is to create a clear and accessible summary of the following document 
                 {"role": "user", "content": prompt},
             ],
             temperature=0.2,
-            response_format=MetaSummary,
+            response_format={"type": "json_object"},
             model_priority=["gpt-4o-mini", "gemini-2.5-flash-lite", "mistral-small"],
         )
 
