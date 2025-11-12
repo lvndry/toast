@@ -284,8 +284,7 @@ Document content:
 
                 # Store content hash in metadata for future cache validation
                 content_hash = _compute_document_hash(document)
-                if document.metadata is None:
-                    document.metadata = {}
+
                 document.metadata["content_hash"] = content_hash
                 document.metadata["analysis_hash_stored_at"] = datetime.now().isoformat()
 

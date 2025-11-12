@@ -81,7 +81,7 @@ class Document(BaseModel):
     doc_type: DocType
     markdown: str
     text: str
-    metadata: dict[str, Any]
+    metadata: dict[str, Any] = Field(default_factory=dict)
     versions: list[dict[str, Any]] = []
     analysis: DocumentAnalysis | None = None
     locale: str | None = None
