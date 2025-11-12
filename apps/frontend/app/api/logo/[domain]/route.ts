@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { domain: string } },
+  { params }: { params: Promise<{ domain: string }> },
 ) {
-  try {
-    const { domain } = params;
+  const { domain } = await params;
 
+  try {
     if (!domain) {
       return NextResponse.json(
         { error: "domain parameter is required" },
