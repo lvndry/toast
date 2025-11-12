@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_tags import st_tags
 
 from src.company import Company
 from src.dashboard.db_utils import (
@@ -19,14 +20,25 @@ def show_edit_form(company: Company) -> None:
         name = st.text_input("Company Name", value=company.name)
         slug = st.text_input("Company Slug", value=company.slug)
 
-        # Convert lists to text for the text areas
-        domains_text = "\n".join(company.domains) if company.domains else ""
-        categories_text = "\n".join(company.categories) if company.categories else ""
-        crawl_urls_text = "\n".join(company.crawl_base_urls) if company.crawl_base_urls else ""
-
-        domains = st.text_area("Domains (one per line)", value=domains_text)
-        categories = st.text_area("Categories (one per line)", value=categories_text)
-        crawl_base_urls = st.text_area("Crawl Base URLs (one per line)", value=crawl_urls_text)
+        # Use tag inputs instead of text areas
+        domains = st_tags(
+            label="Domains",
+            text="Press enter to add a domain",
+            value=company.domains if company.domains else [],
+            key=f"domains_{company.id}",
+        )
+        categories = st_tags(
+            label="Categories",
+            text="Press enter to add a category",
+            value=company.categories if company.categories else [],
+            key=f"categories_{company.id}",
+        )
+        crawl_base_urls = st_tags(
+            label="Crawl Base URLs",
+            text="Press enter to add a URL",
+            value=company.crawl_base_urls if company.crawl_base_urls else [],
+            key=f"crawl_urls_{company.id}",
+        )
 
         # Tier visibility section
         st.write("**Tier Visibility:**")
@@ -72,14 +84,12 @@ def show_edit_form(company: Company) -> None:
 
         if submitted:
             try:
-                # Parse the form data
-                domains_list = [domain.strip() for domain in domains.split("\n") if domain.strip()]
-                categories_list = [
-                    category.strip() for category in categories.split("\n") if category.strip()
-                ]
+                # Tags already return lists, just need to filter empty strings
+                domains_list = [domain.strip() for domain in domains if domain.strip()]
+                categories_list = [category.strip() for category in categories if category.strip()]
                 crawl_base_urls_list = (
-                    [url.strip() for url in crawl_base_urls.split("\n") if url.strip()]
-                    if crawl_base_urls.strip()
+                    [url.strip() for url in crawl_base_urls if url.strip()]
+                    if crawl_base_urls
                     else None
                 )
 
@@ -280,7 +290,7 @@ def show_company_view() -> None:
                         if st.button("🕷️ Crawl", key=f"crawl_{company.id}"):
                             # Set the selected company for crawling and navigate to crawl page
                             st.session_state["selected_company_for_crawl"] = company.id
-                            st.session_state["current_page"] = "Start Crawling"
+                            st.session_state["current_page"] = "start_crawling"
                             st.rerun()
                     with col6:
                         if st.button("✏️ Edit", key=f"edit_{company.id}"):
@@ -362,7 +372,7 @@ def show_company_view() -> None:
                     if hasattr(c, "visible_to_tiers") and UserTier.FREE not in c.visible_to_tiers
                 ]
             )
-            st.metric("Premium Only", premium_only, delta=f"{premium_only}/{len(companies)}")
+            st.metric("Premium Only", premium_only)
 
         # Companies without crawl URLs
         companies_without_crawl_urls = [c for c in companies if not c.crawl_base_urls]

@@ -1,5 +1,6 @@
 import shortuuid
 import streamlit as st
+from streamlit_tags import st_tags
 
 from src.company import Company
 from src.dashboard.db_utils import create_company_isolated, get_company_by_slug_isolated
@@ -14,13 +15,38 @@ def show_company_creation() -> None:
         slug = st.text_input(
             "Company Slug", placeholder="Enter slug (optional, will auto-generate)"
         )
-        domains = st.text_area("Domains (one per line)", placeholder="example.com\nwww.example.com")
-        categories = st.text_area(
-            "Categories (one per line)", placeholder="Technology\nSaaS\nPrivacy"
+        domains = st_tags(
+            label="Domains",
+            text="Press enter to add more",
+            value=[],
+            suggestions=["example.com", "www.example.com"],
+            maxtags=-1,
+            key="domains_input",
         )
-        crawl_base_urls = st.text_area(
-            "Crawl Base URLs (one per line)",
-            placeholder="https://example.com/privacy\nhttps://example.com/terms",
+        categories = st_tags(
+            label="Categories",
+            text="Press enter to add more",
+            value=[],
+            suggestions=[
+                "Technology",
+                "SaaS",
+                "Privacy",
+                "Finance",
+                "Healthcare",
+                "E-commerce",
+                "Social Media",
+                "Education",
+            ],
+            maxtags=-1,
+            key="categories_input",
+        )
+        crawl_base_urls = st_tags(
+            label="Crawl Base URLs",
+            text="Press enter to add more",
+            value=[],
+            suggestions=["https://example.com/privacy", "https://example.com/terms"],
+            maxtags=-1,
+            key="crawl_urls_input",
         )
 
         submitted = st.form_submit_button("Create Company", type="primary")
@@ -51,13 +77,12 @@ def show_company_creation() -> None:
                     return
 
                 # Parse form data
-                domains_list = [domain.strip() for domain in domains.split("\n") if domain.strip()]
-                categories_list = [
-                    category.strip() for category in categories.split("\n") if category.strip()
-                ]
+                # st_tags returns a list directly, no need to split
+                domains_list = [domain.strip() for domain in domains if domain.strip()]
+                categories_list = [category.strip() for category in categories if category.strip()]
                 crawl_base_urls_list = (
-                    [url.strip() for url in crawl_base_urls.split("\n") if url.strip()]
-                    if crawl_base_urls.strip()
+                    [url.strip() for url in crawl_base_urls if url.strip()]
+                    if crawl_base_urls
                     else None
                 )
 

@@ -23,45 +23,77 @@ setup_logging()
 def main() -> None:
     st.sidebar.title("Navigation")
 
-    # Check if we have a current page in session state
-    current_page = st.session_state.get("current_page", "View Companies")
-
-    # Create page options
+    # Create page options with id and display_name
     page_options = [
-        "Create Company",
-        "View Companies",
-        "Start Crawling",
-        "Generate Embeddings",
-        "Summarization",
-        "RAG",
-        "Migration",
-        "Settings",
+        {"id": "create_company", "display_name": "Create Company"},
+        {"id": "view_companies", "display_name": "View Companies"},
+        {"id": "start_crawling", "display_name": "Start Crawling"},
+        {"id": "generate_embeddings", "display_name": "Generate & Store Embeddings"},
+        {"id": "summarization", "display_name": "Summarization"},
+        {"id": "rag", "display_name": "RAG"},
+        {"id": "migration", "display_name": "Migration"},
+        {"id": "settings", "display_name": "Settings"},
     ]
+
+    # Check if we have a current page in session state
+    current_page_id = st.session_state.get("current_page", "view_companies")
+
+    # Migration: Handle legacy display names in session state
+    # Map old display names to new page IDs for backward compatibility
+    legacy_page_mapping = {
+        "Create Company": "create_company",
+        "View Companies": "view_companies",
+        "Start Crawling": "start_crawling",
+        "Generate Embeddings": "generate_embeddings",
+        "Generate & Store Embeddings": "generate_embeddings",
+        "Summarization": "summarization",
+        "RAG": "rag",
+        "Migration": "migration",
+        "Settings": "settings",
+    }
+
+    # If current_page_id is a legacy display name, convert it to page ID
+    if current_page_id in legacy_page_mapping:
+        current_page_id = legacy_page_mapping[current_page_id]
+        st.session_state["current_page"] = current_page_id
 
     # Find the index of the current page
     try:
-        default_index = page_options.index(current_page)
-    except ValueError:
-        default_index = 1  # Default to "View Companies"
+        default_index = next(
+            i for i, option in enumerate(page_options) if option["id"] == current_page_id
+        )
+    except StopIteration:
+        # If page ID is invalid, default to "View Companies"
+        default_index = 1
+        current_page_id = "view_companies"
+        st.session_state["current_page"] = current_page_id
 
-    page = st.sidebar.radio("Go to", page_options, index=default_index)
+    # Extract display names for the radio button
+    display_names = [option["display_name"] for option in page_options]
+    selected_display_name = st.sidebar.radio("Go to", display_names, index=default_index)
 
-    # Update session state
-    st.session_state["current_page"] = page
+    # Find the selected page option
+    selected_option = next(
+        option for option in page_options if option["display_name"] == selected_display_name
+    )
+    page_id = selected_option["id"]
 
-    if page == "Create Company":
+    # Update session state with id
+    st.session_state["current_page"] = page_id
+
+    if page_id == "create_company":
         show_company_creation()
-    elif page == "View Companies":
+    elif page_id == "view_companies":
         show_company_view()
-    elif page == "Start Crawling":
+    elif page_id == "start_crawling":
         show_crawling()
-    elif page == "Generate Embeddings":
+    elif page_id == "generate_embeddings":
         show_embedding()
-    elif page == "Summarization":
+    elif page_id == "summarization":
         show_summarization()
-    elif page == "RAG":
+    elif page_id == "rag":
         show_rag()
-    elif page == "Migration":
+    elif page_id == "migration":
         show_migration()
     else:
         st.title("Settings")
