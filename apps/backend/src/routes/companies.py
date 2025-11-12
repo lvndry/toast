@@ -3,11 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.company import Company
 from src.core.jwt import get_optional_user
 from src.core.logging import get_logger
-from src.document import Document
+from src.document import Document, MetaSummary
 from src.models.clerkUser import ClerkUser
 from src.services.company_service import company_service
 from src.services.user_service import user_service
-from src.summarizer import MetaSummary, generate_company_meta_summary
+from src.summarizer import generate_company_meta_summary
 from src.user import UserTier
 
 logger = get_logger(__name__)

@@ -9,10 +9,9 @@ from fastapi import HTTPException
 
 from src.company import Company
 from src.core.logging import get_logger
-from src.document import Document, DocumentAnalysis
+from src.document import Document, DocumentAnalysis, MetaSummary
 from src.exceptions import CompanyNotFoundError
 from src.services.base_service import BaseService
-from src.summarizer import MetaSummary
 from src.user import UserTier
 
 logger = get_logger(__name__)

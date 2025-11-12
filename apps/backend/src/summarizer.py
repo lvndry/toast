@@ -6,10 +6,16 @@ from datetime import datetime
 from typing import Literal
 
 from dotenv import load_dotenv
-from pydantic import BaseModel
 
 from src.core.logging import get_logger
-from src.document import Document, DocumentAnalysis, DocumentAnalysisScores
+from src.document import (
+    Document,
+    DocumentAnalysis,
+    DocumentAnalysisScores,
+    MetaSummary,
+    MetaSummaryScore,
+    MetaSummaryScores,
+)
 from src.llm import SupportedModel, acompletion_with_fallback
 from src.prompts.summarizer_prompts import (
     DOCUMENT_SUMMARY_SYSTEM_PROMPT,
@@ -21,26 +27,6 @@ from src.utils.llm_usage import UsageTracker, log_usage_summary, usage_tracking
 
 load_dotenv()
 logger = get_logger(__name__)
-
-
-class MetaSummaryScore(BaseModel):
-    score: int
-    justification: str
-
-
-class MetaSummaryScores(BaseModel):
-    transparency: MetaSummaryScore
-    data_collection_scope: MetaSummaryScore
-    user_control: MetaSummaryScore
-    third_party_sharing: MetaSummaryScore
-
-
-class MetaSummary(BaseModel):
-    summary: str
-    scores: MetaSummaryScores
-    risk_score: int
-    verdict: Literal["safe", "caution", "review", "avoid"]
-    keypoints: list[str]
 
 
 async def summarize_all_company_documents(company_slug: str) -> list[Document]:

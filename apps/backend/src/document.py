@@ -44,6 +44,26 @@ class DocumentAnalysis(BaseModel):
     keypoints: list[str] | None = None
 
 
+class MetaSummaryScore(BaseModel):
+    score: int
+    justification: str
+
+
+class MetaSummaryScores(BaseModel):
+    transparency: MetaSummaryScore
+    data_collection_scope: MetaSummaryScore
+    user_control: MetaSummaryScore
+    third_party_sharing: MetaSummaryScore
+
+
+class MetaSummary(BaseModel):
+    summary: str
+    scores: MetaSummaryScores
+    risk_score: int
+    verdict: Literal["safe", "caution", "review", "avoid"]
+    keypoints: list[str]
+
+
 DocType = Literal[
     "privacy_policy",
     "terms_of_service",
