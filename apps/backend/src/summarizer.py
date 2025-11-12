@@ -15,6 +15,7 @@ from src.prompts.summarizer_prompts import (
     DOCUMENT_SUMMARY_SYSTEM_PROMPT,
     META_SUMMARY_SYSTEM_PROMPT,
 )
+from src.services.company_service import company_service
 from src.services.document_service import document_service
 from src.utils.llm_usage import UsageTracker, log_usage_summary, usage_tracking
 
@@ -65,6 +66,36 @@ def _compute_document_hash(document: Document) -> str:
     """Compute a hash for the document content to enable caching."""
     content = f"{document.text}{document.doc_type}"
     return hashlib.sha256(content.encode()).hexdigest()
+
+
+def _compute_document_signature(documents: list[Document]) -> str:
+    """
+    Compute a signature from all document content hashes.
+
+    This signature is used to detect when any document in a company has changed,
+    which should invalidate the cached meta-summary.
+
+    Args:
+        documents: List of documents for a company
+
+    Returns:
+        SHA256 hash of sorted document content hashes
+    """
+    # Get all document hashes (use content_hash from metadata if available, otherwise compute)
+    hashes = []
+    for doc in documents:
+        if doc.metadata and "content_hash" in doc.metadata:
+            hashes.append(doc.metadata["content_hash"])
+        else:
+            # If no hash stored, compute it (but this shouldn't happen for analyzed docs)
+            hashes.append(_compute_document_hash(doc))
+
+    # Sort for consistency (order shouldn't matter)
+    hashes.sort()
+
+    # Combine and hash
+    combined = "|".join(hashes)
+    return hashlib.sha256(combined.encode()).hexdigest()
 
 
 def _calculate_risk_score(scores: dict[str, DocumentAnalysisScores]) -> int:
@@ -388,18 +419,61 @@ Document content:
     return None
 
 
-async def generate_company_meta_summary(company_slug: str) -> MetaSummary:
+async def generate_company_meta_summary(
+    company_slug: str, force_regenerate: bool = False
+) -> MetaSummary:
     """
     Generate a meta-summary of all analyzed documents for a company.
 
+    Uses caching to avoid regenerating meta-summaries when documents haven't changed.
+    Cache is invalidated when document signature (hash of all document hashes) changes.
+
     Args:
         company_slug: The company slug to generate meta-summary for
+        force_regenerate: If True, bypass cache and regenerate meta-summary
 
     Returns:
         MetaSummary: The generated meta-summary
     """
     documents = await document_service.get_company_documents_by_slug(company_slug)
     logger.info(f"Generating meta-summary for {company_slug} with {len(documents)} documents")
+
+    # Compute current document signature
+    current_signature = _compute_document_signature(documents)
+    logger.debug(f"Document signature for {company_slug}: {current_signature[:16]}...")
+
+    # Check cache unless force_regenerate is True
+    if not force_regenerate:
+        cached_meta_summary_data = await company_service.get_cached_meta_summary(company_slug)
+        if cached_meta_summary_data:
+            cached_signature = cached_meta_summary_data.get("document_signature")
+            cached_summary = cached_meta_summary_data.get("meta_summary")
+
+            if cached_signature == current_signature and cached_summary:
+                logger.info(
+                    f"Using cached meta-summary for {company_slug} "
+                    f"(signature match: {current_signature[:16]}...)"
+                )
+                try:
+                    meta_summary: MetaSummary = MetaSummary.model_validate(cached_summary)
+                    return meta_summary
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to parse cached meta-summary for {company_slug}: {e}. "
+                        "Regenerating..."
+                    )
+            else:
+                if cached_signature != current_signature:
+                    logger.info(
+                        f"Cache invalidated for {company_slug}: "
+                        f"signature changed ({cached_signature[:16] if cached_signature else 'none'}... "
+                        f"-> {current_signature[:16]}...)"
+                    )
+                else:
+                    logger.debug(f"No cached meta-summary found for {company_slug}")
+
+    # Cache miss or invalid - generate new meta-summary
+    logger.info(f"Generating new meta-summary for {company_slug}")
 
     summaries = []
     for doc in documents:
@@ -463,10 +537,23 @@ Your task is to create a clear and accessible summary of the following document 
 
         logger.debug(response.choices[0].message.content)
 
+        # Parse the meta-summary
+        meta_summary = MetaSummary.model_validate_json(
+            response.choices[0].message.content, strict=False
+        )
+
+        # Store in cache with document signature
+        await company_service.store_cached_meta_summary(
+            company_slug=company_slug,
+            meta_summary=meta_summary,
+            document_signature=current_signature,
+        )
+        logger.info(f"✓ Cached meta-summary for {company_slug}")
+
         # Log LLM usage for meta-summary generation (success case)
-        summary, records = usage_tracker.consume_summary()
+        usage_summary, records = usage_tracker.consume_summary()
         log_usage_summary(
-            summary,
+            usage_summary,
             records,
             context=f"company_{company_slug}",
             reason="success",
@@ -474,14 +561,14 @@ Your task is to create a clear and accessible summary of the following document 
             company_slug=company_slug,
         )
 
-        return MetaSummary.model_validate_json(response.choices[0].message.content, strict=False)  # type: ignore
+        return meta_summary
     except Exception as e:
         logger.error(f"Error generating meta-summary: {str(e)}")
 
         # Log LLM usage even on failure
-        summary, records = usage_tracker.consume_summary()
+        usage_summary, records = usage_tracker.consume_summary()
         log_usage_summary(
-            summary,
+            usage_summary,
             records,
             context=f"company_{company_slug}",
             reason="failed",

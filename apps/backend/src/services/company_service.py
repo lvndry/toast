@@ -12,6 +12,7 @@ from src.core.logging import get_logger
 from src.document import Document, DocumentAnalysis
 from src.exceptions import CompanyNotFoundError
 from src.services.base_service import BaseService
+from src.summarizer import MetaSummary
 from src.user import UserTier
 
 logger = get_logger(__name__)
@@ -162,6 +163,28 @@ class CompanyService(BaseService):
             logger.error(f"Error getting meta summary for {company_slug}: {e}")
             return None
 
+    async def get_cached_meta_summary(self, company_slug: str) -> dict[str, Any] | None:
+        """
+        Get cached meta-summary data including document signature.
+
+        Returns:
+            Dictionary with 'meta_summary', 'document_signature', and metadata, or None if not found
+        """
+        try:
+            company = await self.get_company_by_slug(company_slug)
+            meta_summary_doc = await self.db.meta_summaries.find_one({"company_id": company.id})
+            if meta_summary_doc:
+                return {
+                    "meta_summary": meta_summary_doc.get("meta_summary"),
+                    "document_signature": meta_summary_doc.get("document_signature"),
+                    "created_at": meta_summary_doc.get("created_at"),
+                    "updated_at": meta_summary_doc.get("updated_at"),
+                }
+            return None
+        except Exception as e:
+            logger.error(f"Error getting cached meta summary for {company_slug}: {e}")
+            return None
+
     async def store_company_meta_summary(
         self, company_slug: str, meta_summary: DocumentAnalysis
     ) -> None:
@@ -184,6 +207,74 @@ class CompanyService(BaseService):
         except Exception as e:
             logger.error(f"Error storing meta summary for {company_slug}: {e}")
             raise e
+
+    async def store_cached_meta_summary(
+        self,
+        company_slug: str,
+        meta_summary: MetaSummary,
+        document_signature: str,
+    ) -> None:
+        """
+        Store cached meta-summary with document signature for cache invalidation.
+
+        Args:
+            company_slug: Company slug
+            meta_summary: MetaSummary object to cache
+            document_signature: Hash signature of all document content hashes
+        """
+        try:
+            company = await self.get_company_by_slug(company_slug)
+            now = datetime.now()
+
+            meta_summary_doc = {
+                "company_id": company.id,
+                "company_slug": company_slug,
+                "meta_summary": meta_summary.model_dump(),
+                "document_signature": document_signature,
+                "updated_at": now,
+            }
+
+            # Check if document exists to set created_at appropriately
+            existing = await self.db.meta_summaries.find_one({"company_id": company.id})
+            if existing:
+                meta_summary_doc["created_at"] = existing.get("created_at", now)
+            else:
+                meta_summary_doc["created_at"] = now
+
+            # Use upsert to either insert new or update existing
+            await self.db.meta_summaries.update_one(
+                {"company_id": company.id},
+                {"$set": meta_summary_doc},
+                upsert=True,
+            )
+            logger.info(
+                f"Stored cached meta-summary for company {company_slug} "
+                f"(signature: {document_signature[:16]}...)"
+            )
+        except Exception as e:
+            logger.error(f"Error storing cached meta-summary for {company_slug}: {e}")
+            raise e
+
+    async def invalidate_meta_summary_cache(self, company_slug: str) -> bool:
+        """
+        Invalidate cached meta-summary for a company.
+
+        Args:
+            company_slug: Company slug to invalidate cache for
+
+        Returns:
+            True if cache was invalidated, False if no cache existed
+        """
+        try:
+            company = await self.get_company_by_slug(company_slug)
+            result = await self.db.meta_summaries.delete_one({"company_id": company.id})
+            success = result.deleted_count > 0
+            if success:
+                logger.info(f"Invalidated meta-summary cache for company {company_slug}")
+            return bool(success)
+        except Exception as e:
+            logger.error(f"Error invalidating meta-summary cache for {company_slug}: {e}")
+            return False
 
     async def update_many(self, filter: dict[str, Any], update: dict[str, Any]) -> int:
         """Generic bulk update on companies, hides raw DB access from callers."""
