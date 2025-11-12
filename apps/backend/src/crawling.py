@@ -62,6 +62,8 @@ from src.llm import SupportedModel, acompletion_with_fallback
 from src.services.company_service import company_service
 from src.services.document_service import document_service
 from src.toast_crawler import CrawlResult, ToastCrawler
+from src.utils.llm_usage import usage_tracking
+from src.utils.llm_usage_tracking_mixin import LLMUsageTrackingMixin
 from src.utils.markdown import markdown_to_text
 from src.utils.perf import log_memory_usage, memory_monitor_task
 
@@ -101,7 +103,7 @@ class ProcessingStats(BaseModel):
         )
 
 
-class DocumentAnalyzer:
+class DocumentAnalyzer(LLMUsageTrackingMixin):
     """
     AI-powered document analyzer for locale detection, legal classification, and region analysis.
 
@@ -123,7 +125,8 @@ class DocumentAnalyzer:
             temperature: Sampling temperature for LLM responses
             max_content_length: Maximum content length to send to LLM
         """
-        # Store model_name for potential future use, but we'll use fallback system
+        super().__init__()
+
         self.model_name = model_name
         self.temperature = temperature
         self.max_content_length = max_content_length
@@ -195,14 +198,15 @@ Be specific with locale (include country when possible)."""
         system_prompt = """You are a language detection expert. Analyze text and determine language/locale accurately."""
 
         try:
-            response = await acompletion_with_fallback(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt},
-                ],
-                response_format={"type": "json_object"},
-                temperature=self.temperature,
-            )
+            async with usage_tracking(self._create_usage_tracker("detect_locale")):
+                response = await acompletion_with_fallback(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt},
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=self.temperature,
+                )
 
             result = json.loads(response.choices[0].message.content)
             logger.debug(f"LLM locale detection result: {result}")
@@ -254,14 +258,15 @@ Note: Cookie banners, navigation elements, or links to legal documents don't cou
         system_prompt = """You are a legal document classifier. Identify substantive legal content and categorize accurately."""
 
         try:
-            response = await acompletion_with_fallback(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt},
-                ],
-                response_format={"type": "json_object"},
-                temperature=self.temperature,
-            )
+            async with usage_tracking(self._create_usage_tracker("classify_document")):
+                response = await acompletion_with_fallback(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt},
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=self.temperature,
+                )
 
             result = json.loads(response.choices[0].message.content)
             logger.debug(f"Document classification result: {result}")
@@ -316,14 +321,15 @@ Return JSON:
         system_prompt = """You are a legal geographic scope analyst. Determine document applicability accurately."""
 
         try:
-            response = await acompletion_with_fallback(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt},
-                ],
-                response_format={"type": "json_object"},
-                temperature=self.temperature,
-            )
+            async with usage_tracking(self._create_usage_tracker("detect_regions")):
+                response = await acompletion_with_fallback(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt},
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=self.temperature,
+                )
 
             result = json.loads(response.choices[0].message.content)
 
@@ -399,7 +405,7 @@ Return JSON:
         """
         # Quick extraction from metadata first
         if metadata:
-            for key in ["title", "og:title", "twitter:title"]:
+            for key in ["title", "og:title"]:
                 if key in metadata and metadata[key]:
                     title = metadata[key].strip()
                     if title:
@@ -543,14 +549,15 @@ IMPORTANT: Return null for effective_date if you cannot find a clear effective d
         system_prompt = """You are an expert at extracting effective dates from legal documents. Only return dates that are explicitly stated as effective dates, last updated dates, or similar. Do not guess or infer dates."""
 
         try:
-            response = await acompletion_with_fallback(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt},
-                ],
-                response_format={"type": "json_object"},
-                temperature=self.temperature,
-            )
+            async with usage_tracking(self._create_usage_tracker("extract_effective_date")):
+                response = await acompletion_with_fallback(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt},
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=self.temperature,
+                )
 
             result = json.loads(response.choices[0].message.content)
             effective_date = result.get("effective_date")
@@ -707,13 +714,7 @@ class LegalDocumentPipeline:
         for document in documents:
             try:
                 # Check for existing document
-                # get_document_by_url raises ValueError if not found, which is expected for new documents
-                try:
-                    existing_doc = await document_service.get_document_by_url(document.url)
-                except ValueError:
-                    # Document doesn't exist yet - this is normal, create it
-                    existing_doc = None
-
+                existing_doc = await document_service.get_document_by_url(document.url)
                 if existing_doc:
                     # Calculate content hashes for comparison
                     current_hash = hashlib.sha256(document.text.encode()).hexdigest()
@@ -750,6 +751,9 @@ class LegalDocumentPipeline:
         Returns:
             Document if legal and English, None otherwise
         """
+        self.analyzer.reset_usage_stats()
+        usage_reason = "completed"
+
         try:
             # Convert markdown to plain text for analysis
             text_content = markdown_to_text(result.markdown)
@@ -769,6 +773,7 @@ class LegalDocumentPipeline:
             if "en" not in detected_locale.lower():
                 logger.debug(f"Skipping non-English document: {result.url}")
                 self.stats.non_english_skipped += 1
+                usage_reason = f"non-English locale: {detected_locale}"
                 return None
 
             self.stats.english_documents += 1
@@ -786,6 +791,9 @@ class LegalDocumentPipeline:
             # Skip non-legal documents
             if not classification.get("is_legal_document", False):
                 logger.debug(f"Skipping non-legal document: {result.url}")
+                usage_reason = (
+                    f"non-legal classification: {classification.get('classification', 'unknown')}"
+                )
                 return None
 
             self.stats.legal_documents_processed += 1
@@ -839,11 +847,15 @@ class LegalDocumentPipeline:
                 f"({document.doc_type}, {document.locale}, {document.regions}{effective_date_info})"
             )
 
+            usage_reason = "success"
             return document
 
         except Exception as e:
+            usage_reason = f"error: {e.__class__.__name__}"
             logger.error(f"Failed to process crawl result {result.url}: {e}")
             return None
+        finally:
+            self.analyzer.log_llm_usage(context=result.url, reason=usage_reason)
 
     async def _process_company(self, company: Company) -> list[Document]:
         """

@@ -158,6 +158,7 @@ If information is missing, vague, or unclear, explicitly state this rather than 
 Expected Output Format:
 
 IMPORTANT: Your justifications must show your reasoning process. Explain WHY you assigned each score based on specific evidence from the document. Cite examples of language or practices that support your assessment.
+Return a JSON object with the following fields:
 
 {{
   "summary": "A detailed yet plain-language explanation of the document's content and impact on the user, based ONLY on information present in the provided document. Structure with clear paragraphs covering: data collection, data usage, data sharing, data retention, user rights, and any notable concerns or safeguards.",
@@ -327,6 +328,8 @@ If information is missing across all documents, explicitly state this (e.g., "No
 Expected Output Format:
 
 IMPORTANT: Your justifications must show your reasoning process. Explain HOW you synthesized information across documents and WHY you assigned each score. Cite specific examples from the documents and note any contradictions.
+
+Return a JSON object with the following fields:
 
 {{
   "summary": "A comprehensive, unified summary that synthesizes information from all provided documents. Structure with clear paragraphs covering: overall data practices, user rights, notable concerns, and key takeaways. If documents contradict each other, note this explicitly.",

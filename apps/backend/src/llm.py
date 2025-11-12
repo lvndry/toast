@@ -4,6 +4,7 @@ from typing import Any, Literal
 from litellm import EmbeddingResponse, ModelResponse, acompletion, completion, embedding
 
 from src.core.logging import get_logger
+from src.utils.llm_usage import track_usage
 
 logger = get_logger(__name__)
 
@@ -22,6 +23,7 @@ SupportedModel = Literal[
     "gpt-5",
     "gpt-5-mini",
     "gpt-5-nano",
+    "gpt-4.1-mini",
     "gpt-4o-mini",
     # gemini
     "gemini-2.5-flash",
@@ -49,6 +51,25 @@ DEFAULT_MODEL_PRIORITY: list[SupportedModel] = [
     "gemini-2.5-flash-lite",
     "gpt-5-nano",
 ]
+
+
+def _sanitize_model_kwargs(model_name: SupportedModel, kwargs: dict[str, Any]) -> dict[str, Any]:
+    """
+    Remove or adjust parameters that are incompatible with a specific model.
+    """
+    sanitized_kwargs = dict(kwargs)
+
+    if model_name in {"gpt-5-mini", "gpt-5-nano"}:
+        temperature = sanitized_kwargs.get("temperature")
+        if temperature is not None and temperature != 1:
+            logger.debug(
+                "Removing unsupported temperature override (%s) for model %s",
+                temperature,
+                model_name,
+            )
+            sanitized_kwargs.pop("temperature", None)
+
+    return sanitized_kwargs
 
 
 def get_model(model_name: SupportedModel) -> Model:
@@ -150,6 +171,10 @@ async def acompletion_with_fallback(
     Tries models in priority order until one succeeds. Each call is independent
     and does not maintain state across calls (thread-safe for concurrent use).
 
+    Usage tracking is automatic via context variables. Set a tracker using:
+    - set_usage_tracker(callback) from src.utils.llm_usage for the current context
+    - usage_tracking(callback) from src.utils.llm_usage as an async context manager
+
     Args:
         messages: List of message dicts for the LLM
         model_priority: Optional list of models to try in order. If None, uses DEFAULT_MODEL_PRIORITY.
@@ -171,15 +196,21 @@ async def acompletion_with_fallback(
         logger.debug(f"Attempting completion with model: {model_name} ({model.model})")
 
         try:
+            call_kwargs = _sanitize_model_kwargs(model_name, kwargs)
             response = await acompletion(
                 model=model.model,
                 api_key=model.api_key,
                 messages=messages,
-                **kwargs,
+                **call_kwargs,
             )
 
             # Success - return immediately
             logger.debug(f"Successfully completed with model: {model_name}")
+
+            # Track usage automatically via context
+            provider_model = getattr(response, "model", None) or model.model
+            track_usage(response, model_name, provider_model)
+
             return response
 
         except Exception as e:
@@ -211,6 +242,9 @@ def completion_with_fallback(
     Tries models in priority order until one succeeds. Each call is independent
     and does not maintain state across calls (thread-safe for concurrent use).
 
+    Usage tracking is automatic via context variables. Set a tracker using:
+    - set_usage_tracker(callback) from src.utils.llm_usage for the current context
+
     Args:
         messages: List of message dicts for the LLM
         model_priority: Optional list of models to try in order. If None, uses DEFAULT_MODEL_PRIORITY.
@@ -232,15 +266,21 @@ def completion_with_fallback(
         logger.debug(f"Attempting completion with model: {model_name} ({model.model})")
 
         try:
+            call_kwargs = _sanitize_model_kwargs(model_name, kwargs)
             response = completion(
                 model=model.model,
                 api_key=model.api_key,
                 messages=messages,
-                **kwargs,
+                **call_kwargs,
             )
 
             # Success - return immediately
             logger.debug(f"Successfully completed with model: {model_name}")
+
+            # Track usage automatically via context
+            provider_model = getattr(response, "model", None) or model.model
+            track_usage(response, model_name, provider_model)
+
             return response
 
         except Exception as e:
