@@ -53,7 +53,7 @@ from datetime import datetime
 from typing import Any, cast
 
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.company import Company
 from src.core.logging import get_logger
@@ -75,7 +75,7 @@ class ProcessingStats(BaseModel):
 
     companies_processed: int = 0
     companies_failed: int = 0
-    failed_company_slugs: list[str] = []
+    failed_company_slugs: list[str] = Field(default_factory=list)
     total_urls_crawled: int = 0
     total_documents_found: int = 0
     legal_documents_processed: int = 0
