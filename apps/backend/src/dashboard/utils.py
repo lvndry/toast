@@ -1,11 +1,13 @@
 import asyncio
 import concurrent.futures
+import os
 import threading
 import warnings
 from collections.abc import Callable, Coroutine, Generator
 from contextlib import contextmanager
 from typing import Any, TypeVar
 
+import aiohttp
 import streamlit as st
 
 from src.core.logging import get_logger
@@ -134,3 +136,70 @@ def run_in_thread_with_warning_suppression(
         except Exception as e:
             logger.error(f"Error in threaded operation: {e}")
             return None
+
+
+def get_streamlit_api_headers() -> dict[str, str]:
+    """Get HTTP headers for Streamlit API requests, including service API key if configured
+
+    Returns:
+        Dictionary of headers to include in API requests
+    """
+    headers: dict[str, str] = {}
+    service_api_key = os.getenv("SERVICE_API_KEY")
+    if service_api_key:
+        headers["X-API-Key"] = service_api_key
+    return headers
+
+
+def get_streamlit_client_session() -> aiohttp.ClientSession:
+    """Create an aiohttp ClientSession with Streamlit API headers pre-configured
+
+    This ensures all API requests from Streamlit include the service API key header
+    when configured. Use this instead of creating ClientSession directly.
+
+    Returns:
+        Configured aiohttp.ClientSession instance
+
+    Example:
+        async with get_streamlit_client_session() as session:
+            async with session.get(url) as response:
+                data = await response.json()
+    """
+    headers = get_streamlit_api_headers()
+    return aiohttp.ClientSession(headers=headers)
+
+
+async def make_api_request(
+    url: str,
+    method: str = "GET",
+    data: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], int]:
+    """Make async HTTP requests with automatic API key handling
+
+    This helper function automatically includes the service API key header
+    (if configured) for all API requests from Streamlit.
+
+    Args:
+        url: The full URL to make the request to
+        method: HTTP method (GET, POST, etc.)
+        data: Optional JSON data to send with POST requests
+
+    Returns:
+        Tuple of (response_json, status_code)
+
+    Example:
+        result, status = await make_api_request("http://localhost:8000/api/endpoint")
+        result, status = await make_api_request("http://localhost:8000/api/endpoint", "POST", {"key": "value"})
+    """
+    async with get_streamlit_client_session() as session:
+        try:
+            if method.upper() == "GET":
+                async with session.get(url) as response:
+                    return await response.json(), response.status
+            elif method.upper() == "POST":
+                async with session.post(url, json=data) as response:
+                    return await response.json(), response.status
+            else:
+                return {"error": f"Unsupported method: {method}"}, 400
+        except Exception as e:
+            return {"error": str(e)}, 500

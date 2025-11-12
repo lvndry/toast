@@ -29,6 +29,7 @@ dependencies = [
     "python-jose[cryptography]>=3.5.0",
     "shortuuid>=1.0.13",
     "streamlit>=1.43.2",
+    "streamlit-tags>=1.2.8",
     "structlog>=25.4.0",
     "supabase>=2.13.0",
     "tenacity>=9.1.2",

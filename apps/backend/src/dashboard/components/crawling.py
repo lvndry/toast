@@ -54,6 +54,83 @@ def run_crawl_async(company: Company) -> ProcessingStats | None:
             return None
 
 
+def run_crawl_all_companies_async(
+    companies: list[Company], max_parallel: int = 2
+) -> dict[str, ProcessingStats | None]:
+    """Run crawling for all companies with optional parallelization
+
+    Args:
+        companies: List of companies to crawl
+        max_parallel: Maximum number of companies to crawl in parallel (default: 2)
+
+    Returns:
+        Dictionary mapping company slugs to their processing stats (or None if failed)
+    """
+    results: dict[str, ProcessingStats | None] = {}
+
+    def run_in_thread() -> dict[str, ProcessingStats | None]:
+        with suppress_streamlit_warnings():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                # Use semaphore to limit parallel execution
+                semaphore = asyncio.Semaphore(max_parallel)
+
+                async def crawl_with_semaphore(
+                    company: Company,
+                ) -> tuple[str, ProcessingStats | None]:
+                    async with semaphore:
+                        try:
+                            pipeline = LegalDocumentPipeline(
+                                max_depth=4,
+                                max_pages=500,
+                                crawler_strategy="bfs",
+                                concurrent_limit=5,
+                                delay_between_requests=1.0,
+                            )
+                            # Process single company - returns list[Document]
+                            documents = await pipeline._process_company(company)
+                            # Create a minimal ProcessingStats for single company
+                            return company.slug, ProcessingStats(
+                                companies_processed=1,
+                                companies_failed=0,
+                                failed_company_slugs=[],
+                                legal_documents_stored=len(documents) if documents else 0,
+                            )
+                        except Exception as e:
+                            # Log error but don't use st.error in thread context
+                            from src.core.logging import get_logger
+
+                            logger = get_logger(__name__)
+                            logger.error(f"Error crawling {company.name}: {str(e)}")
+                            return company.slug, None
+
+                # Create tasks for all companies
+                tasks = [crawl_with_semaphore(company) for company in companies]
+                # Run all tasks
+                crawl_results = loop.run_until_complete(asyncio.gather(*tasks))
+
+                # Convert results to dictionary
+                for slug, stats in crawl_results:
+                    results[slug] = stats
+
+                return results
+            finally:
+                pending_tasks = asyncio.all_tasks(loop)
+                if pending_tasks:
+                    loop.run_until_complete(asyncio.gather(*pending_tasks, return_exceptions=True))
+                loop.close()
+
+    # Run in a separate thread
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(run_in_thread)
+        try:
+            return future.result()
+        except Exception as e:
+            st.error(f"Crawling operation failed: {str(e)}")
+            return {}
+
+
 def show_crawling() -> None:
     st.title("🕷️ Start Crawling")
 
@@ -127,52 +204,105 @@ def show_crawling() -> None:
     st.write("---")
     st.subheader("Start Crawling")
 
+    # Single company crawling section
     st.info(f"""
-    **This will:**
+    **Single Company:**
     • Crawl the base URLs for {selected_company.name}
     • Find and classify legal documents
     • Store discovered documents in the database
     • This process may take several minutes
     """)
 
-    # Start crawling button
-    col1, col2, col3 = st.columns([2, 1, 2])
+    # Start crawling button for single company
+    if st.button("🚀 Start Crawling", type="primary", key="start_crawl_btn"):
+        # Clear any previous crawl session state
+        if "selected_company_for_crawl" in st.session_state:
+            del st.session_state["selected_company_for_crawl"]
 
-    with col2:
-        if st.button("🚀 Start Crawling", type="primary", key="start_crawl_btn"):
-            # Clear any previous crawl session state
-            if "selected_company_for_crawl" in st.session_state:
-                del st.session_state["selected_company_for_crawl"]
+        # Start crawling
+        with st.spinner(f"Crawling {selected_company.name}... This may take several minutes."):
+            # Show progress info
+            progress_placeholder = st.empty()
+            progress_placeholder.info("🔍 Starting crawler...")
 
-            # Start crawling
-            with st.spinner(f"Crawling {selected_company.name}... This may take several minutes."):
-                # Show progress info
-                progress_placeholder = st.empty()
-                progress_placeholder.info("🔍 Starting crawler...")
+            # Run the crawling process
+            processing_stats = run_crawl_async(selected_company)
 
-                # Run the crawling process
-                processing_stats = run_crawl_async(selected_company)
+            if processing_stats is not None:
+                progress_placeholder.empty()
 
-                if processing_stats is not None:
-                    progress_placeholder.empty()
+                # Show results
+                st.success("✅ Crawling completed successfully!")
 
-                    # Show results
-                    st.success("✅ Crawling completed successfully!")
+                if processing_stats:
+                    st.write(
+                        f"**Found {processing_stats.legal_documents_stored} legal documents:**"
+                    )
 
-                    if processing_stats:
-                        st.write(
-                            f"**Found {processing_stats.legal_documents_stored} legal documents:**"
-                        )
-
-                    else:
-                        st.warning("No legal documents were found during the crawl.")
-                        st.info("This could mean:")
-                        st.write("• The websites don't have legal documents")
-                        st.write("• The documents aren't accessible")
-                        st.write("• The classification didn't identify them as legal documents")
                 else:
-                    progress_placeholder.empty()
-                    st.error("Crawling failed. Please check the logs and try again.")
+                    st.warning("No legal documents were found during the crawl.")
+                    st.info("This could mean:")
+                    st.write("• The websites don't have legal documents")
+                    st.write("• The documents aren't accessible")
+                    st.write("• The classification didn't identify them as legal documents")
+            else:
+                progress_placeholder.empty()
+                st.error("Crawling failed. Please check the logs and try again.")
+
+    # All companies crawling section (separate row)
+    st.write("---")
+    st.subheader("Crawl All Companies")
+
+    st.info(f"""
+    **All Companies ({len(companies_with_urls)} companies):**
+    • Crawl all companies with crawl URLs configured
+    • Process up to 2 companies in parallel
+    • This process may take a long time
+    """)
+
+    # Start crawling all companies button
+    if st.button("🚀 Crawl All Companies", type="secondary", key="start_crawl_all_btn"):
+        # Start crawling all companies
+        with st.spinner(
+            f"Crawling {len(companies_with_urls)} companies... This may take a very long time."
+        ):
+            # Show progress info
+            progress_placeholder = st.empty()
+            progress_placeholder.info(
+                f"🔍 Starting crawler for {len(companies_with_urls)} companies..."
+            )
+
+            # Run the crawling process for all companies
+            results = run_crawl_all_companies_async(companies_with_urls, max_parallel=2)
+
+            progress_placeholder.empty()
+
+            # Show results summary
+            successful = sum(1 for stats in results.values() if stats is not None)
+            failed = len(results) - successful
+            total_docs = sum(
+                stats.legal_documents_stored for stats in results.values() if stats is not None
+            )
+
+            if successful > 0:
+                st.success(f"✅ Crawling completed! {successful} companies processed successfully.")
+                st.write(f"**Total legal documents found: {total_docs}**")
+
+                if failed > 0:
+                    st.warning(f"⚠️ {failed} companies failed to crawl.")
+
+                # Show detailed results
+                with st.expander("View detailed results"):
+                    for company in companies_with_urls:
+                        stats = results.get(company.slug)
+                        if stats is not None:
+                            st.write(
+                                f"✅ **{company.name}**: {stats.legal_documents_stored} documents"
+                            )
+                        else:
+                            st.write(f"❌ **{company.name}**: Failed")
+            else:
+                st.error("All companies failed to crawl. Please check the logs and try again.")
 
     # Back to companies button
     st.write("---")

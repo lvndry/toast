@@ -6,7 +6,7 @@ from src.dashboard.utils import run_async
 
 
 def show_embedding() -> None:
-    st.title("🔍 Document Embedding")
+    st.title("🔍 Generate & Store Embeddings")
 
     # Get all companies
     companies = run_async(get_all_companies_isolated())

@@ -60,6 +60,8 @@ class SecurityConfig:
             "CLERK_JWKS_URL",
             "https://calm-squid-68.clerk.accounts.dev/.well-known/jwks.json",
         )
+        # API key for service-to-service authentication (e.g., Streamlit dashboard)
+        self.service_api_key: str | None = os.getenv("SERVICE_API_KEY")
 
 
 class CorsConfig:

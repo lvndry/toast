@@ -2817,6 +2817,18 @@ wheels = [
 ]
 
 [[package]]
+name = "streamlit-tags"
+version = "1.2.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "streamlit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c8/c9/047d5e24f3ca5d31ed8c0ced4ed2e6ac20db5514c7fc814583b0c495e6ee/streamlit_tags-1.2.8.tar.gz", hash = "sha256:9ea46b21f206dc73164e59e3c800a96c863c90af57afde20115f001a6d986583", size = 561247, upload-time = "2021-07-16T17:41:57.503Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/19/56/75000c009c3cdbb960783580dd3b51e1483b3cfa8f2967669fccd4cff894/streamlit_tags-1.2.8-py3-none-any.whl", hash = "sha256:c71b10666f3fce67d8e0b3c089aa50dc48830d310223fb88005b08f157586f95", size = 2678564, upload-time = "2021-07-16T17:41:55.38Z" },
+]
+
+[[package]]
 name = "strenum"
 version = "0.4.15"
 source = { registry = "https://pypi.org/simple" }
@@ -2944,6 +2956,7 @@ dependencies = [
     { name = "python-jose", extra = ["cryptography"] },
     { name = "shortuuid" },
     { name = "streamlit" },
+    { name = "streamlit-tags" },
     { name = "structlog" },
     { name = "supabase" },
     { name = "tenacity" },
@@ -2986,6 +2999,7 @@ requires-dist = [
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.5.0" },
     { name = "shortuuid", specifier = ">=1.0.13" },
     { name = "streamlit", specifier = ">=1.43.2" },
+    { name = "streamlit-tags", specifier = ">=1.2.8" },
     { name = "structlog", specifier = ">=25.4.0" },
     { name = "supabase", specifier = ">=2.13.0" },
     { name = "tenacity", specifier = ">=9.1.2" },

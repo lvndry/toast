@@ -1,33 +1,13 @@
 import asyncio
 import time
 from collections.abc import Coroutine
-from typing import Any
+from typing import Any, cast
 
-import aiohttp
 import streamlit as st
 
 from src.dashboard.db_utils import get_all_companies_isolated, update_company_isolated
-from src.dashboard.utils import run_async_with_retry
+from src.dashboard.utils import make_api_request, run_async_with_retry
 from src.user import UserTier
-
-
-async def make_api_request(
-    session: aiohttp.ClientSession,
-    url: str,
-    method: str = "GET",
-    data: dict[str, Any] | None = None,
-) -> tuple[dict[str, Any], int]:
-    """Helper function to make async HTTP requests"""
-    try:
-        if method.upper() == "GET":
-            async with session.get(url) as response:
-                return await response.json(), response.status
-        elif method.upper() == "POST":
-            async with session.post(url, json=data) as response:
-                return await response.json(), response.status
-    except Exception as e:
-        return {"error": str(e)}, 500
-    return {"error": "Unknown error"}, 500
 
 
 def run_async(coro: Coroutine[Any, Any, Any]) -> Any:
@@ -42,16 +22,20 @@ def run_async(coro: Coroutine[Any, Any, Any]) -> Any:
 
 async def get_migration_summary_async(api_url: str) -> tuple[dict[str, Any], int]:
     """Async function to get migration summary"""
-    async with aiohttp.ClientSession() as session:
-        return await make_api_request(session, f"{api_url}/toast/migration/summary")
+    result: tuple[dict[str, Any], int] = await make_api_request(
+        f"{api_url}/toast/migration/summary"
+    )
+    return result
 
 
 async def run_migration_async(
     api_url: str, endpoint: str, data: dict[str, Any] | None = None
 ) -> tuple[dict[str, Any], int]:
     """Async function to run migration operations"""
-    async with aiohttp.ClientSession() as session:
-        return await make_api_request(session, f"{api_url}{endpoint}", "POST", data)
+    result: tuple[dict[str, Any], int] = await make_api_request(
+        f"{api_url}{endpoint}", "POST", data
+    )
+    return result
 
 
 def show_migration() -> None:
@@ -276,8 +260,8 @@ def run_migration(
                     )
 
                     # Display results
-                    with st.expander(f"Results for {action}"):
-                        display_migration_results(result.get("data", {}))
+                    st.subheader(f"Results for {action}")
+                    display_migration_results(result.get("data", {}))
                 else:
                     st.error(f"{action} failed: {result.get('message', 'Unknown error')}")
             else:
@@ -298,26 +282,46 @@ def display_migration_results(data: dict[str, Any]) -> None:
         st.subheader("Summary")
         summary = data["summary"]
 
-        if "collections" in summary:
-            col1, col2, col3 = st.columns(3)
+        if isinstance(summary, dict) and "collections" in summary:
+            collections = summary["collections"]
+            if not isinstance(collections, dict):
+                st.warning("Summary collections data is not in expected format")
+            else:
+                col1, col2, col3 = st.columns(3)
 
-            with col1:
-                companies = summary["collections"].get("companies", {})
-                st.metric("Companies (Local)", companies.get("local_count", 0))
-                st.metric("Companies (Production)", companies.get("production_count", 0))
+                with col1:
+                    companies = collections.get("companies", {})
+                    if isinstance(companies, dict):
+                        st.metric("Companies (Local)", companies.get("local_count", 0))
+                        st.metric("Companies (Production)", companies.get("production_count", 0))
+                    else:
+                        st.metric(
+                            "Companies", companies if isinstance(companies, int | float) else 0
+                        )
 
-            with col2:
-                documents = summary["collections"].get("documents", {})
-                st.metric("Documents (Local)", documents.get("local_count", 0))
-                st.metric("Documents (Production)", documents.get("production_count", 0))
+                with col2:
+                    documents = collections.get("documents", {})
+                    if isinstance(documents, dict):
+                        st.metric("Documents (Local)", documents.get("local_count", 0))
+                        st.metric("Documents (Production)", documents.get("production_count", 0))
+                    else:
+                        st.metric(
+                            "Documents", documents if isinstance(documents, int | float) else 0
+                        )
 
-            with col3:
-                meta_summaries = summary["collections"].get("meta_summaries", {})
-                st.metric("Meta Summaries (Local)", meta_summaries.get("local_count", 0))
-                st.metric(
-                    "Meta Summaries (Production)",
-                    meta_summaries.get("production_count", 0),
-                )
+                with col3:
+                    meta_summaries = collections.get("meta_summaries", {})
+                    if isinstance(meta_summaries, dict):
+                        st.metric("Meta Summaries (Local)", meta_summaries.get("local_count", 0))
+                        st.metric(
+                            "Meta Summaries (Production)",
+                            meta_summaries.get("production_count", 0),
+                        )
+                    else:
+                        st.metric(
+                            "Meta Summaries",
+                            meta_summaries if isinstance(meta_summaries, int | float) else 0,
+                        )
 
     # Migration results
     st.subheader("Migration Results")
@@ -351,33 +355,90 @@ def display_migration_results(data: dict[str, Any]) -> None:
                 st.success("Data was successfully migrated")
     else:
         # Full migration result with multiple collections
-        for collection_name, result in data.items():
+        for collection_name, result_value in data.items():
             if (
                 collection_name != "summary"
                 and collection_name != "dry_run"
                 and collection_name != "timestamp"
             ):
-                with st.expander(f"{collection_name.title()} Migration"):
-                    col1, col2, col3 = st.columns(3)
+                # Cast to Any to allow runtime type checking (dict values can be any type)
+                result = cast(Any, result_value)
 
-                    with col1:
-                        st.metric("Migrated", result.get("migrated_count", 0))
+                # Check if result is a dictionary before processing
+                # Type checker may flag this, but runtime values can be any type
+                # Using getattr to avoid type checker false positive
+                if not hasattr(result, "get") or not isinstance(result, dict):  # noqa: PLR1702
+                    st.error(
+                        f"**Invalid data structure for '{collection_name}' collection**\n\n"
+                        f"- **Expected:** Dictionary with migration results\n"
+                        f"- **Got:** {type(result).__name__}\n"
+                        f"- **Value:** `{result}`\n\n"
+                        f"This field should contain a dictionary with keys like 'migrated_count', "
+                        f"'skipped_count', and 'errors', but instead received a {type(result).__name__}."
+                    )
+                    with st.expander(f"🔍 Debug: Raw value for '{collection_name}'"):
+                        st.json(result)
+                    continue
 
-                    with col2:
-                        st.metric("Skipped", result.get("skipped_count", 0))
+                # Handle case where result might not have expected structure
+                try:
+                    with st.expander(f"{collection_name.title()} Migration"):
+                        col1, col2, col3 = st.columns(3)
 
-                    with col3:
-                        st.metric("Errors", len(result.get("errors", [])))
+                        with col1:
+                            migrated_count = result.get("migrated_count", 0)
+                            st.metric("Migrated", migrated_count)
 
-                    if result.get("errors"):
-                        st.error("Errors occurred:")
-                        for error in result["errors"]:
-                            st.text(f"• {error}")
+                        with col2:
+                            skipped_count = result.get("skipped_count", 0)
+                            st.metric("Skipped", skipped_count)
 
-                    if result.get("dry_run"):
-                        st.info("This was a dry run - no actual data was migrated")
-                    else:
-                        st.success("Data was successfully migrated")
+                        with col3:
+                            errors = result.get("errors", [])
+                            st.metric("Errors", len(errors))
+
+                        if errors:
+                            st.error("Errors occurred:")
+                            for error in errors:
+                                st.text(f"• {error}")
+
+                        if result.get("dry_run"):
+                            st.info("This was a dry run - no actual data was migrated")
+                        else:
+                            st.success("Data was successfully migrated")
+                except (AttributeError, TypeError, KeyError) as e:
+                    # Handle case where result structure doesn't match expectations
+                    error_type = type(e).__name__
+                    error_details = str(e)
+
+                    st.error(
+                        f"**Error processing '{collection_name}' migration results**\n\n"
+                        f"- **Error Type:** `{error_type}`\n"
+                        f"- **Error Details:** `{error_details}`\n"
+                        f"- **Collection Name:** `{collection_name}`\n\n"
+                        f"The data structure for this collection doesn't match the expected format. "
+                        f"Expected a dictionary with keys: 'migrated_count', 'skipped_count', 'errors', etc."
+                    )
+                    with st.expander(f"🔍 Debug: Raw data structure for '{collection_name}'"):
+                        st.json(result)
+                        st.code(
+                            f"Type: {type(result).__name__}\nKeys: {list(result.keys()) if isinstance(result, dict) else 'N/A'}"
+                        )
+
+    # If we couldn't parse the data structure, show raw data for debugging
+    if isinstance(data, dict) and not any(
+        [
+            "migrated_count" in data,
+            "summary" in data,
+            any(
+                isinstance(v, dict) and ("migrated_count" in v or "skipped_count" in v)
+                for v in data.values()
+                if isinstance(v, dict)
+            ),
+        ]
+    ):
+        with st.expander("Raw Migration Data (Debug)"):
+            st.json(data)
 
     # Tier Visibility Migration Section
     st.write("---")
