@@ -82,9 +82,9 @@ class Document(BaseModel):
     markdown: str
     text: str
     metadata: dict[str, Any] = Field(default_factory=dict)
-    versions: list[dict[str, Any]] = []
+    versions: list[dict[str, Any]] = Field(default_factory=list)
     analysis: DocumentAnalysis | None = None
     locale: str | None = None
-    regions: list[Region] = []
+    regions: list[Region] = Field(default_factory=list)
     effective_date: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.now)
