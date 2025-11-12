@@ -79,8 +79,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return None
 
     def _authenticate_service_api_key(self, request: Request) -> dict[str, Any] | None:
-        """Authenticate using service API key from X-API-Key header"""
-        api_key_header = request.headers.get("X-API-Key", "")
+        """Authenticate using service API key from X-TOAST-API-KEY header"""
+        api_key_header = request.headers.get("X-TOAST-API-KEY", "")
         if not api_key_header:
             return None
 

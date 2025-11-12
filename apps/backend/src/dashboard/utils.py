@@ -147,7 +147,7 @@ def get_streamlit_api_headers() -> dict[str, str]:
     headers: dict[str, str] = {}
     service_api_key = os.getenv("SERVICE_API_KEY")
     if service_api_key:
-        headers["X-API-Key"] = service_api_key
+        headers["X-TOAST-API-KEY"] = service_api_key
     return headers
 
 
