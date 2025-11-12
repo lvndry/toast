@@ -31,14 +31,55 @@ def run_crawl_async(company: Company) -> ProcessingStats | None:
                 # Process single company and return documents
                 result = loop.run_until_complete(pipeline.run([company]))
 
-                # Wait for any remaining tasks to complete
-                pending_tasks = asyncio.all_tasks(loop)
-                if pending_tasks:
-                    loop.run_until_complete(asyncio.gather(*pending_tasks))
+                # CRITICAL: Wait until ALL tasks are truly complete before closing the loop
+                # This includes all database operations that may be pending
+                max_wait_seconds = 10
+                wait_interval = 0.1
+                max_iterations = int(max_wait_seconds / wait_interval)
+
+                for _ in range(max_iterations):
+                    # Get all pending tasks (excluding the current gather task if any)
+                    all_tasks = asyncio.all_tasks(loop)
+                    pending_tasks = [t for t in all_tasks if not t.done()]
+
+                    if not pending_tasks:
+                        # All tasks are done, wait one more cycle to ensure no new tasks spawn
+                        loop.run_until_complete(asyncio.sleep(wait_interval))
+                        # Check one more time
+                        all_tasks = asyncio.all_tasks(loop)
+                        pending_tasks = [t for t in all_tasks if not t.done()]
+                        if not pending_tasks:
+                            break
+
+                    # Wait for pending tasks to complete
+                    if pending_tasks:
+                        try:
+                            loop.run_until_complete(
+                                asyncio.gather(*pending_tasks, return_exceptions=True)
+                            )
+                        except Exception:
+                            # If gather fails, continue waiting
+                            pass
+
+                    # Small delay to let the loop process any callbacks
+                    loop.run_until_complete(asyncio.sleep(wait_interval))
+
+                # Final verification: ensure no tasks remain
+                final_tasks = [t for t in asyncio.all_tasks(loop) if not t.done()]
+                if final_tasks:
+                    # Force wait for any remaining tasks
+                    loop.run_until_complete(asyncio.gather(*final_tasks, return_exceptions=True))
 
                 return result
             finally:
-                # Only close the loop after all tasks are done
+                # Only close the loop after we've verified all tasks are complete
+                # Shutdown async generators first
+                try:
+                    loop.run_until_complete(loop.shutdown_asyncgens())
+                except Exception:
+                    pass
+
+                # Close the loop - all operations should be complete by now
                 loop.close()
 
     # Run in a separate thread to avoid any event loop conflicts
@@ -116,9 +157,53 @@ def run_crawl_all_companies_async(
 
                 return results
             finally:
-                pending_tasks = asyncio.all_tasks(loop)
-                if pending_tasks:
-                    loop.run_until_complete(asyncio.gather(*pending_tasks, return_exceptions=True))
+                # CRITICAL: Wait until ALL tasks are truly complete before closing the loop
+                # This includes all database operations that may be pending
+                max_wait_seconds = 10
+                wait_interval = 0.1
+                max_iterations = int(max_wait_seconds / wait_interval)
+
+                for _ in range(max_iterations):
+                    # Get all pending tasks
+                    all_tasks = asyncio.all_tasks(loop)
+                    pending_tasks = [t for t in all_tasks if not t.done()]
+
+                    if not pending_tasks:
+                        # All tasks are done, wait one more cycle to ensure no new tasks spawn
+                        loop.run_until_complete(asyncio.sleep(wait_interval))
+                        # Check one more time
+                        all_tasks = asyncio.all_tasks(loop)
+                        pending_tasks = [t for t in all_tasks if not t.done()]
+                        if not pending_tasks:
+                            break
+
+                    # Wait for pending tasks to complete
+                    if pending_tasks:
+                        try:
+                            loop.run_until_complete(
+                                asyncio.gather(*pending_tasks, return_exceptions=True)
+                            )
+                        except Exception:
+                            # If gather fails, continue waiting
+                            pass
+
+                    # Small delay to let the loop process any callbacks
+                    loop.run_until_complete(asyncio.sleep(wait_interval))
+
+                # Final verification: ensure no tasks remain
+                final_tasks = [t for t in asyncio.all_tasks(loop) if not t.done()]
+                if final_tasks:
+                    # Force wait for any remaining tasks
+                    loop.run_until_complete(asyncio.gather(*final_tasks, return_exceptions=True))
+
+                # Only close the loop after we've verified all tasks are complete
+                # Shutdown async generators first
+                try:
+                    loop.run_until_complete(loop.shutdown_asyncgens())
+                except Exception:
+                    pass
+
+                # Close the loop - all operations should be complete by now
                 loop.close()
 
     # Run in a separate thread

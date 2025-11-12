@@ -28,18 +28,18 @@ class DocumentService(BaseService):
         documents: list[Document] = await self.db.documents.find().to_list(length=None)
         return [Document(**document) for document in documents]
 
-    async def get_document_by_id(self, document_id: str) -> Document:
+    async def get_document_by_id(self, document_id: str) -> Document | None:
         """Get a document by its ID."""
         document = await self.db.documents.find_one({"id": document_id})
         if not document:
-            raise ValueError(f"Document with id {document_id} not found")
+            return None
         return Document(**document)
 
-    async def get_document_by_url(self, url: str) -> Document:
+    async def get_document_by_url(self, url: str) -> Document | None:
         """Get a document by its URL."""
         document = await self.db.documents.find_one({"url": url})
         if not document:
-            raise ValueError(f"Document with url {url} not found")
+            return None
         return Document(**document)
 
     async def get_company_documents(self, company_id: str) -> list[Document]:
