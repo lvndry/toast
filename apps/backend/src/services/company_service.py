@@ -92,7 +92,6 @@ class CompanyService(BaseService):
                 {"id": {"$in": company_ids_with_docs}},
                 {"_id": 0},
             ).to_list(length=None)
-            logger.info("companies with docs", companies=companies)
             logger.info(f"Found {len(companies)} companies with documents")
             return [Company(**company) for company in companies]
         else:

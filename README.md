@@ -108,6 +108,9 @@ cd apps/frontend && bun run dev
 
 ## 🤝 Contributing
 
+Contributions are welcomed!
+Please look at the [Product Roadmap](PRODUCT_ROADMAP.md) to know what features you could work on.
+
 For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 📄 License

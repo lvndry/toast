@@ -21,8 +21,9 @@ export async function GET(request: NextRequest) {
     }>(`${apiEndpoints.companies()}/${slug}`, { method: "GET" });
 
     if (!company.logo && company.domains) {
+      const domain = company.domains[0];
       return NextResponse.json({
-        logo: `https://logo.clearbit.com/${company.domains[0]}`,
+        logo: `/api/logo/${domain}`,
       });
     }
 
