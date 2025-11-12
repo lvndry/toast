@@ -95,6 +95,12 @@
   "python.analysis.diagnosticMode": "workspace",
   "python.linting.enabled": true,
   "python.linting.ruffEnabled": true,
+  "python.linting.mypyEnabled": true,
+  "python.linting.mypyPath": "${workspaceFolder}/apps/backend/.venv/bin/mypy",
+  "python.linting.mypyArgs": [
+    "--config-file",
+    "${workspaceFolder}/apps/backend/pyproject.toml"
+  ],
   "python.formatting.provider": "none",
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
