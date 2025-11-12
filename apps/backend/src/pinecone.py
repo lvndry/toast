@@ -1,7 +1,6 @@
 import os
 
 from pinecone import Pinecone, ServerlessSpec
-
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
