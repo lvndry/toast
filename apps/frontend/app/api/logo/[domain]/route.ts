@@ -14,14 +14,50 @@ export async function GET(
       );
     }
 
-    // Fetch the logo from Clearbit server-side
-    const clearbitUrl = `https://logo.clearbit.com/${domain}`;
-    const response = await fetch(clearbitUrl);
+    const logoDevToken = process.env.LOGO_DEV_PUBLIC_KEY;
+    const logoSources: string[] = [];
 
-    if (!response.ok) {
+    // Add Logo.dev if token is available
+    if (logoDevToken) {
+      logoSources.push(`https://img.logo.dev/${domain}?token=${logoDevToken}`);
+    }
+
+    if (logoSources.length === 0) {
       return NextResponse.json(
-        { error: `Failed to fetch logo: ${response.statusText}` },
-        { status: response.status },
+        {
+          error:
+            "Logo.dev Public Key not configured. Set LOGO_DEV_PUBLIC_KEY environment variable.",
+        },
+        { status: 500 },
+      );
+    }
+
+    let response: Response | null = null;
+    let lastError: Error | null = null;
+
+    for (const logoUrl of logoSources) {
+      try {
+        response = await fetch(logoUrl, {
+          headers: {
+            Accept: "image/*",
+          },
+        });
+
+        if (response.ok) {
+          break;
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        continue;
+      }
+    }
+
+    if (!response || !response.ok) {
+      return NextResponse.json(
+        {
+          error: `Failed to fetch logo: ${response?.statusText || lastError?.message || "Unknown error"}`,
+        },
+        { status: response?.status || 500 },
       );
     }
 
@@ -38,7 +74,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Error proxying Clearbit logo:", error);
+    console.error("Error proxying logo:", error);
     return NextResponse.json(
       { error: `Failed to proxy logo: ${error}` },
       { status: 500 },
