@@ -753,6 +753,7 @@ class LegalDocumentPipeline:
         """
         self.analyzer.reset_usage_stats()
         usage_reason = "completed"
+        document: Document | None = None
 
         try:
             # Convert markdown to plain text for analysis
@@ -855,7 +856,20 @@ class LegalDocumentPipeline:
             logger.error(f"Failed to process crawl result {result.url}: {e}")
             return None
         finally:
-            self.analyzer.log_llm_usage(context=result.url, reason=usage_reason)
+            # Extract document info if available (document may not exist if processing failed)
+            document_id = document.id if document else None
+            document_title = document.title if document else None
+
+            self.analyzer.log_llm_usage(
+                context=result.url,
+                reason=usage_reason,
+                operation_type="crawl",
+                company_slug=company.slug,
+                company_id=company.id,
+                document_url=result.url,
+                document_title=document_title,
+                document_id=document_id,
+            )
 
     async def _process_company(self, company: Company) -> list[Document]:
         """

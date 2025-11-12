@@ -157,8 +157,14 @@ If information is missing, vague, or unclear, explicitly state this rather than 
 
 Expected Output Format:
 
+CRITICAL JSON FORMATTING REQUIREMENTS:
+- ALL numeric scores MUST be integers (whole numbers), NEVER decimals or floats
+  - CORRECT: {{"GDPR": 8, "CCPA": 7}} or {{"GDPR": 8}} or null
+  - WRONG: {{"GDPR": 8.5, "CCPA": null}} or {{"GDPR": null, "LGPD": null}}
+
 IMPORTANT: Your justifications must show your reasoning process. Explain WHY you assigned each score based on specific evidence from the document. Cite examples of language or practices that support your assessment.
-Return a JSON object with the following fields:
+
+Return a JSON object with the following EXACT structure:
 
 {{
   "summary": "A detailed yet plain-language explanation of the document's content and impact on the user, based ONLY on information present in the provided document. Structure with clear paragraphs covering: data collection, data usage, data sharing, data retention, user rights, and any notable concerns or safeguards.",

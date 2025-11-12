@@ -16,6 +16,7 @@ from src.prompts.summarizer_prompts import (
     META_SUMMARY_SYSTEM_PROMPT,
 )
 from src.services.document_service import document_service
+from src.utils.llm_usage import UsageTracker, log_usage_summary, usage_tracking
 
 load_dotenv()
 logger = get_logger(__name__)
@@ -249,6 +250,10 @@ Document content:
 
     last_exception: Exception | None = None
 
+    # Set up usage tracking for this document summarization
+    usage_tracker = UsageTracker()
+    tracker_callback = usage_tracker.create_tracker("summarize_document")
+
     for attempt in range(max_retries):
         try:
             logger.debug(
@@ -256,18 +261,19 @@ Document content:
                 f"with models: {model_priority}"
             )
 
-            response = await acompletion_with_fallback(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": DOCUMENT_SUMMARY_SYSTEM_PROMPT,
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                model_priority=model_priority,
-                response_format={"type": "json_object"},
-                temperature=temperature,
-            )
+            async with usage_tracking(tracker_callback):
+                response = await acompletion_with_fallback(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": DOCUMENT_SUMMARY_SYSTEM_PROMPT,
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
+                    model_priority=model_priority,
+                    response_format={"type": "json_object"},
+                    temperature=temperature,
+                )
 
             summary_data = response.choices[0].message.content
             if not summary_data:
@@ -291,6 +297,21 @@ Document content:
                 logger.info(
                     f"Successfully summarized document {document.id} (hash: {content_hash[:8]}...)"
                 )
+
+                # Log LLM usage for this document summarization (success case)
+                summary, records = usage_tracker.consume_summary()
+                log_usage_summary(
+                    summary,
+                    records,
+                    context=f"document_{document.id}",
+                    reason="success",
+                    operation_type="summarization",
+                    company_id=document.company_id,
+                    document_id=document.id,
+                    document_url=document.url,
+                    document_title=document.title,
+                )
+
                 return parsed
 
             except Exception as parse_error:
@@ -317,6 +338,21 @@ Document content:
                     verdict="caution",  # Default verdict
                     keypoints=[],
                 )
+
+                # Log LLM usage even for fallback case
+                summary, records = usage_tracker.consume_summary()
+                log_usage_summary(
+                    summary,
+                    records,
+                    context=f"document_{document.id}",
+                    reason="parsing_fallback",
+                    operation_type="summarization",
+                    company_id=document.company_id,
+                    document_id=document.id,
+                    document_url=document.url,
+                    document_title=document.title,
+                )
+
                 return parsed_fallback
 
         except Exception as e:
@@ -332,7 +368,20 @@ Document content:
                 await asyncio.sleep(wait_time)
             continue
 
-    # All retries failed
+    # All retries failed - log usage even on failure
+    summary, records = usage_tracker.consume_summary()
+    log_usage_summary(
+        summary,
+        records,
+        context=f"document_{document.id}",
+        reason="failed",
+        operation_type="summarization",
+        company_id=document.company_id,
+        document_id=document.id,
+        document_url=document.url,
+        document_title=document.title,
+    )
+
     logger.error(
         f"Failed to summarize document {document.id} after {max_retries} attempts: {last_exception}"
     )
@@ -393,25 +442,53 @@ Your task is to create a clear and accessible summary of the following document 
 {document_summaries}
 """
 
+    # Set up usage tracking for meta-summary generation
+    usage_tracker = UsageTracker()
+    tracker_callback = usage_tracker.create_tracker("generate_meta_summary")
+
     try:
-        response = await acompletion_with_fallback(
-            messages=[
-                {
-                    "role": "system",
-                    "content": META_SUMMARY_SYSTEM_PROMPT,
-                },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-            response_format={"type": "json_object"},
-            model_priority=["gpt-4o-mini", "gemini-2.5-flash-lite", "mistral-small"],
-        )
+        async with usage_tracking(tracker_callback):
+            response = await acompletion_with_fallback(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": META_SUMMARY_SYSTEM_PROMPT,
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,
+                response_format={"type": "json_object"},
+                model_priority=["gpt-4o-mini", "gemini-2.5-flash-lite", "mistral-small"],
+            )
 
         logger.debug(response.choices[0].message.content)
+
+        # Log LLM usage for meta-summary generation (success case)
+        summary, records = usage_tracker.consume_summary()
+        log_usage_summary(
+            summary,
+            records,
+            context=f"company_{company_slug}",
+            reason="success",
+            operation_type="meta_summary",
+            company_slug=company_slug,
+        )
 
         return MetaSummary.model_validate_json(response.choices[0].message.content, strict=False)  # type: ignore
     except Exception as e:
         logger.error(f"Error generating meta-summary: {str(e)}")
+
+        # Log LLM usage even on failure
+        summary, records = usage_tracker.consume_summary()
+        log_usage_summary(
+            summary,
+            records,
+            context=f"company_{company_slug}",
+            reason="failed",
+            operation_type="meta_summary",
+            company_slug=company_slug,
+        )
+
         return MetaSummary(
             summary="",
             scores=MetaSummaryScores(

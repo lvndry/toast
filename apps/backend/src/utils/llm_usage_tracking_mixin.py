@@ -91,13 +91,40 @@ class LLMUsageTrackingMixin:
         summary, records = self.usage_tracker.consume_summary()
         return summary, records
 
-    def log_llm_usage(self, context: str, reason: str | None = None) -> None:
+    def log_llm_usage(
+        self,
+        context: str,
+        reason: str | None = None,
+        operation_type: str | None = None,
+        company_slug: str | None = None,
+        company_id: str | None = None,
+        document_url: str | None = None,
+        document_title: str | None = None,
+        document_id: str | None = None,
+    ) -> None:
         """
         Consolidate and log token usage for LLM calls executed during processing.
 
         Args:
             context: Context identifier (e.g., URL, request ID, operation name)
             reason: Optional reason suffix for the log message
+            operation_type: Type of operation (e.g., "summarization", "crawl", "classify_document")
+            company_slug: Company slug identifier
+            company_id: Company ID identifier
+            document_url: URL of the document being processed
+            document_title: Title of the document
+            document_id: ID of the document
         """
         summary, records = self.consume_usage_summary()
-        log_usage_summary(summary, records, context=context, reason=reason)
+        log_usage_summary(
+            summary,
+            records,
+            context=context,
+            reason=reason,
+            operation_type=operation_type,
+            company_slug=company_slug,
+            company_id=company_id,
+            document_url=document_url,
+            document_title=document_title,
+            document_id=document_id,
+        )

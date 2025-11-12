@@ -5,16 +5,23 @@ Shared utilities for tracking, aggregating, and logging LLM token usage across t
 """
 
 import contextvars
+import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from litellm import ModelResponse
 
+from src.core.config import settings
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+# Module-level file handler and logger for LLM usage logging (dev only)
+_usage_file_handler: logging.FileHandler | None = None
+_usage_file_logger: logging.Logger | None = None
 
 # Context variable for automatic usage tracking
 # Automatically propagates through async/await boundaries
@@ -169,12 +176,140 @@ def format_usage_summary(summary: dict[str, dict[str, Any]], include_providers: 
     return "; ".join(summary_parts)
 
 
+def _get_usage_file_logger() -> logging.Logger | None:
+    """
+    Get or create the file logger for LLM usage logging (dev only).
+
+    Returns:
+        Logger if in development mode, None otherwise
+    """
+    global _usage_file_handler, _usage_file_logger
+
+    # Only create file logger in development mode
+    if not settings.app.is_development:
+        return None
+
+    # Return existing logger if already created
+    if _usage_file_logger is not None:
+        return _usage_file_logger
+
+    try:
+        # Ensure logs directory exists
+        log_dir = Path("logs")
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create file handler with append mode
+        log_file_path = log_dir / "llm_usage.log"
+        _usage_file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
+        _usage_file_handler.setLevel(logging.DEBUG)
+
+        # Use a simple format for file logging
+        formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        _usage_file_handler.setFormatter(formatter)
+
+        # Create logger that uses our file handler
+        _usage_file_logger = logging.getLogger("llm_usage_file")
+        _usage_file_logger.setLevel(logging.DEBUG)
+        _usage_file_logger.addHandler(_usage_file_handler)
+        # Prevent propagation to root logger
+        _usage_file_logger.propagate = False
+
+        logger.debug(f"📝 LLM usage file logging enabled: {log_file_path}")
+        return _usage_file_logger
+    except Exception as e:
+        logger.warning(f"Failed to set up LLM usage file logging: {e}")
+        return None
+
+
+def _write_usage_to_file(
+    summary: dict[str, dict[str, Any]],
+    records: list[LLMUsageRecord],
+    context: str | None = None,
+    reason: str | None = None,
+    operation_type: str | None = None,
+    company_slug: str | None = None,
+    company_id: str | None = None,
+    document_url: str | None = None,
+    document_title: str | None = None,
+    document_id: str | None = None,
+) -> None:
+    """
+    Write LLM usage summary to file with metadata (dev only).
+
+    Args:
+        summary: Usage summary dictionary
+        records: List of usage records
+        context: Context identifier
+        reason: Optional reason suffix
+        operation_type: Type of operation (e.g., "summarization", "crawl", "meta_summary")
+        company_slug: Company slug identifier
+        company_id: Company ID identifier
+        document_url: URL of the document being processed
+        document_title: Title of the document
+        document_id: ID of the document
+    """
+    file_logger = _get_usage_file_logger()
+    if not file_logger:
+        return
+
+    try:
+        # Build metadata dictionary
+        metadata_parts: list[str] = []
+
+        if operation_type:
+            metadata_parts.append(f"operation={operation_type}")
+        if company_slug:
+            metadata_parts.append(f"company_slug={company_slug}")
+        elif company_id:
+            metadata_parts.append(f"company_id={company_id}")
+        if document_id:
+            metadata_parts.append(f"document_id={document_id}")
+        if document_url:
+            metadata_parts.append(f"url={document_url}")
+        if document_title:
+            metadata_parts.append(f"title={document_title}")
+        if reason:
+            metadata_parts.append(f"reason={reason}")
+        if context:
+            metadata_parts.append(f"context={context}")
+
+        metadata_str = " | ".join(metadata_parts) if metadata_parts else ""
+
+        # Write summary line with metadata
+        formatted_summary = format_usage_summary(summary, include_providers=False)
+        if metadata_str:
+            file_logger.info(f"LLM Usage | {metadata_str} | {formatted_summary}")
+        else:
+            file_logger.info(f"LLM Usage | {formatted_summary}")
+
+        # Write detailed records with metadata
+        for record in records:
+            provider_str = f" [{record.provider_model}]" if record.provider_model else ""
+            detail_metadata = f" | {metadata_str}" if metadata_str else ""
+            file_logger.debug(
+                f"LLM Detail | operation={record.operation} model={record.model_name}{provider_str} "
+                f"prompt={record.prompt_tokens} output={record.completion_tokens} "
+                f"total={record.total_tokens}{detail_metadata}"
+            )
+    except Exception as e:
+        logger.warning(f"Failed to write LLM usage to file: {e}")
+
+
 def log_usage_summary(
     summary: dict[str, dict[str, Any]],
     records: list[LLMUsageRecord],
     context: str | None = None,
     reason: str | None = None,
     log_level: str = "info",
+    operation_type: str | None = None,
+    company_slug: str | None = None,
+    company_id: str | None = None,
+    document_url: str | None = None,
+    document_title: str | None = None,
+    document_id: str | None = None,
 ) -> None:
     """
     Log LLM usage summary and detailed records.
@@ -185,6 +320,12 @@ def log_usage_summary(
         context: Context identifier (e.g., URL, request ID, operation name)
         reason: Optional reason suffix for the log message
         log_level: Logging level ("info", "debug", "warning")
+        operation_type: Type of operation (e.g., "summarization", "crawl", "meta_summary", "classify_document")
+        company_slug: Company slug identifier
+        company_id: Company ID identifier
+        document_url: URL of the document being processed
+        document_title: Title of the document
+        document_id: ID of the document
     """
     if not summary:
         if context:
@@ -211,6 +352,20 @@ def log_usage_summary(
             record.completion_tokens,
             record.total_tokens,
         )
+
+    # Write to file in dev mode with metadata
+    _write_usage_to_file(
+        summary,
+        records,
+        context,
+        reason,
+        operation_type,
+        company_slug,
+        company_id,
+        document_url,
+        document_title,
+        document_id,
+    )
 
 
 def aggregate_usage_records(records: list[LLMUsageRecord]) -> dict[str, dict[str, Any]]:

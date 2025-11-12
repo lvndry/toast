@@ -22,9 +22,14 @@ export async function GET(request: NextRequest) {
 
     if (!company.logo && company.domains) {
       const domain = company.domains[0];
-      return NextResponse.json({
-        logo: `/api/logo/${domain}`,
-      });
+
+      const logoDevToken = process.env.LOGO_DEV_PUBLIC_KEY;
+
+      if (logoDevToken) {
+        return NextResponse.json({
+          logo: `https://img.logo.dev/${domain}?token=${logoDevToken}`,
+        });
+      }
     }
 
     return NextResponse.json({ logo: company.logo });
