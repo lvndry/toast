@@ -288,5 +288,5 @@ def show_summarization() -> None:
         # Clear summarization session state and navigate back
         if "selected_company_for_summarization" in st.session_state:
             del st.session_state["selected_company_for_summarization"]
-        st.session_state["current_page"] = "View Companies"
+        st.session_state["current_page"] = "view_companies"
         st.rerun()

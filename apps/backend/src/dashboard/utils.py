@@ -7,7 +7,7 @@ from collections.abc import Callable, Coroutine, Generator
 from contextlib import contextmanager
 from typing import Any, TypeVar
 
-import aiohttp
+import httpx
 import streamlit as st
 
 from src.core.logging import get_logger
@@ -151,22 +151,22 @@ def get_streamlit_api_headers() -> dict[str, str]:
     return headers
 
 
-def get_streamlit_client_session() -> aiohttp.ClientSession:
-    """Create an aiohttp ClientSession with Streamlit API headers pre-configured
+def get_streamlit_client_session() -> httpx.AsyncClient:
+    """Create an httpx AsyncClient with Streamlit API headers pre-configured
 
     This ensures all API requests from Streamlit include the service API key header
-    when configured. Use this instead of creating ClientSession directly.
+    when configured. Use this instead of creating AsyncClient directly.
 
     Returns:
-        Configured aiohttp.ClientSession instance
+        Configured httpx.AsyncClient instance
 
     Example:
-        async with get_streamlit_client_session() as session:
-            async with session.get(url) as response:
-                data = await response.json()
+        async with get_streamlit_client_session() as client:
+            response = await client.get(url)
+            data = response.json()
     """
     headers = get_streamlit_api_headers()
-    return aiohttp.ClientSession(headers=headers)
+    return httpx.AsyncClient(headers=headers)
 
 
 async def make_api_request(
@@ -191,14 +191,14 @@ async def make_api_request(
         result, status = await make_api_request("http://localhost:8000/api/endpoint")
         result, status = await make_api_request("http://localhost:8000/api/endpoint", "POST", {"key": "value"})
     """
-    async with get_streamlit_client_session() as session:
+    async with get_streamlit_client_session() as client:
         try:
             if method.upper() == "GET":
-                async with session.get(url) as response:
-                    return await response.json(), response.status
+                response = await client.get(url)
+                return response.json(), response.status_code
             elif method.upper() == "POST":
-                async with session.post(url, json=data) as response:
-                    return await response.json(), response.status
+                response = await client.post(url, json=data)
+                return response.json(), response.status_code
             else:
                 return {"error": f"Unsupported method: {method}"}, 400
         except Exception as e:

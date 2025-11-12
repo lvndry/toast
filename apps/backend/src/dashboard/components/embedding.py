@@ -172,5 +172,5 @@ def show_embedding() -> None:
         # Clear embedding session state and navigate back
         if "selected_company_for_embedding" in st.session_state:
             del st.session_state["selected_company_for_embedding"]
-        st.session_state["current_page"] = "View Companies"
+        st.session_state["current_page"] = "view_companies"
         st.rerun()

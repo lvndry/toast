@@ -249,7 +249,7 @@ def show_crawling() -> None:
                 progress_placeholder.empty()
                 st.error("Crawling failed. Please check the logs and try again.")
 
-    # All companies crawling section (separate row)
+    # All companies crawling section
     st.write("---")
     st.subheader("Crawl All Companies")
 
@@ -310,5 +310,5 @@ def show_crawling() -> None:
         # Clear crawl session state and navigate back
         if "selected_company_for_crawl" in st.session_state:
             del st.session_state["selected_company_for_crawl"]
-        st.session_state["current_page"] = "View Companies"
+        st.session_state["current_page"] = "view_companies"
         st.rerun()

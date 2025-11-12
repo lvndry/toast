@@ -38,13 +38,35 @@ def main() -> None:
     # Check if we have a current page in session state
     current_page_id = st.session_state.get("current_page", "view_companies")
 
+    # Migration: Handle legacy display names in session state
+    # Map old display names to new page IDs for backward compatibility
+    legacy_page_mapping = {
+        "Create Company": "create_company",
+        "View Companies": "view_companies",
+        "Start Crawling": "start_crawling",
+        "Generate Embeddings": "generate_embeddings",
+        "Generate & Store Embeddings": "generate_embeddings",
+        "Summarization": "summarization",
+        "RAG": "rag",
+        "Migration": "migration",
+        "Settings": "settings",
+    }
+
+    # If current_page_id is a legacy display name, convert it to page ID
+    if current_page_id in legacy_page_mapping:
+        current_page_id = legacy_page_mapping[current_page_id]
+        st.session_state["current_page"] = current_page_id
+
     # Find the index of the current page
     try:
         default_index = next(
             i for i, option in enumerate(page_options) if option["id"] == current_page_id
         )
     except StopIteration:
-        default_index = 1  # Default to "View Companies"
+        # If page ID is invalid, default to "View Companies"
+        default_index = 1
+        current_page_id = "view_companies"
+        st.session_state["current_page"] = current_page_id
 
     # Extract display names for the radio button
     display_names = [option["display_name"] for option in page_options]

@@ -290,7 +290,7 @@ def show_company_view() -> None:
                         if st.button("🕷️ Crawl", key=f"crawl_{company.id}"):
                             # Set the selected company for crawling and navigate to crawl page
                             st.session_state["selected_company_for_crawl"] = company.id
-                            st.session_state["current_page"] = "Start Crawling"
+                            st.session_state["current_page"] = "start_crawling"
                             st.rerun()
                     with col6:
                         if st.button("✏️ Edit", key=f"edit_{company.id}"):
