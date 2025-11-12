@@ -10,7 +10,7 @@ Toast AI transforms complex legal documents into actionable insights using advan
 - **AI-Powered Risk Assessment**: Quantified risk scoring with confidence levels
 - **Compliance Monitoring**: GDPR, CCPA, and regulatory compliance checking
 - **Real-time Processing**: Sub-10-second analysis with async processing
-- **Multi-Model LLM Orchestration**: GPT-4, Claude, and specialized legal models
+- **Multi-Model LLM Orchestration**: Best models from OpenAI, Anthropic, Gemini, xAI,...
 - **Document Comparison**: Side-by-side policy analysis and change tracking
 - **Enterprise Scalability**: Bulk processing and team collaboration features
 
@@ -35,8 +35,9 @@ Toast AI transforms complex legal documents into actionable insights using advan
 - **uv** - Fast Python package manager
 - **MongoDB** - Document storage
 - **Pinecone** - Vector database for embeddings
-- **OpenAI API Key** - GPT-4 access
-- **Anthropic API Key** - Claude access
+- **OpenAI API Key** - GPT-4o and GPT-4o-mini access
+- **Anthropic API Key** - Claude models access
+- **xAI API Key** - Grok models access (optional)
 
 ## 🛠️ Installation
 
@@ -79,6 +80,7 @@ PINECONE_ENVIRONMENT=your_pinecone_environment
 # LLM Services
 OPENAI_API_KEY=your_openai_api_key
 ANTHROPIC_API_KEY=your_anthropic_api_key
+XAI_API_KEY=your_xai_api_key  # Optional, for Grok models
 
 # Authentication
 CLERK_JWKS_URL=https://your-clerk-instance.clerk.accounts.dev/.well-known/jwks.json

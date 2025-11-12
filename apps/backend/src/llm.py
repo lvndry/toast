@@ -18,47 +18,57 @@ class Model:
 
 
 SupportedModel = Literal[
+    # openai
+    "gpt-5",
+    "gpt-5-mini",
+    "gpt-5-nano",
+    "gpt-4o-mini",
+    # gemini
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    # mistral
     "mistral-small",
     "mistral-medium",
-    "gemini-2.0-flash",
-    "gemini-2.5-flash-lite",
+    # voyage
     "voyage-law-2",
-    "openrouter-qwen-3-4b-free",
-    "huggingface-minimax-m2",
-    "gpt-4o-mini",
+    # anthropic
+    "claude-haiku-4-5",
+    "claude-sonnet-4-5",
+    "claude-opus-4-1",
+    "claude-3-7-sonnet",
+    # xai
+    "grok-4-fast-reasoning",
+    "grok-4-fast-non-reasoning",
+    "grok-3-mini",
 ]
 
-# Default model priority list for fallback
 DEFAULT_MODEL_PRIORITY: list[SupportedModel] = [
-    "gpt-4o-mini",
-    "gemini-2.5-flash-lite",
     "mistral-small",
-    "openrouter-qwen-3-4b-free",
-    "huggingface-minimax-m2",
+    "gemini-2.5-flash-lite",
+    "gpt-5-nano",
 ]
 
 
 def get_model(model_name: SupportedModel) -> Model:
-    if "mistral" in model_name:
-        MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-        if not MISTRAL_API_KEY:
-            raise ValueError("MISTRAL_API_KEY is not set")
+    # OpenAI models (gpt-*)
+    if model_name.startswith("gpt"):
+        OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is not set")
 
-        model_mapping = {
-            "mistral-small": "mistral/mistral-small-latest",
-            "mistral-medium": "mistral/mistral-medium-latest",
-        }
-
-        full_model = model_mapping.get(model_name, f"mistral/{model_name}")
         return Model(
-            model=full_model,
-            api_key=MISTRAL_API_KEY,
+            model=model_name,
+            api_key=OPENAI_API_KEY,
         )
-    elif "gemini" in model_name:
+    # Gemini models (gemini-*)
+    elif model_name.startswith("gemini"):
         GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
         if not GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY is not set")
 
+        # Use mapping for known models, fallback to gemini/{model_name} format
         model_mapping = {
             "gemini-2.0-flash": "gemini/gemini-2.0-flash",
             "gemini-2.5-flash-lite": "gemini/gemini-2.5-flash-lite",
@@ -69,41 +79,61 @@ def get_model(model_name: SupportedModel) -> Model:
             model=full_model,
             api_key=GEMINI_API_KEY,
         )
-    elif model_name == "voyage-law-2":
+    # Anthropic models (claude-*)
+    elif model_name.startswith("claude"):
+        ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+        if not ANTHROPIC_API_KEY:
+            raise ValueError("ANTHROPIC_API_KEY is not set")
+
+        # Use mapping for models that need specific version suffixes
+        model_mapping = {
+            "claude-3-5-sonnet": "claude-3-5-sonnet-20241022",
+            "claude-3-opus": "claude-3-opus-20240229",
+            "claude-3-sonnet": "claude-3-sonnet-20240229",
+            "claude-3-haiku": "claude-3-haiku-20240307",
+        }
+
+        full_model = model_mapping.get(model_name, model_name)
+        return Model(
+            model=full_model,
+            api_key=ANTHROPIC_API_KEY,
+        )
+    # XAI models (grok-*)
+    elif model_name.startswith("grok"):
+        XAI_API_KEY = os.getenv("XAI_API_KEY")
+        if not XAI_API_KEY:
+            raise ValueError("XAI_API_KEY is not set")
+
+        return Model(
+            model=f"xai/{model_name}",
+            api_key=XAI_API_KEY,
+        )
+    # Mistral models (mistral-*)
+    elif model_name.startswith("mistral"):
+        MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+        if not MISTRAL_API_KEY:
+            raise ValueError("MISTRAL_API_KEY is not set")
+
+        # Use mapping for known models, fallback to mistral/{model_name} format
+        model_mapping = {
+            "mistral-small": "mistral/mistral-small-latest",
+            "mistral-medium": "mistral/mistral-medium-latest",
+        }
+
+        full_model = model_mapping.get(model_name, f"mistral/{model_name}")
+        return Model(
+            model=full_model,
+            api_key=MISTRAL_API_KEY,
+        )
+    # Voyage models (voyage-*)
+    elif model_name.startswith("voyage"):
         VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
         if not VOYAGE_API_KEY:
             raise ValueError("VOYAGE_API_KEY is not set")
 
         return Model(
-            model="voyage/voyage-law-2",
+            model=f"voyage/{model_name}",
             api_key=VOYAGE_API_KEY,
-        )
-    elif model_name == "openrouter-qwen-3-4b-free":
-        OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-        if not OPENROUTER_API_KEY:
-            raise ValueError("OPENROUTER_API_KEY is not set")
-
-        return Model(
-            model="openrouter/qwen/qwen3-4b:free",
-            api_key=OPENROUTER_API_KEY,
-        )
-    elif model_name == "huggingface-minimax-m2":
-        HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
-        if not HUGGINGFACE_API_KEY:
-            raise ValueError("HUGGINGFACE_API_KEY is not set")
-
-        return Model(
-            model="huggingface/MiniMaxAI/MiniMax-M2",
-            api_key=HUGGINGFACE_API_KEY,
-        )
-    elif model_name == "gpt-4o-mini":
-        OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-        if not OPENAI_API_KEY:
-            raise ValueError("OPENAI_API_KEY is not set")
-
-        return Model(
-            model="gpt-4o-mini",
-            api_key=OPENAI_API_KEY,
         )
     else:
         raise ValueError(f"Unsupported model: {model_name}")

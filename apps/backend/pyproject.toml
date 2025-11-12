@@ -64,10 +64,17 @@ select = [
 ignore = ["E501", "B008"]
 
 [tool.ruff.lint.flake8-bugbear]
-extend-immutable-calls = ["fastapi.Depends", "fastapi.params.Depends", "fastapi.Query", "fastapi.params.Query"]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.params.Depends",
+    "fastapi.Query",
+    "fastapi.params.Query",
+]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["E712"]  # Allow explicit boolean comparisons in tests for clarity
+"tests/**/*.py" = [
+    "E712",
+] # Allow explicit boolean comparisons in tests for clarity
 
 [tool.mypy]
 python_version = "3.11"
@@ -96,12 +103,12 @@ disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = [
-  "cryptography.*",
-  "pymongo.*",
-  "motor.*",
-  "supabase.*",
-  "httpx.*",
-  "httpcore.*",
+    "cryptography.*",
+    "pymongo.*",
+    "motor.*",
+    "supabase.*",
+    "httpx.*",
+    "httpcore.*",
 ]
 ignore_errors = true
 disallow_untyped_defs = false
