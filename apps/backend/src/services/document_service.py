@@ -65,6 +65,16 @@ class DocumentService(BaseService):
             document_dict = document.model_dump()
             await self.db.documents.insert_one(document_dict)
             logger.info(f"Stored document {document.id} for company {document.company_id}")
+            # Invalidate meta-summary cache for this company when new document is added
+            try:
+                company = await company_service.get_company_by_id(document.company_id)
+                await company_service.invalidate_meta_summary_cache(company.slug)
+                logger.debug(f"Invalidated meta-summary cache for company {company.slug}")
+            except Exception as cache_error:
+                # Don't fail document storage if cache invalidation fails
+                logger.warning(
+                    f"Failed to invalidate cache for document {document.id}: {cache_error}"
+                )
             return document
         except Exception as e:
             logger.error(f"Error storing document {document.id}: {e}")
@@ -79,6 +89,16 @@ class DocumentService(BaseService):
             success = result.modified_count > 0
             if success:
                 logger.info(f"Updated document {document.id}")
+                # Invalidate meta-summary cache for this company when document changes
+                try:
+                    company = await company_service.get_company_by_id(document.company_id)
+                    await company_service.invalidate_meta_summary_cache(company.slug)
+                    logger.debug(f"Invalidated meta-summary cache for company {company.slug}")
+                except Exception as cache_error:
+                    # Don't fail document update if cache invalidation fails
+                    logger.warning(
+                        f"Failed to invalidate cache for document {document.id}: {cache_error}"
+                    )
             else:
                 logger.warning(f"No document found with id {document.id} to update")
             return bool(success)
@@ -89,10 +109,25 @@ class DocumentService(BaseService):
     async def delete_document(self, document_id: str) -> bool:
         """Delete a document from the database."""
         try:
+            # Get document first to get company_id for cache invalidation
+            document = await self.get_document_by_id(document_id)
+            company_id = document.company_id if document else None
+
             result = await self.db.documents.delete_one({"id": document_id})
             success = result.deleted_count > 0
             if success:
                 logger.info(f"Deleted document {document_id}")
+                # Invalidate meta-summary cache for this company when document is deleted
+                if company_id:
+                    try:
+                        company = await company_service.get_company_by_id(company_id)
+                        await company_service.invalidate_meta_summary_cache(company.slug)
+                        logger.debug(f"Invalidated meta-summary cache for company {company.slug}")
+                    except Exception as cache_error:
+                        # Don't fail document deletion if cache invalidation fails
+                        logger.warning(
+                            f"Failed to invalidate cache for document {document_id}: {cache_error}"
+                        )
             else:
                 logger.warning(f"No document found with id {document_id} to delete")
             return bool(success)
