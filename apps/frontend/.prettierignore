@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.next/
+dist/
+build/
+
+# Generated files
+*.min.js
+*.min.css
+tsconfig.tsbuildinfo
+
+# Lock files
+bun.lock
+package-lock.json
+yarn.lock
+
+# Environment files
+.env*
+!.env.example
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Public assets (images, etc.)
+public/static/

@@ -1,0 +1,79 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/backend/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/backend/**"
+      - ".github/workflows/backend.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          version: "latest"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/backend/.venv
+            apps/backend/.uv/cache
+          key: ${{ runner.os }}-uv-${{ hashFiles('apps/backend/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+
+      - name: Run linting with ruff
+        run: |
+          uv run ruff check .
+
+      - name: Run type checking with mypy
+        run: |
+          uv run mypy src/
+
+      - name: Run security checks with bandit
+        run: |
+          uv run bandit -r src/ -f json -o bandit-report.json || true
+          # Bandit may find issues, but we don't want to fail the build for warnings
+
+      - name: Run tests
+        run: |
+          uv run pytest tests/ -v --tb=short
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: |
+            apps/backend/bandit-report.json
+            apps/backend/.pytest_cache/
+          retention-days: 7

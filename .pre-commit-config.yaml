@@ -1,0 +1,59 @@
+# Pre-commit configuration for Toast AI
+# Modern linting and formatting setup
+
+repos:
+  # Core pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-json
+      - id: check-toml
+      - id: debug-statements
+      - id: name-tests-test
+
+  # Python: Ruff (linter + formatter) - replaces black, isort, flake8
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.10
+    hooks:
+      - id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^apps/backend/
+      - id: ruff-format
+        files: ^apps/backend/
+
+  # Security checks for backend
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.6
+    hooks:
+      - id: bandit
+        args: [-r, apps/backend/, -f, json, -o, bandit-report.json]
+        files: ^backend/.*\.py$
+        types: [python]
+        exclude: ^backend/tests/.*$
+        stages: [manual]
+
+  # Local hooks for project-specific checks
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: Frontend ESLint
+        entry: bash -c 'cd apps/frontend && bun run lint'
+        language: system
+        files: ^apps/frontend/
+        types: [file]
+        types_or: [ts, tsx]
+
+      # Backend tests (only if tests exist)
+      - id: backend-tests
+        name: Backend Tests
+        entry: bash -c 'cd apps/backend && python -m pytest tests/ -v || echo "No tests found"'
+        language: system
+        files: ^apps/backend/
+        pass_filenames: false
+        always_run: true

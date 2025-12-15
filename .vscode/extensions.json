@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "editorconfig.editorconfig",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "anysphere.cursorpyright",
+    "ms-python.python",
+    "charliermarsh.ruff",
+    "bradlc.vscode-tailwindcss",
+    "mike-co.import-sorter"
+  ]
+}

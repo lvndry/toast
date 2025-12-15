@@ -1,0 +1,55 @@
+*.log
+logs/
+ideas/
+
+# env
+.env
+.env.*
+!.env.example
+.env*.local
+
+# misc
+.DS_Store
+*.pem
+
+# Pre-commit reports
+bandit-report.json
+
+### Backend
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# streamlit
+secrets.toml
+
+
+### Frontend
+
+# dependencies
+node_modules
+
+# testing
+coverage
+
+# next.js
+.next/
+out/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# production
+build/
+
+# debug
+bun-debug.log*

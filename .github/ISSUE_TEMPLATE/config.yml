@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/lvndry/toast#readme
+    about: Check the README and documentation for setup and usage guides
+  - name: 💬 Discussions
+    url: https://github.com/lvndry/toast/discussions
+    about: Ask questions and discuss ideas with the community
