@@ -167,7 +167,7 @@ export default function OnboardingPage() {
               <Gavel className="w-6 h-6 text-secondary" />
             </div>
             <span className="font-display font-bold text-3xl tracking-tighter text-primary">
-              LegalLens{" "}
+              Clausea{" "}
               <span className="text-secondary font-serif italic font-normal tracking-normal">
                 AI
               </span>

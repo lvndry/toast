@@ -1,9 +1,9 @@
 import { Cpu, Lock, Shield, Zap } from "lucide-react";
 
-import AsymmetricGrid from "@/components/legallens/AsymmetricGrid";
-import FeatureInteractions from "@/components/legallens/FeatureInteractions";
-import { CustomCursor, Header } from "@/components/legallens/Navigation";
-import { Footer } from "@/components/legallens/PricingAndFooter";
+import AsymmetricGrid from "@/components/clausea/AsymmetricGrid";
+import FeatureInteractions from "@/components/clausea/FeatureInteractions";
+import { CustomCursor, Header } from "@/components/clausea/Navigation";
+import { Footer } from "@/components/clausea/PricingAndFooter";
 
 export default function FeaturesPage() {
   return (
@@ -19,7 +19,7 @@ export default function FeaturesPage() {
             <span className="text-secondary italic">Infrastructure.</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            LegalLens isn&apos;t just a chatbot. It&apos;s a sophisticated RAG
+            Clausea isn&apos;t just a chatbot. It&apos;s a sophisticated RAG
             engine built specifically for the high-stakes world of legal and
             compliance.
           </p>

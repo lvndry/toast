@@ -110,7 +110,7 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
       console.error(err);
-      // Ideally show a toast error here
+      // TODO: show a toast error here
     } finally {
       setSending(false);
     }

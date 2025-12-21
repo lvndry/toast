@@ -4,14 +4,14 @@ import * as z from "zod";
 import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { CustomCursor, Header } from "@/components/legallens/Navigation";
-import { Footer } from "@/components/legallens/PricingAndFooter";
+import { CustomCursor, Header } from "@/components/clausea/Navigation";
+import { Footer } from "@/components/clausea/PricingAndFooter";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name is too short"),
-  email: z.string().email("Invalid email address"),
+  email: z.email("Invalid email address"),
   company: z.string().optional(),
   message: z.string().min(10, "Message must be at least 10 characters"),
 });
@@ -63,7 +63,7 @@ export default function ContactPage() {
                     Email Us
                   </p>
                   <p className="text-lg font-bold text-primary">
-                    hello@legallens.ai
+                    hello@clausea.ai
                   </p>
                 </div>
               </div>

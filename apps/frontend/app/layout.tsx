@@ -20,7 +20,7 @@ const newsreader = Newsreader({
 });
 
 export const metadata = {
-  title: "LegalLens AI - Documents weren't written for you... until now",
+  title: "Clausea AI - Documents weren't written for you... until now",
   description:
     "Illuminate legal complexities with AI precision. Summarize, analyze, and perform RAG on dense legal documents instantly.",
 };

@@ -47,16 +47,25 @@
   --color-chart-4: hsl(var(--chart-4));
   --color-chart-5: hsl(var(--chart-5));
 
+  /* Sea-themed colors */
+  --color-ocean: hsl(var(--ocean));
+  --color-ocean-deep: hsl(var(--ocean-deep));
+  --color-seafoam: hsl(var(--seafoam));
+  --color-coral: hsl(var(--coral));
+  --color-pearl: hsl(var(--pearl));
+  --color-tide: hsl(var(--tide));
+
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
-  --animate-fade-in: fade-in 0.5s ease-out;
+  --animate-fade-in: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-fade-up: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  --animate-slide-in: slide-in 0.3s ease-out;
+  --animate-slide-in: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-float: float 6s ease-in-out infinite;
+  --animate-wave: wave 8s ease-in-out infinite;
   --animate-scan: scan 3s linear infinite;
-  --animate-pulse-glow: pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-marquee: marquee 25s linear infinite;
-  --animate-marquee2: marquee2 25s linear infinite;
+  --animate-pulse-glow: pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 2.5s ease-in-out infinite;
+  --animate-ripple: ripple 3s ease-out infinite;
 
   @keyframes accordion-down {
     from {
@@ -85,7 +94,7 @@
   @keyframes fade-up {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(30px);
     }
     to {
       opacity: 1;
@@ -106,7 +115,22 @@
       transform: translateY(0);
     }
     50% {
-      transform: translateY(-10px);
+      transform: translateY(-12px);
+    }
+  }
+  @keyframes wave {
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    25% {
+      transform: translateY(-8px) rotate(1deg);
+    }
+    50% {
+      transform: translateY(0) rotate(0deg);
+    }
+    75% {
+      transform: translateY(8px) rotate(-1deg);
     }
   }
   @keyframes scan {
@@ -128,28 +152,34 @@
   @keyframes pulse-glow {
     0%,
     100% {
-      opacity: 0.5;
+      opacity: 0.4;
       transform: scale(1);
     }
     50% {
-      opacity: 1;
-      transform: scale(1.05);
+      opacity: 0.8;
+      transform: scale(1.02);
     }
   }
-  @keyframes marquee {
+  @keyframes shimmer {
     0% {
-      transform: translateX(0%);
+      background-position: -200% 0;
     }
     100% {
-      transform: translateX(-100%);
+      background-position: 200% 0;
     }
   }
-  @keyframes marquee2 {
+  @keyframes ripple {
     0% {
-      transform: translateX(100%);
+      transform: scale(0.95);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1);
+      opacity: 0.3;
     }
     100% {
-      transform: translateX(0%);
+      transform: scale(0.95);
+      opacity: 0.5;
     }
   }
 }
@@ -170,80 +200,101 @@
 
 @layer base {
   :root {
-    /* LegalLens AI - Warm Modern Theme */
-    --background: 32 25% 8%; /* deep amber-black */
-    --foreground: 37 22% 92%; /* warm ivory */
+    /* Clausea AI - Ocean Depth Theme (Clause + Sea) */
+    /* Deep ocean background - midnight blue with a touch of green */
+    --background: 210 50% 6%;
+    /* Pearl white foreground - like sea foam */
+    --foreground: 195 30% 95%;
 
-    --card: 32 25% 10%;
-    --card-foreground: 37 22% 92%;
+    --card: 210 45% 8%;
+    --card-foreground: 195 30% 95%;
 
-    --popover: 32 25% 10%;
-    --popover-foreground: 37 22% 92%;
+    --popover: 210 45% 8%;
+    --popover-foreground: 195 30% 95%;
 
-    /* Primary Brands */
-    --primary: 37 22% 92%; /* warm ivory */
-    --primary-foreground: 32 25% 8%;
+    /* Primary - Pearl white for text/main elements */
+    --primary: 195 30% 95%;
+    --primary-foreground: 210 50% 6%;
 
-    --secondary: 28 70% 52%; /* rich terracotta */
-    --secondary-foreground: 37 22% 92%;
+    /* Secondary - Vibrant teal/cyan - the heart of the sea */
+    --secondary: 185 70% 50%;
+    --secondary-foreground: 210 50% 6%;
 
-    --muted: 30 40% 15%;
-    --muted-foreground: 37 22% 72%;
+    /* Muted - Deep ocean tones */
+    --muted: 210 40% 12%;
+    --muted-foreground: 200 20% 60%;
 
-    --accent: 32 87% 65%; /* sunset gold */
-    --accent-foreground: 32 25% 8%;
+    /* Accent - Seafoam green for highlights */
+    --accent: 168 60% 55%;
+    --accent-foreground: 210 50% 6%;
 
-    --destructive: 4 80% 50%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 29 45% 20%;
-    --input: 29 45% 20%;
-    --ring: 28 70% 52%;
+    /* Borders - subtle ocean glass */
+    --border: 200 35% 18%;
+    --input: 200 35% 18%;
+    --ring: 185 70% 50%;
 
     --radius: 1rem;
 
-    --chart-1: 28 70% 52%;
-    --chart-2: 32 87% 65%;
-    --chart-3: 37 22% 92%;
-    --chart-4: 26 35% 70%;
-    --chart-5: 32 25% 8%;
+    /* Chart colors - ocean palette */
+    --chart-1: 185 70% 50%;
+    --chart-2: 168 60% 55%;
+    --chart-3: 195 30% 95%;
+    --chart-4: 200 45% 65%;
+    --chart-5: 220 50% 45%;
+
+    /* Extended sea palette */
+    --ocean: 195 65% 45%;
+    --ocean-deep: 215 55% 25%;
+    --seafoam: 168 50% 65%;
+    --coral: 16 85% 60%;
+    --pearl: 195 30% 95%;
+    --tide: 200 40% 35%;
   }
 
-  /* Deep mode placeholder */
   .dark {
-    --background: 32 25% 8%;
-    --foreground: 37 22% 92%;
+    --background: 210 50% 6%;
+    --foreground: 195 30% 95%;
 
-    --card: 32 25% 10%;
-    --card-foreground: 37 22% 92%;
+    --card: 210 45% 8%;
+    --card-foreground: 195 30% 95%;
 
-    --popover: 32 25% 10%;
-    --popover-foreground: 37 22% 92%;
+    --popover: 210 45% 8%;
+    --popover-foreground: 195 30% 95%;
 
-    --primary: 37 22% 92%;
-    --primary-foreground: 32 25% 8%;
+    --primary: 195 30% 95%;
+    --primary-foreground: 210 50% 6%;
 
-    --secondary: 28 70% 52%;
-    --secondary-foreground: 37 22% 92%;
+    --secondary: 185 70% 50%;
+    --secondary-foreground: 210 50% 6%;
 
-    --muted: 30 40% 15%;
-    --muted-foreground: 37 22% 72%;
+    --muted: 210 40% 12%;
+    --muted-foreground: 200 20% 60%;
 
-    --accent: 32 87% 65%;
-    --accent-foreground: 32 25% 8%;
+    --accent: 168 60% 55%;
+    --accent-foreground: 210 50% 6%;
 
-    --destructive: 4 80% 50%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 29 45% 20%;
-    --input: 29 45% 20%;
-    --ring: 28 70% 52%;
+    --border: 200 35% 18%;
+    --input: 200 35% 18%;
+    --ring: 185 70% 50%;
 
-    --chart-1: 28 70% 52%;
-    --chart-2: 32 87% 65%;
-    --chart-3: 37 22% 92%;
-    --chart-4: 26 35% 70%;
-    --chart-5: 32 25% 8%;
+    --chart-1: 185 70% 50%;
+    --chart-2: 168 60% 55%;
+    --chart-3: 195 30% 95%;
+    --chart-4: 200 45% 65%;
+    --chart-5: 220 50% 45%;
+
+    --ocean: 195 65% 45%;
+    --ocean-deep: 215 55% 25%;
+    --seafoam: 168 50% 65%;
+    --coral: 16 85% 60%;
+    --pearl: 195 30% 95%;
+    --tide: 200 40% 35%;
   }
 
   html,
@@ -275,26 +326,51 @@
   }
 }
 
-/* Custom Utilities for Cyber-Legal Feel */
+/* Ocean-themed Utilities */
 @layer utilities {
   .glass {
     @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
   }
 
   .glass-card {
-    @apply bg-card/50 backdrop-blur-md border border-white/5 hover:border-primary/50 transition-colors duration-300;
+    @apply bg-card/50 backdrop-blur-md border border-white/5 hover:border-secondary/50 transition-colors duration-500;
+  }
+
+  .glass-ocean {
+    background: linear-gradient(
+      135deg,
+      hsla(210, 50%, 10%, 0.8) 0%,
+      hsla(195, 45%, 8%, 0.9) 100%
+    );
+    @apply backdrop-blur-xl border border-white/10 shadow-2xl;
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-400 to-primary;
+    @apply bg-clip-text text-transparent bg-linear-to-r from-secondary via-accent to-secondary;
   }
 
-  .text-gradient-premium {
-    @apply bg-clip-text text-transparent bg-gradient-to-br from-white via-gray-200 to-gray-500;
+  .text-gradient-ocean {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      135deg,
+      hsl(185, 70%, 55%) 0%,
+      hsl(168, 60%, 60%) 50%,
+      hsl(195, 65%, 55%) 100%
+    );
+  }
+
+  .text-gradient-pearl {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      135deg,
+      hsl(195, 30%, 98%) 0%,
+      hsl(200, 25%, 85%) 50%,
+      hsl(195, 30%, 95%) 100%
+    );
   }
 
   .scan-line {
-    @apply absolute w-full h-[2px] bg-primary shadow-[0_0_20px_rgba(0,123,255,0.8)];
+    @apply absolute w-full h-[2px] bg-secondary shadow-[0_0_20px_hsla(185,70%,50%,0.8)];
   }
 
   .noise-overlay {
@@ -304,16 +380,83 @@
     width: 100%;
     height: 100%;
     content: "";
-    opacity: 0.05;
+    opacity: 0.03;
     z-index: 9999;
     pointer-events: none;
-    background: url("https://www.transparenttextures.com/patterns/micro-carbon.png");
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   }
 
-  .mesh-gradient {
-    background:
-      radial-gradient(at 0% 0%, hsla(211, 100%, 50%, 0.15) 0, transparent 50%),
-      radial-gradient(at 50% 0%, hsla(211, 73%, 15%, 0.05) 0, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(211, 100%, 50%, 0.15) 0, transparent 50%);
+  /* Ocean-inspired background with depth */
+  .ocean-gradient {
+    /* Fallback color in case gradients don't load */
+    background-color: hsl(210, 50%, 6%);
+    background-image:
+      radial-gradient(
+        ellipse at 20% 0%,
+        hsla(185, 70%, 50%, 0.12) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse at 80% 0%,
+        hsla(168, 60%, 55%, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse at 50% 100%,
+        hsla(215, 55%, 25%, 0.15) 0%,
+        transparent 50%
+      ),
+      linear-gradient(180deg, hsl(210, 50%, 6%) 0%, hsl(215, 55%, 8%) 100%);
+  }
+
+  /* Deep sea ambient glow */
+  .deep-glow {
+    box-shadow:
+      0 0 60px -10px hsla(185, 70%, 50%, 0.15),
+      0 0 100px -20px hsla(168, 60%, 55%, 0.1);
+  }
+
+  /* Bioluminescent effect */
+  .bioluminescent {
+    @apply relative;
+  }
+  .bioluminescent::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(
+      135deg,
+      hsla(185, 70%, 50%, 0.3) 0%,
+      transparent 30%,
+      transparent 70%,
+      hsla(168, 60%, 55%, 0.2) 100%
+    );
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .bioluminescent:hover::before {
+    opacity: 1;
+  }
+
+  /* Wave pattern overlay */
+  .wave-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%2320a3b4' fill-opacity='0.03' d='M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,128C672,107,768,117,864,138.7C960,160,1056,192,1152,186.7C1248,181,1344,139,1392,117.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: bottom;
+    background-size: 100% auto;
+  }
+
+  /* Shimmer effect for CTAs */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsla(185, 70%, 60%, 0.15) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.5s ease-in-out infinite;
   }
 }

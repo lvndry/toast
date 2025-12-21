@@ -2,10 +2,9 @@
 
 import { ThemeProvider } from "next-themes";
 
+import { PostHogProvider } from "@/components/PostHogProvider";
+import { LenisProvider } from "@/components/providers/lenis-provider";
 import { ClerkProvider } from "@clerk/nextjs";
-
-import { PostHogProvider } from "../components/PostHogProvider";
-import { LenisProvider } from "../components/providers/lenis-provider";
 
 export function Provider(props: { children: React.ReactNode }) {
   return (

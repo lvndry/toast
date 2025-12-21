@@ -32,7 +32,7 @@ The promotion system allows you to:
 
    ```toml
    MONGO_URI = "mongodb://localhost:27017/clausea"
-   PRODUCTION_MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/toast"
+   PRODUCTION_MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/clausea"
    API_BASE_URL = "http://localhost:8000"
    ```
 

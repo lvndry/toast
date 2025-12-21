@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug or unexpected behavior in Toast AI
+about: Report a bug or unexpected behavior in Clausea AI
 title: "[BUG] "
 labels: ["bug", "needs-triage"]
 assignees: ""
@@ -57,8 +57,8 @@ Paste error messages here
 - [ ] I have searched existing issues to ensure this bug hasn't been reported
 - [ ] I have provided all relevant information above
 - [ ] I can reproduce this bug consistently
-- [ ] This bug affects the latest version of Toast AI
+- [ ] This bug affects the latest version of Clausea AI
 
 ---
 
-**Thank you for helping improve Toast AI! 🍞**
+**Thank you for helping improve Clausea AI! 🍞**

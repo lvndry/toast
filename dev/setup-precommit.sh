@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Toast AI Pre-commit Setup Script
+# Clausea AI Pre-commit Setup Script
 # Installs and configures pre-commit hooks for both frontend and backend
 
 set -e  # Exit on any error
@@ -121,7 +121,7 @@ setup_gitignore() {
 
 # Main execution
 main() {
-    echo "🔧 Setting up Pre-commit for Toast AI"
+    echo "🔧 Setting up Pre-commit for Clausea AI"
     echo "====================================="
 
     # Check and install pre-commit

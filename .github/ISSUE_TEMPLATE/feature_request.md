@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature or enhancement for Toast AI
+about: Suggest a new feature or enhancement for Clausea AI
 title: "[FEATURE] "
 labels: ["enhancement", "needs-triage"]
 assignees: ""
@@ -43,4 +43,4 @@ assignees: ""
 
 ---
 
-**Thank you for helping shape Toast AI's future! 🍞**
+**Thank you for helping shape Clausea AI's future! 🍞**

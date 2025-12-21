@@ -48,7 +48,7 @@ Edit `.streamlit/secrets.toml` with your database configuration:
 MONGO_URI = "mongodb://localhost:27017/clausea"
 
 # Production MongoDB connection string
-PRODUCTION_MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/toast"
+PRODUCTION_MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/clausea"
 
 # API Base URL (optional, defaults to localhost:8000)
 API_BASE_URL = "http://localhost:8000"
@@ -73,11 +73,11 @@ The dashboard will be available at: **http://localhost:8501**
 
 The Streamlit dashboard uses the following environment variables:
 
-| Variable               | Description                          | Default                           |
-| ---------------------- | ------------------------------------ | --------------------------------- |
+| Variable               | Description                          | Default                             |
+| ---------------------- | ------------------------------------ | ----------------------------------- |
 | `MONGO_URI`            | Local MongoDB connection string      | `mongodb://localhost:27017/clausea` |
-| `PRODUCTION_MONGO_URI` | Production MongoDB connection string | Required for promotions           |
-| `API_BASE_URL`         | Clausea API base URL                | `http://localhost:8000`           |
+| `PRODUCTION_MONGO_URI` | Production MongoDB connection string | Required for promotions             |
+| `API_BASE_URL`         | Clausea API base URL                 | `http://localhost:8000`             |
 
 ### Database Configuration
 
@@ -90,13 +90,13 @@ MONGO_URI = "mongodb://localhost:27017/clausea"
 #### MongoDB Atlas (Cloud)
 
 ```toml
-MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/toast?retryWrites=true&w=majority"
+MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/clausea?retryWrites=true&w=majority"
 ```
 
 #### Production Database
 
 ```toml
-PRODUCTION_MONGO_URI = "mongodb+srv://prod-username:prod-password@prod-cluster.mongodb.net/toast-prod"
+PRODUCTION_MONGO_URI = "mongodb+srv://prod-username:prod-password@prod-cluster.mongodb.net/clausea-prod"
 ```
 
 ## 📊 Dashboard Features

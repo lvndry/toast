@@ -1,5 +1,5 @@
-import { CustomCursor, Header } from "@/components/legallens/Navigation";
-import { Footer, Pricing } from "@/components/legallens/PricingAndFooter";
+import { CustomCursor, Header } from "@/components/clausea/Navigation";
+import { Footer, Pricing } from "@/components/clausea/PricingAndFooter";
 
 export default function PricingPage() {
   return (

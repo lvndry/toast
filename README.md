@@ -49,7 +49,7 @@ Clausea democratizes legal understanding by making complex privacy policies, ter
 We provide a comprehensive Makefile for easy development setup and workflow:
 
 ```bash
-git clone https://github.com/lvndry/toast.git
+git clone https://github.com/lvndry/clausea.git
 
 # Complete project setup (recommended for new developers)
 make setup
