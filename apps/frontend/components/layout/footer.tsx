@@ -40,7 +40,7 @@ export function Footer(props: FooterProps) {
             </NextLink>
           </div>
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Toast AI. All rights reserved.
+            © {new Date().getFullYear()} Clausea. All rights reserved.
           </p>
         </div>
       </div>

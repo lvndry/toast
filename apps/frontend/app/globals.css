@@ -6,7 +6,8 @@
 
 @theme {
   --font-sans: var(--font-inter);
-  --font-display: var(--font-plus-jakarta-sans);
+  --font-display: var(--font-jakarta);
+  --font-serif: var(--font-serif);
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -58,51 +59,107 @@
   --animate-marquee2: marquee2 25s linear infinite;
 
   @keyframes accordion-down {
-    from { height: 0; }
-    to { height: var(--radix-accordion-content-height); }
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
   }
   @keyframes accordion-up {
-    from { height: var(--radix-accordion-content-height); }
-    to { height: 0; }
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
   }
   @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
   @keyframes fade-up {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   @keyframes slide-in {
-    from { transform: translateX(-100%); }
-    to { transform: translateX(0); }
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
   }
   @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
   @keyframes scan {
-    0% { top: 0%; opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { top: 100%; opacity: 0; }
+    0% {
+      top: 0%;
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      top: 100%;
+      opacity: 0;
+    }
   }
   @keyframes pulse-glow {
-    0%, 100% { opacity: 0.5; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.05); }
+    0%,
+    100% {
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
   }
   @keyframes marquee {
-    0% { transform: translateX(0%); }
-    100% { transform: translateX(-100%); }
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
   }
   @keyframes marquee2 {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(0%); }
+    0% {
+      transform: translateX(100%);
+    }
+    100% {
+      transform: translateX(0%);
+    }
   }
 }
 
 @layer base {
-  *, ::after, ::before, ::backdrop, ::file-selector-button {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
 }
@@ -113,66 +170,86 @@
 
 @layer base {
   :root {
-    /* Light, Clean Theme - Much Brighter */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* LegalLens AI - Warm Modern Theme */
+    --background: 32 25% 8%; /* deep amber-black */
+    --foreground: 37 22% 92%; /* warm ivory */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 32 25% 10%;
+    --card-foreground: 37 22% 92%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 32 25% 10%;
+    --popover-foreground: 37 22% 92%;
 
-    /* Vibrant Primary */
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary Brands */
+    --primary: 37 22% 92%; /* warm ivory */
+    --primary-foreground: 32 25% 8%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 28 70% 52%; /* rich terracotta */
+    --secondary-foreground: 37 22% 92%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 30 40% 15%;
+    --muted-foreground: 37 22% 72%;
 
-    --accent: 262 83% 58%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 32 87% 65%; /* sunset gold */
+    --accent-foreground: 32 25% 8%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 4 80% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 262 83% 58%;
+    --border: 29 45% 20%;
+    --input: 29 45% 20%;
+    --ring: 28 70% 52%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --chart-1: 28 70% 52%;
+    --chart-2: 32 87% 65%;
+    --chart-3: 37 22% 92%;
+    --chart-4: 26 35% 70%;
+    --chart-5: 32 25% 8%;
   }
 
-  /* Optional dark mode (not used by default now) */
+  /* Deep mode placeholder */
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 13%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217 32% 18%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 32% 18%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 262 83% 58%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 32% 18%;
-    --input: 217 32% 18%;
-    --ring: 262 83% 58%;
+    --background: 32 25% 8%;
+    --foreground: 37 22% 92%;
+
+    --card: 32 25% 10%;
+    --card-foreground: 37 22% 92%;
+
+    --popover: 32 25% 10%;
+    --popover-foreground: 37 22% 92%;
+
+    --primary: 37 22% 92%;
+    --primary-foreground: 32 25% 8%;
+
+    --secondary: 28 70% 52%;
+    --secondary-foreground: 37 22% 92%;
+
+    --muted: 30 40% 15%;
+    --muted-foreground: 37 22% 72%;
+
+    --accent: 32 87% 65%;
+    --accent-foreground: 32 25% 8%;
+
+    --destructive: 4 80% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 29 45% 20%;
+    --input: 29 45% 20%;
+    --ring: 28 70% 52%;
+
+    --chart-1: 28 70% 52%;
+    --chart-2: 32 87% 65%;
+    --chart-3: 37 22% 92%;
+    --chart-4: 26 35% 70%;
+    --chart-5: 32 25% 8%;
+  }
+
+  html,
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }
 
@@ -181,7 +258,20 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family:
+      var(--font-jakarta),
+      var(--font-inter),
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    letter-spacing: 0.01em;
+    font-weight: 400;
+    text-rendering: optimizeLegibility;
   }
 }
 
@@ -204,6 +294,26 @@
   }
 
   .scan-line {
-    @apply absolute w-full h-[2px] bg-primary shadow-[0_0_20px_rgba(124,58,237,0.8)];
+    @apply absolute w-full h-[2px] bg-primary shadow-[0_0_20px_rgba(0,123,255,0.8)];
+  }
+
+  .noise-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    content: "";
+    opacity: 0.05;
+    z-index: 9999;
+    pointer-events: none;
+    background: url("https://www.transparenttextures.com/patterns/micro-carbon.png");
+  }
+
+  .mesh-gradient {
+    background:
+      radial-gradient(at 0% 0%, hsla(211, 100%, 50%, 0.15) 0, transparent 50%),
+      radial-gradient(at 50% 0%, hsla(211, 73%, 15%, 0.05) 0, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(211, 100%, 50%, 0.15) 0, transparent 50%);
   }
 }

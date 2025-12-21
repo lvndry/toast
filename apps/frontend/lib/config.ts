@@ -23,7 +23,7 @@ export const apiEndpoints = {
 export const config = {
   // App configuration
   app: {
-    name: "Toast AI",
+    name: "Clausea",
     version: "1.0.0",
     url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
     environment: process.env.NODE_ENV || "development",

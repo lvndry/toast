@@ -4,7 +4,7 @@ from typing import Any
 
 import structlog
 
-from src.core.config import settings
+from src.core.config import config
 
 structlog.configure(
     processors=[
@@ -25,7 +25,7 @@ structlog.configure(
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
         structlog.processors.JSONRenderer()
-        if not settings.app.is_development
+        if not config.app.is_development
         else structlog.dev.ConsoleRenderer(),
     ],
     context_class=dict,
@@ -40,14 +40,13 @@ def setup_logging() -> None:
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
-        level=logging.DEBUG if settings.app.is_development else logging.INFO,
+        level=logging.DEBUG if config.app.is_development else logging.INFO,
     )
-
     logging.getLogger("uvicorn").setLevel(
-        logging.DEBUG if settings.app.is_development else logging.INFO
+        logging.DEBUG if config.app.is_development else logging.INFO
     )
     logging.getLogger("uvicorn.access").setLevel(
-        logging.DEBUG if settings.app.is_development else logging.INFO
+        logging.DEBUG if config.app.is_development else logging.INFO
     )
     logging.getLogger("motor").setLevel(logging.INFO)
     logging.getLogger("pymongo").setLevel(logging.INFO)

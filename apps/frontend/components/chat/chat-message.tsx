@@ -48,7 +48,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       >
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold">
-            {isUser ? "You" : "Toast AI"}
+            {isUser ? "You" : "Clausea"}
           </span>
           <span className="text-xs text-muted-foreground">
             {new Date(message.timestamp).toLocaleTimeString([], {

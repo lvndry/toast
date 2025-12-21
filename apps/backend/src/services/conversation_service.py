@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Any, Literal
+from typing import Any
 
 from motor.core import AgnosticDatabase
 
@@ -33,7 +33,6 @@ class ConversationService:
         company_slug: str,
         company_description: str | None = None,
         title: str | None = None,
-        mode: Literal["qa", "summary", "compliance", "custom"] = "qa",
     ) -> Conversation:
         """Create a new conversation."""
         conversation = Conversation(
@@ -42,7 +41,6 @@ class ConversationService:
             company_slug=company_slug,
             company_description=company_description,
             title=title,
-            mode=mode,
         )
         return await self._conversation_repo.create(db, conversation)
 

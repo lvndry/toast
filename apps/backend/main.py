@@ -3,10 +3,10 @@ from collections.abc import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.core.config import settings
+from src.core.config import config
 from src.core.logging import setup_logging
 from src.core.middleware import AuthMiddleware
-from src.routes import company, conversation, list, migration, paddle, q, subscription
+from src.routes import companies, conversations, list, paddle, promotion, q, subscription
 from src.routes import user as user_routes
 
 setup_logging()
@@ -18,15 +18,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
-app = FastAPI(title="Toast API", lifespan=lifespan, version="1.0.0")
+app = FastAPI(title="Clausea API", lifespan=lifespan, version="1.0.0")
 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors.origins,
-    allow_methods=settings.cors.methods,
-    allow_headers=settings.cors.headers,
-    allow_credentials=settings.cors.credentials,
+    allow_origins=config.cors.origins,
+    allow_methods=config.cors.methods,
+    allow_headers=config.cors.headers,
+    allow_credentials=config.cors.credentials,
 )
 app.add_middleware(AuthMiddleware)
 
@@ -34,15 +34,15 @@ app.add_middleware(AuthMiddleware)
 @app.get("/health")
 async def healthcheck() -> dict[str, str]:
     """Health check endpoint to verify the API is running."""
-    return {"status": "healthy", "message": "Toast API is running"}
+    return {"status": "healthy", "message": "Clausea API is running"}
 
 
 routes = [
     q.router,
-    company.router,
-    conversation.router,
+    companies.router,
+    conversations.router,
     list.router,
-    migration.router,
+    promotion.router,
     user_routes.router,
     paddle.router,
     subscription.router,

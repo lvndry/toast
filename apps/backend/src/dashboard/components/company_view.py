@@ -211,6 +211,9 @@ def show_company_view() -> None:
         else:
             filtered_companies = companies
 
+        # Sort filtered companies by name (case-insensitive)
+        filtered_companies = sorted(filtered_companies, key=lambda x: x.name.lower())
+
         if not filtered_companies:
             st.warning(f"No companies found matching '{search_term}'")
             return

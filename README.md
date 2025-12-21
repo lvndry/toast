@@ -1,15 +1,15 @@
-# Toast AI 🍞
+# Clausea 🌊
 
 **The definitive legal document intelligence platform** - Transform complex legal documents into clear, actionable insights with AI-powered analysis.
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Contributing](https://img.shields.io/badge/Contributing-Welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Try now](toast-mu.vercel.app)
+[Try now](clausea.vercel.app)
 
 ## 🎯 Mission
 
-Toast AI democratizes legal understanding by making complex privacy policies, terms of service, and contracts accessible to everyone. We help:
+Clausea democratizes legal understanding by making complex privacy policies, terms of service, and contracts accessible to everyone. We help:
 
 - **Individuals** understand what they're agreeing to before signing up
 - **Small businesses** assess vendor risks without expensive legal review
@@ -101,14 +101,14 @@ This project is licensed under the AGPL-3.0 License. See the [LICENSE](LICENSE) 
 
 ## 🆘 Support
 
-<!-- - **Documentation**: [docs.toast.ai](https://docs.toast.ai) -->
-<!-- - **API Reference**: [api.toast.ai](https://api.toast.ai) -->
-<!-- - **Community**: [Discord](https://discord.gg/toast-ai) -->
+<!-- - **Documentation**: [docs.clausea.ai](https://docs.clausea.ai) -->
+<!-- - **API Reference**: [api.clausea.ai](https://api.clausea.ai) -->
+<!-- - **Community**: [Discord](https://discord.gg/clausea) -->
 
 - **Email**: lvndry@proton.me
 
 ---
 
-**Built with ❤️ by the Toast AI team**
+**Built with ❤️ by the Clausea team**
 
 _Making legal intelligence accessible to everyone._

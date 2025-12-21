@@ -1,6 +1,6 @@
-# Toast AI Backend Tests
+# Clausea Backend Tests
 
-This directory contains the test suite for the Toast AI backend, focusing on legal document intelligence and analysis accuracy.
+This directory contains the test suite for the Clausea backend, focusing on legal document intelligence and analysis accuracy.
 
 ## Test Structure
 

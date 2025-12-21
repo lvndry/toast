@@ -13,13 +13,13 @@ import certifi
 from motor.core import AgnosticDatabase
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from src.core.config import settings
+from src.core.config import config
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-DATABASE_NAME = "toast"
-MONGO_URI = settings.database.mongodb_uri
+DATABASE_NAME = "clausea"
+MONGO_URI = config.database.mongodb_uri
 
 
 @asynccontextmanager

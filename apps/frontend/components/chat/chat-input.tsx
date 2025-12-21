@@ -17,12 +17,12 @@ export function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
   const [input, setInput] = React.useState("");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  const handleSend = () => {
+  function handleSend() {
     if (input.trim()) {
       onSend(input);
       setInput("");
     }
-  };
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {

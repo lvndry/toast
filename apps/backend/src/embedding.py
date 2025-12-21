@@ -4,7 +4,7 @@ import shortuuid
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from src.core.config import settings
+from src.core.config import config
 from src.core.logging import get_logger
 from src.llm import get_embeddings
 from src.models.document import Document
@@ -39,7 +39,7 @@ def _log_document_size_info(document: Document) -> None:
 
     # Log chunk count estimate
     estimated_chunks = (
-        len(document.text) // settings.embedding.chunk_size
+        len(document.text) // config.embedding.chunk_size
     )  # Approximate based on chunk size
     logger.debug(f"Estimated chunks for {document.id}: ~{estimated_chunks}")
 
@@ -80,8 +80,8 @@ async def embed_company_documents(
 
     index = pc.Index(INDEX_NAME)
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=settings.embedding.chunk_size,
-        chunk_overlap=settings.embedding.chunk_overlap,
+        chunk_size=config.embedding.chunk_size,
+        chunk_overlap=config.embedding.chunk_overlap,
         separators=["\n\n", "\n", ".", ";"],
     )
     all_vectors: list[dict[str, Any]] = []
@@ -95,7 +95,7 @@ async def embed_company_documents(
         logger.debug(f"Split into {len(chunks)} chunks")
 
         # Process chunks in batches to avoid overwhelming the embedding service
-        batch_size = settings.embedding.batch_size
+        batch_size = config.embedding.batch_size
         for i in range(0, len(chunks), batch_size):
             batch_chunks = chunks[i : i + batch_size]
             batch_offsets = offsets[i : i + batch_size]
@@ -151,7 +151,7 @@ async def embed_company_documents(
 
     if all_vectors:
         # Upsert vectors in batches to avoid overwhelming Pinecone
-        batch_size = settings.embedding.upsert_batch_size
+        batch_size = config.embedding.upsert_batch_size
         for i in range(0, len(all_vectors), batch_size):
             batch = all_vectors[i : i + batch_size]
             index.upsert(vectors=batch, namespace=namespace)
@@ -170,8 +170,8 @@ async def embed_document(document: Document, namespace: str) -> None:
     """Embed a single document into the specified namespace."""
     index = pc.Index(INDEX_NAME)
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=settings.embedding.chunk_size,
-        chunk_overlap=settings.embedding.chunk_overlap,
+        chunk_size=config.embedding.chunk_size,
+        chunk_overlap=config.embedding.chunk_overlap,
         separators=["\n\n", "\n", ".", ";"],
     )
 
@@ -184,7 +184,7 @@ async def embed_document(document: Document, namespace: str) -> None:
     all_vectors: list[dict[str, Any]] = []
 
     # Process chunks in batches
-    batch_size = settings.embedding.batch_size
+    batch_size = config.embedding.batch_size
     for i in range(0, len(chunks), batch_size):
         batch_chunks = chunks[i : i + batch_size]
         batch_offsets = offsets[i : i + batch_size]
@@ -233,7 +233,7 @@ async def embed_document(document: Document, namespace: str) -> None:
 
     if all_vectors:
         # Upsert vectors in batches
-        batch_size = settings.embedding.upsert_batch_size
+        batch_size = config.embedding.upsert_batch_size
         for i in range(0, len(all_vectors), batch_size):
             batch = all_vectors[i : i + batch_size]
             index.upsert(vectors=batch, namespace=namespace)

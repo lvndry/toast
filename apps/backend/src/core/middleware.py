@@ -5,19 +5,19 @@ import structlog
 from fastapi import FastAPI, HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from src.core.config import settings
+from src.core.config import config
 from src.core.jwt import clerk_auth_service
 
 logger = structlog.get_logger(service="auth_middleware")
 
 # Routes that don't require authentication
 WHITELISTED_ROUTES = {
+    "/docs",
     "/health",
     "/health/detailed",
     "/health/ready",
     "/health/live",
     "/health/startup",
-    "/docs",
     "/openapi.json",
     "/users/tier-limits",
 }
@@ -28,7 +28,7 @@ LOCALHOST_ADDRESSES = ("127.0.0.1", "localhost", "::1")
 # Service account identity for API key authentication
 SERVICE_ACCOUNT_IDENTITY = {
     "user_id": "service_account",
-    "email": "service@toast.ai",
+    "email": "service@clausea.ai",
     "service": True,
 }
 
@@ -79,12 +79,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return None
 
     def _authenticate_service_api_key(self, request: Request) -> dict[str, Any] | None:
-        """Authenticate using service API key from X-TOAST-API-KEY header"""
-        api_key_header = request.headers.get("X-TOAST-API-KEY", "")
+        """Authenticate using service API key from X-CLAUSEA-API-KEY header"""
+        api_key_header = request.headers.get("X-CLAUSEA-API-KEY", "")
         if not api_key_header:
             return None
 
-        service_api_key = settings.security.service_api_key
+        service_api_key = config.security.service_api_key
         if not service_api_key:
             return None
 
@@ -100,7 +100,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     def _authenticate_localhost(self, request: Request) -> dict[str, Any] | None:
         """Allow localhost requests in development mode"""
-        if not settings.app.is_development:
+        if not config.app.is_development:
             return None
 
         client_host = request.client.host if request.client else None

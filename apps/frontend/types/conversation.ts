@@ -9,7 +9,6 @@ export interface Conversation {
   documents: string[];
   messages: Message[];
   title?: string | null;
-  mode?: "qa" | "summary" | "compliance" | "custom";
   archived?: boolean;
   pinned?: boolean;
   tags?: string[];

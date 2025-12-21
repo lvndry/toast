@@ -1,6 +1,6 @@
 # PostHog Analytics Implementation
 
-This document outlines the comprehensive PostHog analytics implementation for Toast AI's frontend application.
+This document outlines the comprehensive PostHog analytics implementation for Clausea's frontend application.
 
 ## Overview
 

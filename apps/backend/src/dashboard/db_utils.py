@@ -3,15 +3,15 @@
 import certifi
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
-from src.core.config import settings
+from src.core.config import config
 from src.core.logging import get_logger
 from src.models.company import Company
 from src.models.document import Document
 
 logger = get_logger(__name__)
 
-MONGO_URI = settings.database.mongodb_uri
-DATABASE_NAME = "toast"
+MONGO_URI = config.database.mongodb_uri
+DATABASE_NAME = "clausea"
 
 
 class DashboardDB:
@@ -63,10 +63,10 @@ async def get_dashboard_db() -> DashboardDB:
 
 # Company functions
 async def get_all_companies_isolated() -> list[Company]:
-    """Get all companies with an isolated database connection"""
+    """Get all companies with an isolated database connection, sorted by name"""
     db = await get_dashboard_db()
     try:
-        companies = await db.db.companies.find().to_list(length=None)
+        companies = await db.db.companies.find().sort("name", 1).to_list(length=None)
         return [Company(**company) for company in companies]
     except Exception as e:
         logger.error(f"Error getting companies: {e}")

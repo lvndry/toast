@@ -1,6 +1,6 @@
 # Streamlit Dashboard Setup
 
-The Toast AI backend includes a Streamlit dashboard for database management, data migration, and system monitoring. This guide will help you set up and run the Streamlit dashboard.
+The Clausea backend includes a Streamlit dashboard for database management, data promotion, and system monitoring. This guide will help you set up and run the Streamlit dashboard.
 
 ## 📋 Prerequisites
 
@@ -8,7 +8,7 @@ Before running the Streamlit dashboard, ensure you have:
 
 - **Python 3.11+** with [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - **MongoDB** running (local or cloud)
-- **Toast AI backend** running (for API integration)
+- **Clausea backend** running (for API integration)
 - **Environment variables** configured
 
 ## 🚀 Quick Start
@@ -45,7 +45,7 @@ Edit `.streamlit/secrets.toml` with your database configuration:
 # Copy this file to .streamlit/secrets.toml and fill in your database URIs
 
 # Local MongoDB connection string
-MONGO_URI = "mongodb://localhost:27017/toast"
+MONGO_URI = "mongodb://localhost:27017/clausea"
 
 # Production MongoDB connection string
 PRODUCTION_MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/toast"
@@ -75,16 +75,16 @@ The Streamlit dashboard uses the following environment variables:
 
 | Variable               | Description                          | Default                           |
 | ---------------------- | ------------------------------------ | --------------------------------- |
-| `MONGO_URI`            | Local MongoDB connection string      | `mongodb://localhost:27017/toast` |
-| `PRODUCTION_MONGO_URI` | Production MongoDB connection string | Required for migrations           |
-| `API_BASE_URL`         | Toast AI API base URL                | `http://localhost:8000`           |
+| `MONGO_URI`            | Local MongoDB connection string      | `mongodb://localhost:27017/clausea` |
+| `PRODUCTION_MONGO_URI` | Production MongoDB connection string | Required for promotions           |
+| `API_BASE_URL`         | Clausea API base URL                | `http://localhost:8000`           |
 
 ### Database Configuration
 
 #### Local Development
 
 ```toml
-MONGO_URI = "mongodb://localhost:27017/toast"
+MONGO_URI = "mongodb://localhost:27017/clausea"
 ```
 
 #### MongoDB Atlas (Cloud)
@@ -103,10 +103,10 @@ PRODUCTION_MONGO_URI = "mongodb+srv://prod-username:prod-password@prod-cluster.m
 
 ### Available Pages
 
-1. **Database Migration**
+1. **Data Promotion**
 
-   - Migrate data between local and production databases
-   - View migration summaries and status
+   - Promote data between local and production databases
+   - View promotion summaries and status
    - Execute bulk data operations
 
 2. **Company Management**
@@ -208,7 +208,7 @@ pip install streamlit
 
 #### 4. API Connection Failed
 
-**Error:** Cannot connect to Toast AI API
+**Error:** Cannot connect to Clausea API
 
 **Solution:**
 
@@ -228,7 +228,7 @@ streamlit run src/dashboard/app.py --logger.level=debug
 
 - [Streamlit Documentation](https://docs.streamlit.io/)
 - [Streamlit Secrets Management](https://docs.streamlit.io/library/advanced-features/secrets-management)
-- [Toast AI Backend Documentation](../README.md)
+- [Clausea Backend Documentation](../README.md)
 - [MongoDB Connection Guide](https://docs.mongodb.com/guides/server/drivers/)
 
 ## 🤝 Support
@@ -240,4 +240,4 @@ If you encounter issues with the Streamlit dashboard:
 3. Verify your configuration in `.streamlit/secrets.toml`
 4. Ensure all prerequisites are met
 
-For additional support, contact the Toast AI team or create an issue in the repository.
+For additional support, contact the Clausea team or create an issue in the repository.

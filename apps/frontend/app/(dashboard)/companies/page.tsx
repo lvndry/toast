@@ -4,13 +4,10 @@ import {
   ArrowUpDown,
   Building2,
   ChevronDown,
-  LogOut,
   Plus,
   Search,
   ShieldAlert,
-  TrendingUp,
   Upload,
-  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -33,28 +30,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Spinner } from "@/components/ui/spinner";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getVerdictConfig } from "@/lib/verdict";
 import type { Company, Conversation } from "@/types";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useAnalytics } from "@hooks/useAnalytics";
 
-// Company card component with lazy logo loading
 function CompanyCard({
   company,
   index,
   verdict,
   riskScore,
-  onMouseEnter,
+  isLoadingSummary,
+  fetchMetaSummary,
   onClick,
 }: {
   company: Company;
   index: number;
   verdict?: string;
   riskScore?: number;
-  onMouseEnter: () => void;
+  isLoadingSummary?: boolean;
+  fetchMetaSummary?: (slug: string) => void;
   onClick: () => void;
 }) {
   const [logo, setLogo] = useState<string | null>(company.logo || null);
@@ -111,97 +107,129 @@ function CompanyCard({
     };
   }, [company.slug, company.name, logo, hasTriedLoading]);
 
+  // Lazy load summary data when card becomes visible
+  useEffect(() => {
+    if (verdict !== undefined || isLoadingSummary) return;
+
+    const summaryObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Trigger summary loading by calling the fetchMetaSummary function
+            // This will be passed down from the parent component
+            fetchMetaSummary && fetchMetaSummary(company.slug);
+            summaryObserver.disconnect();
+          }
+        });
+      },
+      { rootMargin: "100px" }, // Start loading 100px before card is visible
+    );
+
+    if (cardRef.current) {
+      summaryObserver.observe(cardRef.current);
+    }
+
+    return () => {
+      summaryObserver.disconnect();
+    };
+  }, [company.slug, verdict, isLoadingSummary, fetchMetaSummary]);
+
   return (
     <Card
       ref={cardRef}
       className={cn(
-        "group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 border-2 hover:border-primary/30",
-        "bg-gradient-to-br from-card via-card to-card/50 backdrop-blur-sm",
+        "group cursor-pointer transition-all duration-700 hover:shadow-[0_20px_60px_rgba(59,130,246,0.1)] border-white/5 hover:border-secondary/50",
+        "bg-white/3 rounded-4xl overflow-hidden backdrop-blur-sm",
         "hover:scale-[1.02]",
       )}
       onClick={onClick}
-      onMouseEnter={onMouseEnter}
       style={{
-        animation: `fadeInUp 0.5s ease-out ${index * 30}ms both`,
+        animation: `fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${index * 50}ms both`,
       }}
     >
-      <CardContent className="p-6">
-        <div className="flex flex-col gap-5">
-          {/* Logo and Verdict */}
+      <CardContent className="p-10">
+        <div className="flex flex-col gap-8">
           <div className="flex items-start justify-between">
             <div className="relative">
               {isLoadingLogo ? (
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center animate-pulse">
-                  <Spinner size="sm" />
+                <div className="w-20 h-20 rounded-3xl bg-white/5 animate-pulse flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-secondary animate-bounce" />
                 </div>
               ) : logo ? (
-                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border-2 border-border shadow-lg group-hover:border-primary/50 group-hover:shadow-xl transition-all duration-300">
+                <div className="w-20 h-20 rounded-3xl overflow-hidden bg-white/5 border border-white/10 shadow-sm group-hover:shadow-md transition-all duration-500">
                   <img
                     src={logo}
                     alt={`${company.name} logo`}
-                    className="w-full h-full object-contain p-2"
+                    className="w-full h-full object-contain p-4 opacity-80 group-hover:opacity-100 transition-opacity"
                     loading="lazy"
                   />
                 </div>
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300">
+                <div className="w-20 h-20 rounded-3xl bg-secondary/10 border border-secondary/20 text-secondary flex items-center justify-center font-display font-bold text-3xl shadow-lg group-hover:scale-110 transition-all duration-700">
                   {company.name.charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
             {verdictConfig && (
               <Badge
-                variant={verdictConfig.variant}
                 className={cn(
-                  "gap-1.5 px-3 py-1 text-xs font-semibold shadow-sm",
+                  "gap-2 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.2em] rounded-full",
                   verdictConfig.cardBg,
-                  "group-hover:scale-105 transition-transform",
+                  "group-hover:scale-105 transition-transform duration-500 border-none",
                 )}
               >
-                <verdictConfig.cardIcon className="h-3 w-3" />
+                <verdictConfig.cardIcon className="h-3.5 w-3.5" />
                 {verdictConfig.label}
               </Badge>
             )}
           </div>
 
-          {/* Company Info */}
-          <div className="space-y-2">
-            <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-3xl text-primary leading-tight group-hover:translate-x-1 transition-transform duration-500">
               {company.name}
             </h3>
             {company.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+              <p className="text-base text-muted-foreground line-clamp-2 leading-relaxed font-medium">
                 {company.description}
               </p>
             )}
           </div>
 
-          {/* Risk Score */}
-          {riskScore !== undefined && (
-            <div className="flex items-center gap-2 pt-2 border-t border-border/50">
-              <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground">
-                Risk:
-              </span>
-              <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden shadow-inner">
+          <div className="pt-8 border-t border-white/5 flex items-center gap-5">
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary/20">
+              Risk Index
+            </span>
+            {isLoadingSummary ? (
+              <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div className="h-full w-full bg-white/5 animate-pulse rounded-full" />
+              </div>
+            ) : riskScore !== undefined ? (
+              <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
                 <div
                   className={cn(
-                    "h-full rounded-full transition-all duration-700 shadow-sm",
+                    "h-full rounded-full transition-all duration-1000",
                     riskScore >= 7
-                      ? "bg-gradient-to-r from-red-500 to-red-600"
+                      ? "bg-red-500"
                       : riskScore >= 4
-                        ? "bg-gradient-to-r from-amber-500 to-amber-600"
-                        : "bg-gradient-to-r from-green-500 to-green-600",
+                        ? "bg-secondary"
+                        : "bg-emerald-500",
                   )}
                   style={{ width: `${(riskScore / 10) * 100}%` }}
                 />
               </div>
-              <span className="text-xs font-bold tabular-nums min-w-[2.5rem] text-right">
-                {Math.round(riskScore)}/10
-              </span>
-            </div>
-          )}
+            ) : (
+              <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden" />
+            )}
+            <span className="text-xs font-bold text-primary/60">
+              {isLoadingSummary ? (
+                <div className="w-8 h-3 bg-white/5 animate-pulse rounded" />
+              ) : riskScore !== undefined ? (
+                `${Math.round(riskScore)}/10`
+              ) : (
+                "--/10"
+              )}
+            </span>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -529,32 +557,27 @@ export default function CompaniesPage() {
       `}</style>
 
       {/* Header */}
-      <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-6">
+      <div className="shrink-0 border-b border-white/5 bg-background/20 backdrop-blur-2xl sticky top-0 z-30 py-2">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-6 py-3">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                Company Directory
+              <h1 className="text-3xl font-display font-bold text-primary tracking-tighter">
+                Legal{" "}
+                <span className="text-secondary font-serif italic font-normal tracking-normal">
+                  Archive
+                </span>
               </h1>
-              <p className="text-muted-foreground">
-                Analyze legal documents from thousands of companies with AI
+              <p className="text-xs text-muted-foreground font-bold uppercase tracking-[0.3em] opacity-60">
+                Managed Intelligence & Risk Oversight
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <Button
                 onClick={() => setIsUploadOpen(true)}
-                className="shadow-md hover:shadow-lg transition-shadow bg-gradient-to-r from-primary to-primary/90"
+                className="rounded-full px-8 h-12 font-bold uppercase tracking-widest bg-secondary text-primary hover:bg-secondary/80 shadow-xl shadow-secondary/10"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Upload Document
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleSignOut}
-                className="shadow-sm hover:shadow-md transition-shadow"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
+                Index Your Documents
               </Button>
             </div>
           </div>
@@ -562,51 +585,58 @@ export default function CompaniesPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-0 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-br from-background via-background to-muted/30">
+      <div className="flex-1 flex flex-col min-h-0 max-w-7xl mx-auto w-full px-6 lg:px-8 overflow-hidden">
         {/* Search and Filter Section */}
-        <div className="flex-shrink-0 py-8 space-y-4">
-          <div className="relative max-w-2xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <div className="shrink-0 py-6 space-y-4">
+          <div className="relative max-w-3xl bg-white/5 rounded-4xl shadow-2xl border border-white/10 overflow-hidden focus-within:border-secondary/50 transition-colors">
+            <Search className="absolute left-8 top-1/2 -translate-y-1/2 h-6 w-6 text-primary/20" />
             <Input
-              placeholder="Search companies by name, description, or industry..."
+              placeholder="Search by company, industry, or policy risk..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 h-12 text-base rounded-xl border-2 focus:border-primary/50 shadow-sm transition-all hover:shadow-md"
+              className="pl-20 h-16 text-lg border-none bg-transparent focus-visible:ring-0 placeholder:text-primary/10 font-medium"
             />
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">
-                {filteredCompanies.length} company
-                {filteredCompanies.length !== 1 ? "ies" : ""} found
+            <div className="flex items-center gap-4 bg-secondary/5 px-6 py-2.5 rounded-full border border-secondary/10">
+              <div className="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-widest text-secondary">
+                {filteredCompanies.length} Active Analyses
               </span>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="outline"
-                  className="gap-2 shadow-sm hover:shadow-md transition-shadow"
+                  variant="ghost"
+                  className="gap-3 font-bold uppercase tracking-widest text-[10px] hover:bg-white/5 rounded-full px-6 h-10 border border-white/5"
                 >
                   <ArrowUpDown className="h-4 w-4" />
-                  Sort:{" "}
-                  {sortBy === "name"
-                    ? "Name"
-                    : sortBy === "risk"
-                      ? "Risk Level"
-                      : "Recently Updated"}
+                  Sort: {sortBy}
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setSortBy("name")}>
-                  Sort by Name
+              <DropdownMenuContent
+                align="end"
+                className="w-56 rounded-3xl p-3 border-white/10 bg-background/95 backdrop-blur-3xl shadow-3xl"
+              >
+                <DropdownMenuItem
+                  className="rounded-2xl h-11 px-4 font-medium"
+                  onClick={() => setSortBy("name")}
+                >
+                  Lexicographical
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy("risk")}>
-                  Sort by Risk Level
+                <DropdownMenuItem
+                  className="rounded-2xl h-11 px-4 font-medium"
+                  onClick={() => setSortBy("risk")}
+                >
+                  Risk Exposure
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy("recent")}>
-                  Sort by Recent
+                <DropdownMenuItem
+                  className="rounded-2xl h-11 px-4 font-medium"
+                  onClick={() => setSortBy("recent")}
+                >
+                  Recency
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -614,137 +644,113 @@ export default function CompaniesPage() {
         </div>
 
         {/* Companies Grid - Scrollable */}
-        <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar">
-          <div className="px-2 py-6 pb-12">
-            {filteredCompanies.length === 0 ? (
-              <Card className="border-dashed border-2">
-                <CardContent className="flex flex-col items-center justify-center py-16 px-4">
-                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <Search className="h-10 w-10 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">
-                    No companies found
-                  </h3>
-                  <p className="text-muted-foreground text-center max-w-md mb-6">
-                    Try adjusting your search terms or browse all companies
-                  </p>
-                  {searchTerm && (
-                    <Button
-                      variant="outline"
-                      onClick={() => setSearchTerm("")}
-                      className="gap-2"
-                    >
-                      <X className="h-4 w-4" />
-                      Clear Search
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sortedCompanies.map((company, index) => {
-                  const verdict = companySummaries[company.slug]?.verdict;
-                  const riskScore = companySummaries[company.slug]?.risk_score;
+        <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar pb-24">
+          {filteredCompanies.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-40 opacity-10">
+              <Building2 className="w-32 h-32 mb-8" />
+              <h3 className="text-3xl font-display font-bold tracking-tighter">
+                Archive Empty
+              </h3>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+              {sortedCompanies.map((company, index) => {
+                const verdict = companySummaries[company.slug]?.verdict;
+                const riskScore = companySummaries[company.slug]?.risk_score;
+                const isLoadingSummary = summaryLoading[company.slug];
 
-                  return (
-                    <CompanyCard
-                      key={company.id}
-                      company={company}
-                      index={index}
-                      verdict={verdict}
-                      riskScore={riskScore}
-                      onMouseEnter={() => fetchMetaSummary(company.slug)}
-                      onClick={() => handleCompanyClick(company)}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                return (
+                  <CompanyCard
+                    key={company.id}
+                    company={company}
+                    index={index}
+                    verdict={verdict}
+                    riskScore={riskScore}
+                    isLoadingSummary={isLoadingSummary}
+                    fetchMetaSummary={fetchMetaSummary}
+                    onClick={() => handleCompanyClick(company)}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Upload Dialog */}
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">
-              Upload Your Own Documents
+        <DialogContent className="sm:max-w-3xl bg-background rounded-5xl p-16 border-white/10 shadow-3xl overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-secondary/30 to-transparent" />
+
+          <DialogHeader className="mb-12">
+            <DialogTitle className="text-5xl font-display font-bold text-primary tracking-tighter mb-4">
+              Expand your{" "}
+              <span className="text-secondary font-serif italic font-normal tracking-normal">
+                Archive
+              </span>
             </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Analyze privacy policies, terms of service, or contracts
+            <p className="text-lg text-muted-foreground font-medium max-w-xl">
+              Upload legal documents for immediate neural indexing and risk
+              assessment.
             </p>
           </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">
-                Company Name <span className="text-destructive">*</span>
-              </label>
-              <Input
-                placeholder="Enter company name"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="rounded-lg"
-              />
+
+          <div className="space-y-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary px-2">
+                  Entity Name
+                </label>
+                <Input
+                  placeholder="e.g. Gotham Corp"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  className="h-16 bg-white/5 rounded-2xl px-8 border-white/10 focus-visible:ring-2 ring-secondary/20 text-lg font-medium"
+                />
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary px-2">
+                  Classification
+                </label>
+                <Input
+                  placeholder="e.g. Infrastructure"
+                  className="h-16 bg-white/5 rounded-2xl px-8 border-white/10 text-lg font-medium"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">
-                Company Description{" "}
-                <span className="text-muted-foreground">(Optional)</span>
-              </label>
-              <Textarea
-                placeholder="Brief description of the company"
-                value={companyDescription}
-                onChange={(e) => setCompanyDescription(e.target.value)}
-                rows={3}
-                className="rounded-lg resize-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">
-                Upload Document <span className="text-destructive">*</span>
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary px-2">
+                Document Source
               </label>
               <div
                 className={cn(
-                  "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
+                  "border-2 border-dashed rounded-4xl p-16 text-center cursor-pointer transition-all duration-500",
                   selectedFile
-                    ? "border-primary bg-primary/5"
-                    : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50",
+                    ? "border-secondary bg-secondary/5"
+                    : "border-white/5 hover:border-secondary/30 hover:bg-white/5",
                 )}
                 onClick={() => document.getElementById("file-upload")?.click()}
               >
-                <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col items-center gap-6">
                   <div
                     className={cn(
-                      "w-16 h-16 rounded-full flex items-center justify-center transition-colors",
-                      selectedFile ? "bg-primary/10" : "bg-muted",
+                      "w-24 h-24 rounded-3xl flex items-center justify-center transition-all duration-700",
+                      selectedFile
+                        ? "bg-secondary text-primary rotate-12"
+                        : "bg-white/5 text-primary/10",
                     )}
                   >
-                    <Upload
-                      className={cn(
-                        "h-8 w-8 transition-colors",
-                        selectedFile ? "text-primary" : "text-muted-foreground",
-                      )}
-                    />
+                    <Upload className="h-12 w-12" />
                   </div>
-                  <div className="space-y-1">
-                    <p
-                      className={cn(
-                        "font-medium transition-colors",
-                        selectedFile ? "text-primary" : "text-foreground",
-                      )}
-                    >
+                  <div className="space-y-2">
+                    <p className="text-2xl font-display font-bold text-primary tracking-tight">
                       {selectedFile
                         ? selectedFile.name
-                        : "Click to upload or drag and drop"}
+                        : "Drop document to index"}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      PDF, DOC, DOCX, TXT files supported
-                    </p>
-                    <p className="text-xs text-muted-foreground/60">
-                      Only legal documents will be processed
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">
+                      Neural compatible: PDF, DOCX, TXT
                     </p>
                   </div>
                 </div>
@@ -756,46 +762,24 @@ export default function CompaniesPage() {
                   className="hidden"
                 />
               </div>
-              {selectedFile && (
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-                  <p className="text-sm font-medium truncate flex-1 mr-2">
-                    {selectedFile.name}
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setSelectedFile(null)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
             </div>
-          </div>
 
-          <div className="flex gap-3 justify-end pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={() => setIsUploadOpen(false)}
-              disabled={uploadLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUpload}
-              disabled={uploadLoading || !selectedFile || !companyName.trim()}
-              className="min-w-[180px]"
-            >
-              {uploadLoading ? (
-                <>
-                  <Spinner size="sm" className="mr-2" />
-                  Uploading...
-                </>
-              ) : (
-                "Upload & Analyze"
-              )}
-            </Button>
+            <div className="flex gap-6 justify-end pt-4">
+              <Button
+                variant="ghost"
+                onClick={() => setIsUploadOpen(false)}
+                className="rounded-full px-10 h-16 font-bold text-primary/30 uppercase tracking-widest hover:text-primary transition-colors"
+              >
+                Discard
+              </Button>
+              <Button
+                onClick={handleUpload}
+                disabled={uploadLoading || !selectedFile || !companyName.trim()}
+                className="rounded-full px-12 h-16 font-bold uppercase tracking-widest bg-secondary text-primary hover:bg-secondary/80 shadow-2xl shadow-secondary/20 min-w-[240px]"
+              >
+                {uploadLoading ? "Analysing Risk..." : "Commit to Archive"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

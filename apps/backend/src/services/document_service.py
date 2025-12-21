@@ -167,8 +167,8 @@ class DocumentService:
             try:
                 company = await self._company_repo.find_by_id(db, document.company_id)
                 if company:
-                    await self._company_repo.invalidate_meta_summary_cache(db, company.slug)
-                    logger.debug(f"Invalidated meta-summary cache for company {company.slug}")
+                    await self._company_repo.delete_meta_summary(db, company.slug)
+                    logger.debug(f"Deleted meta-summary for company {company.slug}")
             except Exception as cache_error:
                 # Don't fail document storage if cache invalidation fails
                 logger.warning(
@@ -203,8 +203,8 @@ class DocumentService:
                 try:
                     company = await self._company_repo.find_by_id(db, document.company_id)
                     if company:
-                        await self._company_repo.invalidate_meta_summary_cache(db, company.slug)
-                        logger.debug(f"Invalidated meta-summary cache for company {company.slug}")
+                        await self._company_repo.delete_meta_summary(db, company.slug)
+                        logger.debug(f"Deleted meta-summary for company {company.slug}")
                 except Exception as cache_error:
                     # Don't fail document update if cache invalidation fails
                     logger.warning(
@@ -243,8 +243,8 @@ class DocumentService:
                 try:
                     company = await self._company_repo.find_by_id(db, company_id)
                     if company:
-                        await self._company_repo.invalidate_meta_summary_cache(db, company.slug)
-                        logger.debug(f"Invalidated meta-summary cache for company {company.slug}")
+                        await self._company_repo.delete_meta_summary(db, company.slug)
+                        logger.debug(f"Deleted meta-summary for company {company.slug}")
                 except Exception as cache_error:
                     # Don't fail document deletion if cache invalidation fails
                     logger.warning(

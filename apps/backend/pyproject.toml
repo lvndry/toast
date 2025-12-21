@@ -1,7 +1,7 @@
 [project]
-name = "toast"
+name = "clausea"
 version = "0.1.0"
-description = "Toast AI"
+description = "Clausea"
 readme = "README.md"
 requires-python = ">=3.11"
 
@@ -13,6 +13,7 @@ dependencies = [
     "httpx>=0.28.1",
     "jose>=1.0.0",
     "langchain>=0.3.25",
+    "langchain-text-splitters>=0.3.0",
     "litellm>=1.65.1",
     "markdown>=3.8",
     "markdownify>=1.1.0",
@@ -22,6 +23,7 @@ dependencies = [
     "nltk>=3.9.1",
     "pdfplumber>=0.11.7",
     "pinecone>=6.0.2",
+    "playwright>=1.50.0",
     "psutil>=7.0.0",
     "pydantic>=2.10.6",
     "python-docx>=1.2.0",

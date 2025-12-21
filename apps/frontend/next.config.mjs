@@ -22,7 +22,7 @@ const nextConfig = {
       "@radix-ui/react-tooltip",
       "lucide-react",
       "date-fns",
-      "framer-motion",
+      "motion",
     ],
   },
 

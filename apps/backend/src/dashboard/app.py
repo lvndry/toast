@@ -8,7 +8,7 @@ from src.dashboard.components.company_view import show_company_view
 from src.dashboard.components.crawling import show_crawling
 from src.dashboard.components.deep_analysis import show_deep_analysis
 from src.dashboard.components.embedding import show_embedding
-from src.dashboard.components.migration import show_migration
+from src.dashboard.components.promotion import show_promotion
 from src.dashboard.components.rag import show_rag
 from src.dashboard.components.summarization import show_summarization
 
@@ -16,7 +16,7 @@ from src.dashboard.components.summarization import show_summarization
 warnings.filterwarnings("ignore", message="missing ScriptRunContext")
 
 
-st.set_page_config(page_title="Toast Dashboard", page_icon="🍞", layout="wide")
+st.set_page_config(page_title="Clausea Dashboard", page_icon="🌊", layout="wide")
 
 setup_logging()
 
@@ -33,14 +33,14 @@ def main() -> None:
         {"id": "summarization", "display_name": "Summarization"},
         {"id": "deep_analysis", "display_name": "Deep Analysis & Overview"},
         {"id": "rag", "display_name": "RAG"},
-        {"id": "migration", "display_name": "Migration"},
+        {"id": "promotion", "display_name": "Promotion"},
         {"id": "settings", "display_name": "Settings"},
     ]
 
     # Check if we have a current page in session state
     current_page_id = st.session_state.get("current_page", "view_companies")
 
-    # Migration: Handle legacy display names in session state
+    # Promotion: Handle legacy display names in session state
     # Map old display names to new page IDs for backward compatibility
     legacy_page_mapping = {
         "Create Company": "create_company",
@@ -51,7 +51,8 @@ def main() -> None:
         "Summarization": "summarization",
         "Deep Analysis & Overview": "deep_analysis",
         "RAG": "rag",
-        "Migration": "migration",
+        "Migration": "promotion",  # Legacy mapping for old migration page
+        "Promotion": "promotion",
         "Settings": "settings",
     }
 
@@ -98,8 +99,8 @@ def main() -> None:
         show_deep_analysis()
     elif page_id == "rag":
         show_rag()
-    elif page_id == "migration":
-        show_migration()
+    elif page_id == "promotion":
+        show_promotion()
     else:
         st.title("Settings")
         st.info("This feature is coming soon!")

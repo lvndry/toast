@@ -7,7 +7,7 @@ import { useEffect } from "react";
 
 import { trackSession } from "../lib/analytics";
 
-export function PostHogProvider({ children }: { children: React.ReactNode; }) {
+export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) {
       return;
@@ -25,12 +25,12 @@ export function PostHogProvider({ children }: { children: React.ReactNode; }) {
     trackSession.started();
 
     // Track session end when user leaves
-    const handleBeforeUnload = () => {
+    function handleBeforeUnload() {
       const sessionDuration = Math.floor(
         (Date.now() - performance.timeOrigin) / 1000,
       );
       trackSession.ended(sessionDuration);
-    };
+    }
 
     window.addEventListener("beforeunload", handleBeforeUnload);
 

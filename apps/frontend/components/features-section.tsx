@@ -1,7 +1,6 @@
 "use client";
 
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -19,8 +18,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useGSAP } from "@gsap/react";
-
-gsap.registerPlugin(ScrollTrigger);
 
 const features = [
   {

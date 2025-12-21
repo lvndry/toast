@@ -37,10 +37,10 @@ export function PricingCard({
   const isCurrentPlan = currentTier === tier.tier;
   const isFree = tier.tier === "free";
 
-  const handleUpgrade = () => {
+  function handleUpgrade() {
     if (isFree || isCurrentPlan) return;
     startCheckout(priceId);
-  };
+  }
 
   return (
     <div

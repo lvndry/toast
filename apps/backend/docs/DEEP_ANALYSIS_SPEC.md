@@ -2,7 +2,7 @@
 
 ## Overview
 
-Deep Analysis is Level 3 of Toast AI's analysis hierarchy, designed for legal teams, compliance officers, and enterprise users who need comprehensive, detailed analysis of legal documents.
+Deep Analysis is Level 3 of Clausea's analysis hierarchy, designed for legal teams, compliance officers, and enterprise users who need comprehensive, detailed analysis of legal documents.
 
 **Target Users:**
 

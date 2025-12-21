@@ -16,9 +16,9 @@ export default function SignUpPage() {
 
   // Track sign-up events
   useEffect(() => {
-    const handleSignUp = () => {
+    function handleSignUp() {
       trackUserJourney.signUp("clerk");
-    };
+    }
 
     // Listen for sign-up success
     window.addEventListener("clerk-sign-up-complete", handleSignUp);
@@ -32,7 +32,7 @@ export default function SignUpPage() {
     <div className="container max-w-md mx-auto px-4 py-20">
       <div className="flex flex-col items-center gap-8">
         <div className="flex flex-col gap-4 text-center">
-          <h1 className="text-4xl font-bold">Join ToastAI</h1>
+          <h1 className="text-4xl font-bold">Join Clausea</h1>
           <p className="text-lg text-muted-foreground">
             Create your account to start analyzing legal documents
           </p>

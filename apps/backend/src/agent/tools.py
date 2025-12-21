@@ -1,7 +1,7 @@
 from typing import Any
 
 from src.core.logging import get_logger
-from src.llm import completion_with_fallback, get_embeddings
+from src.llm import acompletion_with_fallback, get_embeddings
 from src.pinecone_client import INDEX_NAME, pc
 from src.prompts.compliance_prompts import COMPLIANCE_CHECK_PROMPT
 
@@ -94,10 +94,7 @@ async def check_compliance(regulation: str, company_slug: str) -> str:
     ]
 
     try:
-        response = completion_with_fallback(
-            messages=messages,
-            temperature=0.0,  # Strict evaluation
-        )
+        response = await acompletion_with_fallback(messages=messages)
         return str(response.choices[0].message.content)
     except Exception as e:
         logger.error(f"Error checking compliance: {e}")

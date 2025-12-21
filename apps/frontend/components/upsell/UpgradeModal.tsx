@@ -19,12 +19,12 @@ export function UpgradeModal({
 
   if (!isOpen) return null;
 
-  const handleUpgrade = () => {
+  function handleUpgrade() {
     // Use Individual monthly price ID from environment
     const priceId =
       process.env.NEXT_PUBLIC_PADDLE_PRICE_INDIVIDUAL_MONTHLY || "";
     startCheckout(priceId);
-  };
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

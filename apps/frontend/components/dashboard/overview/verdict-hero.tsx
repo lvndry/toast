@@ -8,7 +8,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface VerdictHeroProps {
@@ -104,18 +103,25 @@ export function VerdictHero({
 
             <p className="text-foreground/80 leading-relaxed">{summary}</p>
 
-            {/* Quick insight badges */}
+            {/* Key insights */}
             {topKeypoints.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {topKeypoints.map((point, index) => (
-                  <Badge
-                    key={index}
-                    variant="secondary"
-                    className="text-xs font-normal max-w-[200px] truncate"
-                  >
-                    {point}
-                  </Badge>
-                ))}
+              <div className="space-y-2 mt-4">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Key Insights
+                </h4>
+                <div className="space-y-2">
+                  {topKeypoints.map((point, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-2 text-sm text-foreground/70 leading-relaxed"
+                    >
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full ${config.color.replace("text-", "bg-")} mt-2 shrink-0`}
+                      />
+                      <span>{point}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

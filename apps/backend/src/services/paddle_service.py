@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from src.core.config import settings
+from src.core.config import config
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -22,9 +22,9 @@ class PaddleService:
 
     def __init__(self) -> None:
         """Initialize Paddle service with API credentials."""
-        self.api_key = settings.paddle.api_key
-        self.webhook_secret = settings.paddle.webhook_secret
-        self.environment = settings.paddle.environment
+        self.api_key = config.paddle.api_key
+        self.webhook_secret = config.paddle.webhook_secret
+        self.environment = config.paddle.environment
         self.base_url = (
             self.BASE_URL_PRODUCTION if self.environment == "production" else self.BASE_URL_SANDBOX
         )

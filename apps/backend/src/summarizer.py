@@ -363,6 +363,15 @@ async def summarize_document(
         )
 
     prompt = f"""
+Document Title: {document.title or "Not specified"}
+Document Type: {document.doc_type}
+Document URL: {document.url}
+Document Regions: {document.regions}
+Document Locale: {document.locale or "Not specified"}
+
+**IMPORTANT: Determine document scope from the above metadata and content below.**
+Consider if this is a global policy, product-specific, region-specific, or service-specific document.
+
 Document content:
 {doc_text}
 """
@@ -630,7 +639,7 @@ async def generate_company_meta_summary(
 
     # Check cache unless force_regenerate is True
     if not force_regenerate:
-        cached_meta_summary_data = await comp_svc.get_meta_summary_cache(db, company_slug)
+        cached_meta_summary_data = await comp_svc.get_meta_summary(db, company_slug)
         if cached_meta_summary_data:
             cached_signature = cached_meta_summary_data.get("document_signature")
             cached_summary = cached_meta_summary_data.get("meta_summary")
@@ -703,21 +712,25 @@ Summary: {summary}
     document_summaries = "\n---\n".join(summaries)
     logger.debug(f"Document summaries: {document_summaries}")
 
+    num_documents = len(documents)
+    document_types = list({doc.doc_type for doc in documents})
+
     prompt = f"""
-Your task is to create a comprehensive, explicit, and actionable summary that synthesizes information from ALL the following documents.
+Your task is to create a warm, accessible, and explanatory summary that helps everyday people understand what they're agreeing to. We analyzed {num_documents} document(s) for this company: {", ".join(document_types)}.
 
 **CRITICAL REQUIREMENTS:**
-1. **Be COMPREHENSIVE**: Extract and aggregate information from ALL documents - don't miss any data types, purposes, or rights mentioned
-2. **Be EXPLICIT**: Specify exact data types (not "personal information" but "email address, IP address, location data")
-3. **Be SPECIFIC**: For user rights, include WHAT data, HOW to exercise, and WHERE to go (URLs, email addresses, specific steps)
-4. **Be BALANCED**: Clearly highlight both concerning practices (dangers) AND positive privacy protections (benefits)
-5. **Cover ALL documents**: Mention which document types were analyzed and note any contradictions
+1. **Start with document count**: Begin your summary by clearly stating "We analyzed {num_documents} document(s): [list document types]"
+2. **Be COMPREHENSIVE**: Extract and aggregate information from ALL documents - don't miss any data types, purposes, or rights mentioned
+3. **Be EXPLICIT AND EXPLANATORY**: Specify exact data types (not "personal information" but "email address, IP address, location data") AND explain what each means for users in real life
+4. **Be SPECIFIC AND HELPFUL**: For user rights, include WHAT data, WHY it matters, HOW to exercise, and WHERE to go (URLs, email addresses, specific steps)
+5. **Be BALANCED**: Clearly highlight both concerning practices (dangers) AND positive privacy protections (benefits), always explaining the impact on users
+6. **Explain user impact**: For every fact, explain what it means for someone's daily life, privacy, and control
 
-The following documents have been analyzed:
+The following {num_documents} document(s) have been analyzed:
 
 {document_summaries}
 
-Create a unified summary that provides complete value in under 5 minutes of reading. Be explicit about data types, specific about user rights with instructions, and balanced in showing both concerns and benefits.
+Create a unified summary that provides complete value in under 5 minutes of reading. Write like a helpful friend explaining complex legal documents - be warm, clear, and always explain what things mean for the user. Make sure anyone, regardless of their privacy knowledge, can understand and get value from your summary.
 """
 
     # Set up usage tracking for meta-summary generation
@@ -739,7 +752,6 @@ Create a unified summary that provides complete value in under 5 minutes of read
                         },
                         {"role": "user", "content": prompt},
                     ],
-                    temperature=0.4,
                     response_format={"type": "json_object"},
                 )
             )
@@ -778,14 +790,14 @@ Create a unified summary that provides complete value in under 5 minutes of read
             response.choices[0].message.content, strict=False
         )
 
-        # Store in cache with document signature
-        await comp_svc.set_meta_summary_cache(
+        # Save to database with document signature
+        await comp_svc.save_meta_summary(
             db,
             company_slug=company_slug,
             meta_summary=meta_summary,
             document_signature=current_signature,
         )
-        logger.info(f"✓ Cached meta-summary for {company_slug}")
+        logger.info(f"✓ Saved meta-summary for {company_slug}")
 
         # Log LLM usage for meta-summary generation (success case)
         usage_summary, records = usage_tracker.consume_summary()
@@ -851,6 +863,12 @@ URL: {document.url}
 Effective Date: {document.effective_date}
 Locale: {document.locale}
 Regions: {document.regions}
+
+**IMPORTANT: Determine document scope from title, URL, content, and regions:**
+- Title: {document.title}
+- URL: {document.url}
+- Regions: {document.regions}
+- Consider if this is a global policy, product-specific, region-specific, or service-specific document
 
 Document Text (first 15,000 characters):
 {text_preview}
@@ -968,7 +986,7 @@ async def generate_company_deep_analysis(
 
     # Check cache unless force_regenerate
     if not force_regenerate:
-        cached_deep_analysis = await comp_svc.get_deep_analysis_cache(db, company_slug)
+        cached_deep_analysis = await comp_svc.get_deep_analysis(db, company_slug)
         if cached_deep_analysis:
             cached_signature = cached_deep_analysis.get("document_signature")
             cached_data = cached_deep_analysis.get("deep_analysis")
@@ -1024,10 +1042,12 @@ async def generate_company_deep_analysis(
     # Prepare input for aggregation
     doc_summaries = []
     for da in document_analyses:
+        scope = getattr(da.document_risk_breakdown, "scope", None)
         doc_summaries.append(f"""
 Document: {da.title or da.document_type} ({da.document_type})
-Risk Score: {da.document_risk_breakdown.get("overall_risk", "N/A")}
-Top Concerns: {", ".join(da.document_risk_breakdown.get("top_concerns", []))}
+Scope: {scope or "Not specified"}
+Risk Score: {da.document_risk_breakdown.overall_risk}
+Top Concerns: {", ".join(da.document_risk_breakdown.top_concerns)}
 Critical Clauses: {len(da.critical_clauses)} found
 """)
 
@@ -1037,6 +1057,11 @@ Documents Analyzed: {len(document_analyses)}
 
 Document Summaries:
 {"".join(doc_summaries)}
+
+**CRITICAL: When prioritizing risks, consider document scope:**
+- Global/company-wide documents: Risks affect all users → prioritize higher
+- Product-specific documents: Risks affect only specific product users → prioritize lower (but still important)
+- When the same risk appears in multiple documents, prioritize based on scope (global > product-specific)
 
 Perform cross-document analysis, compliance assessment, and business impact analysis based on these findings.
 """
@@ -1053,7 +1078,6 @@ Perform cross-document analysis, compliance assessment, and business impact anal
                     },
                     {"role": "user", "content": aggregate_prompt},
                 ],
-                temperature=0.4,
                 response_format={"type": "json_object"},
             )
 
@@ -1124,14 +1148,14 @@ Perform cross-document analysis, compliance assessment, and business impact anal
             risk_prioritization=risk_prioritization,
         )
 
-        # Cache the result
-        await comp_svc.set_deep_analysis_cache(
+        # Save the result to database
+        await comp_svc.save_deep_analysis(
             db,
             company_slug=company_slug,
             deep_analysis=deep_analysis,
             document_signature=current_signature,
         )
-        logger.info(f"✓ Cached deep analysis for {company_slug}")
+        logger.info(f"✓ Saved deep analysis for {company_slug}")
 
         # Log usage
         usage_summary, records = usage_tracker.consume_summary()

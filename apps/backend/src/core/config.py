@@ -21,7 +21,7 @@ class AppConfig:
     """Application configuration"""
 
     def __init__(self) -> None:
-        self.name: str = "Toast AI"
+        self.name: str = "Clausea"
         self.version: str = "0.1.0"
         self.env: str = os.getenv("ENVIRONMENT", "development")
         self.port: int = int(os.getenv("PORT", "8000"))
@@ -41,7 +41,7 @@ class DatabaseConfig:
         self.mongodb_ssl_ca_certs: str | None = os.getenv("MONGODB_SSL_CA_CERTS")
         self.mongodb_ssl_certfile: str | None = os.getenv("MONGODB_SSL_CERTFILE")
         self.mongodb_ssl_keyfile: str | None = os.getenv("MONGODB_SSL_KEYFILE")
-        self.mongodb_database: str = os.getenv("MONGODB_DATABASE", "toast")
+        self.mongodb_database: str = os.getenv("MONGODB_DATABASE", "clausea")
 
         if self.mongodb_uri is None:
             raise ValueError("MONGO_URI is not set")
@@ -89,7 +89,7 @@ class CorsConfig:
     @property
     def is_secure(self) -> bool:
         """Check if CORS configuration is secure for production"""
-        if settings.app.env.lower() == "production":
+        if config.app.env.lower() == "production":
             return "*" not in self.origins and len(self.origins) > 0
         return True
 
@@ -147,8 +147,8 @@ class PaddleConfig:
         self.price_business_annual: str | None = os.getenv("PADDLE_PRICE_BUSINESS_ANNUAL")
 
 
-class Settings:
-    """Application settings with nested configuration objects"""
+class Config:
+    """Application configuration with nested configuration objects"""
 
     def __init__(self) -> None:
         self.app = AppConfig()
@@ -164,10 +164,10 @@ class Settings:
 
 
 @lru_cache
-def get_settings() -> Settings:
-    """Get cached settings instance"""
-    return Settings()
+def get_config() -> Config:
+    """Get cached configuration instance"""
+    return Config()
 
 
-# Global settings instance
-settings = get_settings()
+# Global configuration instance
+config = get_config()

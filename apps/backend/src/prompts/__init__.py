@@ -1,1 +1,1 @@
-"""Prompt templates for LLM interactions across Toast AI."""
+"""Prompt templates for LLM interactions across Clausea."""

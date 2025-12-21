@@ -1,5 +1,5 @@
 """
-This module contains the MigrationManager class, which is used to migrate data from the local database to the production database.
+This module contains the PromotionManager class, which is used to promote data from the local database to the production database.
 """
 
 import os
@@ -10,7 +10,7 @@ import certifi
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
-from src.core.config import settings
+from src.core.config import config
 from src.core.logging import get_logger
 from src.models.user import UserTier
 
@@ -18,15 +18,15 @@ load_dotenv()
 logger = get_logger(__name__)
 
 
-class MigrationManager:
+class PromotionManager:
     """
-    This class is used to migrate data from the local database to the production database.
+    This class is used to promote data from the local database to the production database.
     """
 
     def __init__(self) -> None:
         local_uri = os.getenv("MONGO_URI")
         production_uri = os.getenv("PRODUCTION_MONGO_URI")
-        self.database_name = settings.database.mongodb_database
+        self.database_name = config.database.mongodb_database
 
         if not local_uri:
             raise ValueError("MONGO_URI is not set")
@@ -100,14 +100,14 @@ class MigrationManager:
                 "collection": collection_name,
             }
 
-    async def migrate_companies(self, dry_run: bool = True) -> dict[str, Any]:
-        """Migrate companies from local to production."""
+    async def promote_companies(self, dry_run: bool = True) -> dict[str, Any]:
+        """Promote companies from local to production."""
         try:
             if not self.local_db or not self.production_db:
                 raise ValueError("Database connections not established")
 
             companies = await self.local_db.companies.find().to_list(length=None)
-            migrated_count = 0
+            promoted_count = 0
             skipped_count = 0
             errors = []
 
@@ -124,37 +124,37 @@ class MigrationManager:
 
                     if not dry_run:
                         await self.production_db.companies.insert_one(company_data)
-                    migrated_count += 1
+                    promoted_count += 1
 
                 except Exception as e:
                     errors.append(
-                        f"Error migrating company {company_data.get('id', 'unknown')}: {str(e)}"
+                        f"Error promoting company {company_data.get('id', 'unknown')}: {str(e)}"
                     )
 
             return {
-                "migrated": migrated_count,
+                "promoted": promoted_count,
                 "skipped": skipped_count,
                 "errors": errors,
                 "dry_run": dry_run,
             }
 
         except Exception as e:
-            logger.error(f"Error migrating companies: {e}")
+            logger.error(f"Error promoting companies: {e}")
             return {
-                "migrated": 0,
+                "promoted": 0,
                 "skipped": 0,
                 "errors": [str(e)],
                 "dry_run": dry_run,
             }
 
-    async def migrate_documents(self, dry_run: bool = True) -> dict[str, Any]:
-        """Migrate documents from local to production."""
+    async def promote_documents(self, dry_run: bool = True) -> dict[str, Any]:
+        """Promote documents from local to production."""
         try:
             if not self.local_db or not self.production_db:
                 raise ValueError("Database connections not established")
 
             documents = await self.local_db.documents.find().to_list(length=None)
-            migrated_count = 0
+            promoted_count = 0
             skipped_count = 0
             errors = []
 
@@ -171,37 +171,37 @@ class MigrationManager:
 
                     if not dry_run:
                         await self.production_db.documents.insert_one(document_data)
-                    migrated_count += 1
+                    promoted_count += 1
 
                 except Exception as e:
                     errors.append(
-                        f"Error migrating document {document_data.get('id', 'unknown')}: {str(e)}"
+                        f"Error promoting document {document_data.get('id', 'unknown')}: {str(e)}"
                     )
 
             return {
-                "migrated": migrated_count,
+                "promoted": promoted_count,
                 "skipped": skipped_count,
                 "errors": errors,
                 "dry_run": dry_run,
             }
 
         except Exception as e:
-            logger.error(f"Error migrating documents: {e}")
+            logger.error(f"Error promoting documents: {e}")
             return {
-                "migrated": 0,
+                "promoted": 0,
                 "skipped": 0,
                 "errors": [str(e)],
                 "dry_run": dry_run,
             }
 
-    async def migrate_meta_summaries(self, dry_run: bool = True) -> dict[str, Any]:
-        """Migrate meta summaries from local to production."""
+    async def promote_meta_summaries(self, dry_run: bool = True) -> dict[str, Any]:
+        """Promote meta summaries from local to production."""
         try:
             if not self.local_db or not self.production_db:
                 raise ValueError("Database connections not established")
 
             meta_summaries = await self.local_db.meta_summaries.find().to_list(length=None)
-            migrated_count = 0
+            promoted_count = 0
             skipped_count = 0
             errors = []
 
@@ -218,36 +218,36 @@ class MigrationManager:
 
                     if not dry_run:
                         await self.production_db.meta_summaries.insert_one(meta_summary_data)
-                    migrated_count += 1
+                    promoted_count += 1
 
                 except Exception as e:
                     errors.append(
-                        f"Error migrating meta summary for company {meta_summary_data.get('company_id', 'unknown')}: {str(e)}"
+                        f"Error promoting meta summary for company {meta_summary_data.get('company_id', 'unknown')}: {str(e)}"
                     )
 
             return {
-                "migrated": migrated_count,
+                "promoted": promoted_count,
                 "skipped": skipped_count,
                 "errors": errors,
                 "dry_run": dry_run,
             }
 
         except Exception as e:
-            logger.error(f"Error migrating meta summaries: {e}")
+            logger.error(f"Error promoting meta summaries: {e}")
             return {
-                "migrated": 0,
+                "promoted": 0,
                 "skipped": 0,
                 "errors": [str(e)],
                 "dry_run": dry_run,
             }
 
-    async def migrate_users_to_tier_system(self, dry_run: bool = True) -> dict[str, Any]:
-        """Migrate existing users to include tier and monthly_usage fields."""
+    async def promote_users_to_tier_system(self, dry_run: bool = True) -> dict[str, Any]:
+        """Promote existing users to include tier and monthly_usage fields."""
         try:
             if not self.local_db:
                 raise ValueError("Database connections not established")
 
-            logger.info("Starting user tier migration...")
+            logger.info("Starting user tier promotion...")
 
             # Get all users that don't have tier field
             users_without_tier = await self.local_db.users.find(
@@ -259,9 +259,9 @@ class MigrationManager:
                 }
             ).to_list(length=None)
 
-            logger.info(f"Found {len(users_without_tier)} users to migrate")
+            logger.info(f"Found {len(users_without_tier)} users to promote")
 
-            migrated_count = 0
+            promoted_count = 0
             skipped_count = 0
             errors = []
 
@@ -290,34 +290,34 @@ class MigrationManager:
                             await self.local_db.users.update_one(
                                 {"id": user_id}, {"$set": update_data}
                             )
-                        migrated_count += 1
+                        promoted_count += 1
                     else:
                         skipped_count += 1
 
                 except Exception as e:
-                    error_msg = f"Error migrating user {user_doc.get('id', 'unknown')}: {str(e)}"
+                    error_msg = f"Error promoting user {user_doc.get('id', 'unknown')}: {str(e)}"
                     errors.append(error_msg)
                     logger.error(error_msg)
 
-            logger.info("User tier migration completed successfully")
+            logger.info("User tier promotion completed successfully")
 
             return {
-                "migrated": migrated_count,
+                "promoted": promoted_count,
                 "skipped": skipped_count,
                 "errors": errors,
                 "dry_run": dry_run,
             }
 
         except Exception as e:
-            logger.error(f"Error during user tier migration: {e}")
+            logger.error(f"Error during user tier promotion: {e}")
             return {
-                "migrated": 0,
+                "promoted": 0,
                 "skipped": 0,
                 "errors": [str(e)],
                 "dry_run": dry_run,
             }
 
-    async def get_migration_summary(self) -> dict[str, Any]:
+    async def get_promotion_summary(self) -> dict[str, Any]:
         """Get a summary of all collections in both databases."""
         collections = [
             "companies",
@@ -342,16 +342,16 @@ class MigrationManager:
             else self.production_uri,
         }
 
-    async def run_full_migration(self, dry_run: bool = True) -> dict[str, Any]:
-        """Run a full migration of all data."""
+    async def run_full_promotion(self, dry_run: bool = True) -> dict[str, Any]:
+        """Run a full promotion of all data."""
         try:
             await self.connect_databases()
 
-            summary = await self.get_migration_summary()
-            companies_result = await self.migrate_companies(dry_run)
-            documents_result = await self.migrate_documents(dry_run)
-            meta_summaries_result = await self.migrate_meta_summaries(dry_run)
-            users_result = await self.migrate_users_to_tier_system(dry_run)
+            summary = await self.get_promotion_summary()
+            companies_result = await self.promote_companies(dry_run)
+            documents_result = await self.promote_documents(dry_run)
+            meta_summaries_result = await self.promote_meta_summaries(dry_run)
+            users_result = await self.promote_users_to_tier_system(dry_run)
 
             return {
                 "summary": summary,

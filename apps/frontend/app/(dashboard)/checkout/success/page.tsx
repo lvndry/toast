@@ -31,7 +31,7 @@ export default function CheckoutSuccessPage() {
         </div>
 
         <h1 className="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
-          Welcome to Toast AI!
+          Welcome to Clausea!
         </h1>
 
         <p className="mb-8 text-lg text-gray-600 dark:text-gray-400">

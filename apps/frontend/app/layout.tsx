@@ -1,18 +1,37 @@
-import "@fontsource-variable/inter";
-import "@fontsource-variable/plus-jakarta-sans";
+import { Inter, Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 
 import "./globals.css";
 import { Provider } from "./provider";
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+});
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  style: "italic",
+  variable: "--font-serif",
+});
+
 export const metadata = {
-  title: "Toast AI - Understand Legal Documents in Plain English",
+  title: "LegalLens AI - Documents weren't written for you... until now",
   description:
-    "Transform complex privacy policies and terms of service into clear, actionable insights. Know what you're agreeing to in under 60 seconds.",
+    "Illuminate legal complexities with AI precision. Summarize, analyze, and perform RAG on dense legal documents instantly.",
 };
 
 export default function Layout(props: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html
+      lang="en"
+      className={`${inter.variable} ${jakarta.variable} ${newsreader.variable} scroll-smooth dark bg-background text-foreground`}
+      suppressHydrationWarning
+    >
       <head>
         <link
           rel="apple-touch-icon"
@@ -33,7 +52,8 @@ export default function Layout(props: { children: React.ReactNode }) {
         />
         <link rel="manifest" href="/static/favicons/manifest.json" />
       </head>
-      <body className="font-sans antialiased">
+      <body className="antialiased selection:bg-secondary/30">
+        <div className="noise-overlay" />
         <Provider>{props.children}</Provider>
       </body>
     </html>

@@ -33,42 +33,35 @@ def run_crawl_async(company: Company) -> ProcessingStats | None:
 
                 # CRITICAL: Wait until ALL tasks are truly complete before closing the loop
                 # This includes all database operations that may be pending
-                max_wait_seconds = 10
+                max_wait_seconds = 2  # Reduced from 10
                 wait_interval = 0.1
                 max_iterations = int(max_wait_seconds / wait_interval)
 
                 for _ in range(max_iterations):
                     # Get all pending tasks (excluding the current gather task if any)
                     all_tasks = asyncio.all_tasks(loop)
-                    pending_tasks = [t for t in all_tasks if not t.done()]
+                    pending_tasks = [
+                        t for t in all_tasks if not t.done() and t is not asyncio.current_task(loop)
+                    ]
 
                     if not pending_tasks:
-                        # All tasks are done, wait one more cycle to ensure no new tasks spawn
-                        loop.run_until_complete(asyncio.sleep(wait_interval))
-                        # Check one more time
-                        all_tasks = asyncio.all_tasks(loop)
-                        pending_tasks = [t for t in all_tasks if not t.done()]
-                        if not pending_tasks:
-                            break
+                        break
 
                     # Wait for pending tasks to complete
-                    if pending_tasks:
-                        try:
-                            loop.run_until_complete(
-                                asyncio.gather(*pending_tasks, return_exceptions=True)
-                            )
-                        except Exception:
-                            # If gather fails, continue waiting
-                            pass
-
-                    # Small delay to let the loop process any callbacks
-                    loop.run_until_complete(asyncio.sleep(wait_interval))
+                    try:
+                        loop.run_until_complete(asyncio.wait(pending_tasks, timeout=wait_interval))
+                    except Exception:
+                        pass
 
                 # Final verification: ensure no tasks remain
-                final_tasks = [t for t in asyncio.all_tasks(loop) if not t.done()]
+                final_tasks = [
+                    t
+                    for t in asyncio.all_tasks(loop)
+                    if not t.done() and t is not asyncio.current_task(loop)
+                ]
                 if final_tasks:
-                    # Force wait for any remaining tasks
-                    loop.run_until_complete(asyncio.gather(*final_tasks, return_exceptions=True))
+                    # Force wait for any remaining tasks with a small timeout
+                    loop.run_until_complete(asyncio.wait(final_tasks, timeout=1.0))
 
                 return result
             finally:
@@ -159,42 +152,35 @@ def run_crawl_all_companies_async(
             finally:
                 # CRITICAL: Wait until ALL tasks are truly complete before closing the loop
                 # This includes all database operations that may be pending
-                max_wait_seconds = 10
+                max_wait_seconds = 2  # Reduced from 10
                 wait_interval = 0.1
                 max_iterations = int(max_wait_seconds / wait_interval)
 
                 for _ in range(max_iterations):
                     # Get all pending tasks
                     all_tasks = asyncio.all_tasks(loop)
-                    pending_tasks = [t for t in all_tasks if not t.done()]
+                    pending_tasks = [
+                        t for t in all_tasks if not t.done() and t is not asyncio.current_task(loop)
+                    ]
 
                     if not pending_tasks:
-                        # All tasks are done, wait one more cycle to ensure no new tasks spawn
-                        loop.run_until_complete(asyncio.sleep(wait_interval))
-                        # Check one more time
-                        all_tasks = asyncio.all_tasks(loop)
-                        pending_tasks = [t for t in all_tasks if not t.done()]
-                        if not pending_tasks:
-                            break
+                        break
 
                     # Wait for pending tasks to complete
-                    if pending_tasks:
-                        try:
-                            loop.run_until_complete(
-                                asyncio.gather(*pending_tasks, return_exceptions=True)
-                            )
-                        except Exception:
-                            # If gather fails, continue waiting
-                            pass
-
-                    # Small delay to let the loop process any callbacks
-                    loop.run_until_complete(asyncio.sleep(wait_interval))
+                    try:
+                        loop.run_until_complete(asyncio.wait(pending_tasks, timeout=wait_interval))
+                    except Exception:
+                        pass
 
                 # Final verification: ensure no tasks remain
-                final_tasks = [t for t in asyncio.all_tasks(loop) if not t.done()]
+                final_tasks = [
+                    t
+                    for t in asyncio.all_tasks(loop)
+                    if not t.done() and t is not asyncio.current_task(loop)
+                ]
                 if final_tasks:
-                    # Force wait for any remaining tasks
-                    loop.run_until_complete(asyncio.gather(*final_tasks, return_exceptions=True))
+                    # Force wait for any remaining tasks with a small timeout
+                    loop.run_until_complete(asyncio.wait(final_tasks, timeout=1.0))
 
                 # Only close the loop after we've verified all tasks are complete
                 # Shutdown async generators first
@@ -304,35 +290,50 @@ def show_crawling() -> None:
         if "selected_company_for_crawl" in st.session_state:
             del st.session_state["selected_company_for_crawl"]
 
-        # Start crawling
-        with st.spinner(f"Crawling {selected_company.name}... This may take several minutes."):
+        # Use status for better control over display
+        with st.status(
+            f"🕷️ Crawling {selected_company.name}... This may take several minutes.",
+            expanded=True,
+        ) as status:
             # Show progress info
-            progress_placeholder = st.empty()
-            progress_placeholder.info("🔍 Starting crawler...")
+            st.write("🔍 Starting crawler...")
 
             # Run the crawling process
             processing_stats = run_crawl_async(selected_company)
 
             if processing_stats is not None:
-                progress_placeholder.empty()
-
-                # Show results
-                st.success("✅ Crawling completed successfully!")
-
-                if processing_stats:
-                    st.write(
-                        f"**Found {processing_stats.legal_documents_stored} legal documents:**"
-                    )
-
+                status.update(
+                    label=f"✅ Crawling {selected_company.name} completed!",
+                    state="complete",
+                    expanded=False,
+                )
+                # Show results summary within status if desired, or outside
+                if processing_stats.legal_documents_stored > 0:
+                    st.write(f"Found {processing_stats.legal_documents_stored} legal documents.")
                 else:
-                    st.warning("No legal documents were found during the crawl.")
-                    st.info("This could mean:")
+                    st.write("No legal documents were found.")
+            else:
+                status.update(
+                    label=f"❌ Crawling {selected_company.name} failed",
+                    state="error",
+                    expanded=True,
+                )
+
+        if processing_stats is not None:
+            # Show detailed success results outside status
+            st.success("✅ Crawling completed successfully!")
+
+            if processing_stats.legal_documents_stored > 0:
+                st.write(f"**Found {processing_stats.legal_documents_stored} legal documents:**")
+                # Removed redundant check if processing_stats is truthy as it's a BaseModel
+            else:
+                st.warning("No legal documents were found during the crawl.")
+                with st.expander("Possible reasons:"):
                     st.write("• The websites don't have legal documents")
                     st.write("• The documents aren't accessible")
                     st.write("• The classification didn't identify them as legal documents")
-            else:
-                progress_placeholder.empty()
-                st.error("Crawling failed. Please check the logs and try again.")
+        else:
+            st.error("Crawling failed. Please check the logs and try again.")
 
     # All companies crawling section
     st.write("---")
@@ -348,20 +349,27 @@ def show_crawling() -> None:
     # Start crawling all companies button
     if st.button("🚀 Crawl All Companies", type="secondary", key="start_crawl_all_btn"):
         # Start crawling all companies
-        with st.spinner(
-            f"Crawling {len(companies_with_urls)} companies... This may take a very long time."
-        ):
+        with st.status(
+            f"🕷️ Crawling {len(companies_with_urls)} companies... This may take a very long time.",
+            expanded=True,
+        ) as status:
             # Show progress info
-            progress_placeholder = st.empty()
-            progress_placeholder.info(
-                f"🔍 Starting crawler for {len(companies_with_urls)} companies..."
-            )
+            st.write(f"🔍 Starting crawler for {len(companies_with_urls)} companies...")
 
             # Run the crawling process for all companies
             results = run_crawl_all_companies_async(companies_with_urls, max_parallel=2)
 
-            progress_placeholder.empty()
+            if results:
+                successful = sum(1 for stats in results.values() if stats is not None)
+                status.update(
+                    label=f"✅ Crawling completed! {successful}/{len(results)} companies processed.",
+                    state="complete",
+                    expanded=False,
+                )
+            else:
+                status.update(label="❌ Crawling all companies failed", state="error")
 
+        if results:
             # Show results summary
             successful = sum(1 for stats in results.values() if stats is not None)
             failed = len(results) - successful
@@ -388,6 +396,8 @@ def show_crawling() -> None:
                             st.write(f"❌ **{company.name}**: Failed")
             else:
                 st.error("All companies failed to crawl. Please check the logs and try again.")
+        else:
+            st.error("Crawling operation failed to return results.")
 
     # Back to companies button
     st.write("---")

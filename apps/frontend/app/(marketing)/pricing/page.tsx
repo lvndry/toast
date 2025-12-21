@@ -1,165 +1,88 @@
-"use client";
-
-import { useState } from "react";
-
-import {
-  PricingCard,
-  type PricingTier,
-} from "@/components/pricing/PricingCard";
-import { PricingFAQ } from "@/components/pricing/PricingFAQ";
-
-// TODO: Replace these with actual Paddle Price IDs from environment variables
-const pricingTiers: PricingTier[] = [
-  {
-    name: "Free",
-    tier: "free",
-    price: 0,
-    annualPrice: 0,
-    description: "Perfect for trying out Toast AI with basic privacy analysis.",
-    features: [
-      "3 analyses per month",
-      "Basic verdict & risk score",
-      "Top 3 findings per analysis",
-      "Evidence strength indicators",
-    ],
-    priceIdMonthly: "",
-    priceIdAnnual: "",
-    cta: "Get Started Free",
-  },
-  {
-    name: "Individual",
-    tier: "individual",
-    price: 9,
-    annualPrice: 84,
-    description:
-      "For privacy-conscious individuals who want unlimited analysis.",
-    features: [
-      "Unlimited analyses",
-      "Full reports with citations",
-      "Comparison tools",
-      "Email alerts",
-      "Priority email support",
-    ],
-    isRecommended: true,
-    priceIdMonthly:
-      process.env.NEXT_PUBLIC_PADDLE_PRICE_INDIVIDUAL_MONTHLY || "pri_01",
-    priceIdAnnual:
-      process.env.NEXT_PUBLIC_PADDLE_PRICE_INDIVIDUAL_ANNUAL || "pri_02",
-    cta: "Upgrade to Individual",
-  },
-  {
-    name: "Business",
-    tier: "business",
-    price: 49,
-    annualPrice: 468,
-    description: "For growing legal teams and small businesses.",
-    features: [
-      "Everything in Individual",
-      "Vendor dashboard",
-      "Policy change monitoring",
-      "Exportable reports",
-      "Team sharing (up to 5 members)",
-      "Priority support",
-    ],
-    priceIdMonthly:
-      process.env.NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_MONTHLY || "pri_03",
-    priceIdAnnual:
-      process.env.NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_ANNUAL || "pri_04",
-    cta: "Upgrade to Business",
-  },
-  {
-    name: "Enterprise",
-    tier: "enterprise",
-    price: 500,
-    annualPrice: 5000,
-    description: "For large legal teams and organizations with advanced needs.",
-    features: [
-      "Everything in Business",
-      "Unlimited team members",
-      "SSO (SAML/OIDC)",
-      "Custom compliance policies",
-      "API access",
-      "Dedicated account manager",
-      "Custom integrations",
-    ],
-    priceIdMonthly: "",
-    priceIdAnnual: "",
-    cta: "Contact Sales",
-  },
-];
+import { CustomCursor, Header } from "@/components/legallens/Navigation";
+import { Footer, Pricing } from "@/components/legallens/PricingAndFooter";
 
 export default function PricingPage() {
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">(
-    "monthly",
-  );
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 py-20 dark:from-gray-950 dark:to-gray-900">
-      <div className="container mx-auto px-4">
-        {/* Header */}
-        <div className="mb-16 text-center">
-          <h1 className="mb-4 text-5xl font-extrabold text-gray-900 dark:text-white">
-            Simple, Transparent Pricing
-          </h1>
-          <p className="mx-auto max-w-2xl text-xl text-gray-600 dark:text-gray-400">
-            Choose the plan that's right for you. Upgrade, downgrade, or cancel
-            anytime.
-          </p>
-        </div>
+    <div className="min-h-screen bg-background text-foreground selection:bg-secondary/30 w-full overflow-hidden">
+      <CustomCursor />
+      <Header />
 
-        {/* Billing Toggle */}
-        <div className="mb-12 flex justify-center">
-          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-900">
-            <button
-              onClick={() => setBillingPeriod("monthly")}
-              className={`rounded-md px-8 py-3 font-semibold transition-colors ${
-                billingPeriod === "monthly"
-                  ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                  : "text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingPeriod("annual")}
-              className={`relative rounded-md px-8 py-3 font-semibold transition-colors ${
-                billingPeriod === "annual"
-                  ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                  : "text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              }`}
-            >
-              Annual
-              <span className="ml-2 rounded-full bg-green-500 px-2 py-0.5 text-xs text-white">
-                Save 20%
-              </span>
-            </button>
+      <main className="pt-32">
+        <Pricing />
+
+        {/* Comparison Table */}
+        <section className="py-24 px-4 md:px-8 max-w-5xl mx-auto overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-primary/10">
+                <th className="py-8 font-display font-bold text-2xl">
+                  Features
+                </th>
+                <th className="py-8 font-display font-bold text-lg text-primary/60">
+                  Standard
+                </th>
+                <th className="py-8 font-display font-bold text-lg text-secondary">
+                  Pro
+                </th>
+                <th className="py-8 font-display font-bold text-lg text-primary/60">
+                  Enterprise
+                </th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {[
+                ["Documents per month", "10", "Unlimited", "Unlimited"],
+                ["Max File Size", "5MB", "50MB", "1GB+"],
+                ["Team Seats", "1", "5", "Unlimited"],
+                ["Semantic Search", "Basic", "Advanced", "Custom Tuned"],
+                ["API Access", "-", "Coming Soon", "Available"],
+                ["Priority Support", "-", "Yes", "Dedicated"],
+              ].map(([feature, s, p, e]) => (
+                <tr
+                  key={feature}
+                  className="border-b border-primary/5 hover:bg-primary/5 transition-colors group"
+                >
+                  <td className="py-6 font-bold text-primary group-hover:text-secondary transition-colors">
+                    {feature}
+                  </td>
+                  <td className="py-6 text-primary/60">{s}</td>
+                  <td className="py-6 text-primary font-bold">{p}</td>
+                  <td className="py-6 text-primary/60">{e}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        {/* FAQ Preview */}
+        <section className="py-24 px-4 md:px-8 max-w-3xl mx-auto text-center">
+          <h4 className="text-3xl font-display font-bold mb-12">
+            Common Questions
+          </h4>
+          <div className="space-y-8 text-left">
+            {[
+              {
+                q: "Is my document data private?",
+                a: "Absolutely. We employ enterprise-grade encryption and never use your documents to train public AI models.",
+              },
+              {
+                q: "Can I cancel my subscription any time?",
+                a: "Yes, you can cancel or switch plans from your dashboard at any moment with no hidden fees.",
+              },
+            ].map((faq, i) => (
+              <div
+                key={i}
+                className="p-8 rounded-3xl bg-white border border-primary/5"
+              >
+                <h5 className="font-bold text-primary mb-2">{faq.q}</h5>
+                <p className="text-sm text-muted-foreground">{faq.a}</p>
+              </div>
+            ))}
           </div>
-        </div>
+        </section>
+      </main>
 
-        {/* Pricing Cards */}
-        <div className="mb-20 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {pricingTiers.map((tier) => (
-            <PricingCard
-              key={tier.tier}
-              tier={tier}
-              billingPeriod={billingPeriod}
-            />
-          ))}
-        </div>
-
-        {/* FAQ Section */}
-        <div className="mb-12">
-          <PricingFAQ />
-        </div>
-
-        {/* Footer Note */}
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-          All prices are in USD. VAT may be applicable depending on your
-          location.
-          <br />
-          Payments are processed securely by Paddle.
-        </p>
-      </div>
+      <Footer />
     </div>
   );
 }

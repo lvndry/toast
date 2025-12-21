@@ -1,7 +1,7 @@
 """
 Enterprise Legal Document Crawling Pipeline
 
-This module provides a comprehensive crawling pipeline that integrates the ToastCrawler
+This module provides a comprehensive crawling pipeline that integrates the ClauseaCrawler
 with AI-powered document analysis for legal document discovery and processing.
 
 Architecture Decisions:
@@ -61,7 +61,7 @@ from src.llm import SupportedModel, acompletion_with_fallback
 from src.models.company import Company
 from src.models.document import Document, Region
 from src.services.service_factory import create_company_service, create_document_service
-from src.toast_crawler import CrawlResult, ToastCrawler
+from src.clausea_crawler import CrawlResult, ClauseaCrawler
 from src.utils.llm_usage import usage_tracking
 from src.utils.llm_usage_tracking_mixin import LLMUsageTrackingMixin
 from src.utils.markdown import markdown_to_text
@@ -118,7 +118,6 @@ class DocumentAnalyzer(LLMUsageTrackingMixin):
     def __init__(
         self,
         model_name: SupportedModel | None = None,
-        temperature: float = 0.1,
         max_content_length: int = 5000,
     ):
         """
@@ -126,13 +125,11 @@ class DocumentAnalyzer(LLMUsageTrackingMixin):
 
         Args:
             model_name: Optional LLM model to use for analysis. If None, uses default priority list with fallback.
-            temperature: Sampling temperature for LLM responses
             max_content_length: Maximum content length to send to LLM
         """
         super().__init__()
 
         self.model_name = model_name
-        self.temperature = temperature
         self.max_content_length = max_content_length
 
         # Document type categories for classification
@@ -164,17 +161,28 @@ class DocumentAnalyzer(LLMUsageTrackingMixin):
         Returns:
             Dict containing locale, confidence, and language_name
         """
-        # Check metadata first for performance
+        # Check reliable metadata sources first
         if metadata:
-            for key in ["og:locale", "og:language", "locale", "language", "lang"]:
+            # Open Graph tags are highly reliable (set for SEO/social sharing)
+            for key in ["og:locale", "og:language"]:
                 if key in metadata and metadata[key]:
                     locale = metadata[key]
                     logger.debug(f"Found locale in metadata ({key}): {locale}")
                     return {
                         "locale": locale,
-                        "confidence": 1.0,
+                        "confidence": 0.95,
                         "language_name": locale,
                     }
+
+            # Some sites still use geolocation-based switching, so it's less reliable.
+            if "lang" in metadata and metadata["lang"]:
+                locale = metadata["lang"]
+                logger.debug(f"Found locale in HTML lang attribute: {locale}")
+                return {
+                    "locale": locale,
+                    "confidence": 0.85,
+                    "language_name": locale,
+                }
 
         # Use LLM for text-based detection
         logger.debug("Locale not found in metadata, using LLM analysis")
@@ -197,7 +205,14 @@ Return a JSON object with:
 - confidence: float 0-1 indicating detection confidence
 - language_name: human readable language name
 
-Be specific with locale (include country when possible)."""
+Be specific with locale (include country when possible).
+
+Example output:
+{{
+  "locale": "en-US",
+  "confidence": 0.95,
+  "language_name": "English (United States)"
+}}"""
 
         system_prompt = """You are a language detection expert. Analyze text and determine language/locale accurately."""
 
@@ -209,7 +224,6 @@ Be specific with locale (include country when possible)."""
                         {"role": "user", "content": prompt},
                     ],
                     response_format={"type": "json_object"},
-                    temperature=self.temperature,
                 )
 
             result = json.loads(response.choices[0].message.content)
@@ -257,6 +271,14 @@ Return JSON with:
 - is_legal_document: boolean (True only for substantive legal text)
 - is_legal_document_justification: rationale for legal classification
 
+Example output:
+{{
+  "classification": "privacy_policy",
+  "classification_justification": "The content is a privacy policy for a website.",
+  "is_legal_document": True,
+  "is_legal_document_justification": "The content is a privacy policy for a website."
+}}
+
 Note: Cookie banners, navigation elements, or links to legal documents don't count as legal documents themselves."""
 
         system_prompt = """You are a legal document classifier. Identify substantive legal content and categorize accurately."""
@@ -269,7 +291,6 @@ Note: Cookie banners, navigation elements, or links to legal documents don't cou
                         {"role": "user", "content": prompt},
                     ],
                     response_format={"type": "json_object"},
-                    temperature=self.temperature,
                 )
 
             result = json.loads(response.choices[0].message.content)
@@ -300,25 +321,27 @@ Note: Cookie banners, navigation elements, or links to legal documents don't cou
         # Use reasonable text sample for analysis
         text_sample = text[:3000] if len(text) > 3000 else text
 
-        prompt = f"""Analyze this legal document to determine geographic scope.
+        prompt = f"""Analyze this legal document to determine geographic scope (WHERE it applies).
 
 URL: {url}
 Text: {text_sample}
 Metadata: {json.dumps(metadata, indent=2) if metadata else "None"}
 
+IMPORTANT: Distinguish between the document's language (English) and its jurisdiction/applicability.
 Look for:
-- Geographic limitations ("applies to users in...")
-- Legal frameworks (GDPR=EU, CCPA=California/US)
-- Jurisdiction clauses ("governed by laws of...")
-- Regional domains/paths (/eu/, /us/, .uk)
+- Explicit mentions of targeted users ("For California residents", "For users in the EU")
+- Governing law/Jurisdiction clauses ("governed by the laws of England and Wales")
+- Compliance with regional frameworks (GDPR, CCPA, LGPD)
+- Regional URL structures (/eu/, /uk/, /en-ca/)
+- Address information in the document body
 
 Return JSON:
 {{
     "is_global": boolean,
-    "specific_regions": ["region names"],
+    "specific_regions": ["region names, e.g., 'United States', 'European Union', 'California'"],
     "confidence": float 0-1,
-    "justification": "reasoning",
-    "regional_indicators": ["text snippets"]
+    "justification": "Short reasoning explaining why these regions were chosen (cite specific clauses)",
+    "regional_indicators": ["text snippets showing geographic scope"]
 }}
 """
 
@@ -332,7 +355,6 @@ Return JSON:
                         {"role": "user", "content": prompt},
                     ],
                     response_format={"type": "json_object"},
-                    temperature=self.temperature,
                 )
 
             result = json.loads(response.choices[0].message.content)
@@ -560,7 +582,6 @@ IMPORTANT: Return null for effective_date if you cannot find a clear effective d
                         {"role": "user", "content": prompt},
                     ],
                     response_format={"type": "json_object"},
-                    temperature=self.temperature,
                 )
 
             result = json.loads(response.choices[0].message.content)
@@ -650,6 +671,9 @@ class LegalDocumentPipeline:
         delay_between_requests: float = 1.0,
         timeout: int = 30,
         respect_robots_txt: bool = True,
+        max_parallel_companies: int = 3,
+        use_browser: bool = True,
+        proxy: str | None = None,
     ):
         """
         Initialize the legal document pipeline.
@@ -670,6 +694,9 @@ class LegalDocumentPipeline:
         self.delay_between_requests = delay_between_requests
         self.timeout = timeout
         self.respect_robots_txt = respect_robots_txt
+        self.max_parallel_companies = max_parallel_companies
+        self.use_browser = use_browser
+        self.proxy = proxy
 
         # Initialize components
         self.analyzer = DocumentAnalyzer()
@@ -680,7 +707,7 @@ class LegalDocumentPipeline:
             f"max_pages={max_pages}, strategy={crawler_strategy}"
         )
 
-    def _create_crawler_for_company(self, company: Company) -> ToastCrawler:
+    def _create_crawler_for_company(self, company: Company) -> ClauseaCrawler:
         """Create a configured crawler instance for a specific company."""
         from datetime import datetime
 
@@ -688,7 +715,7 @@ class LegalDocumentPipeline:
         log_filename = f"{timestamp}_{company.slug}_crawl.log"
         log_file_path = f"logs/{log_filename}"
 
-        return ToastCrawler(
+        return ClauseaCrawler(
             max_depth=self.max_depth,
             max_pages=self.max_pages,
             max_concurrent=self.concurrent_limit,
@@ -696,11 +723,15 @@ class LegalDocumentPipeline:
             timeout=self.timeout,
             allowed_domains=company.domains,
             respect_robots_txt=self.respect_robots_txt,
-            user_agent="ToastCrawler/2.0 (Legal Document Discovery Bot of Toast.AI)",
+            user_agent="ClauseaCrawler/2.0 (Legal Document Discovery Bot of Clausea)",
             follow_external_links=False,
             min_legal_score=0.0,
             strategy=self.crawler_strategy,
             log_file_path=log_file_path,
+            use_browser=self.use_browser,
+            proxy=self.proxy,
+            allowed_paths=company.crawl_allowed_paths,
+            denied_paths=company.crawl_denied_paths,
         )
 
     async def _store_documents(self, documents: list[Document]) -> int:
@@ -752,7 +783,7 @@ class LegalDocumentPipeline:
         Process a single crawl result through the analysis pipeline.
 
         Args:
-            result: Crawl result from ToastCrawler
+            result: Crawl result from ClauseaCrawler
             company: Company being processed
 
         Returns:
@@ -955,6 +986,9 @@ class LegalDocumentPipeline:
             else:
                 logger.info(f"No legal documents found for {company.name}")
 
+            # Cleanup crawler (specifically browser resources)
+            await crawler._cleanup_browser()
+
             self.stats.companies_processed += 1
 
             company_duration = time.time() - company_start_time
@@ -997,19 +1031,23 @@ class LegalDocumentPipeline:
                     companies = await company_service.get_all_companies(db)
             logger.info(f"📊 Processing {len(companies)} companies")
 
-            # Process companies sequentially for memory efficiency and rate limiting
-            all_documents: list[Document] = []
-            for i, company in enumerate(companies, 1):
-                logger.info(f"🏢 Processing company {i}/{len(companies)}: {company.name}")
-                documents = await self._process_company(company)
-                all_documents.extend(documents)
+            # Use a semaphore to limit parallel companies
+            semaphore = asyncio.Semaphore(self.max_parallel_companies)
 
-                # Log progress
-                if i % 5 == 0:  # Every 5 companies
-                    logger.info(
-                        f"📈 Progress: {i}/{len(companies)} companies, "
-                        f"{self.stats.legal_documents_stored} documents stored"
-                    )
+            async def _process_company_with_semaphore(idx: int, company: Company) -> None:
+                async with semaphore:
+                    logger.info(f"🏢 [{idx}/{len(companies)}] Starting company: {company.name}")
+                    await self._process_company(company)
+                    logger.info(f"✅ [{idx}/{len(companies)}] Finished company: {company.name}")
+
+            # Create tasks for all companies
+            tasks = [
+                _process_company_with_semaphore(i, company)
+                for i, company in enumerate(companies, 1)
+            ]
+
+            # Execute tasks in parallel with limited concurrency
+            await asyncio.gather(*tasks)
 
             # Calculate final statistics
             self.stats.processing_time_seconds = time.time() - pipeline_start_time

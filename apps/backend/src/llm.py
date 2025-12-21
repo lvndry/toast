@@ -1,9 +1,11 @@
+import asyncio
 import os
 import time
+from collections.abc import Awaitable, Callable
 from typing import Any, Literal
 
 import litellm
-from litellm import EmbeddingResponse, ModelResponse, acompletion, completion
+from litellm import EmbeddingResponse, ModelResponse, acompletion
 
 from src.core.logging import get_logger
 from src.utils.llm_usage import track_usage
@@ -22,42 +24,43 @@ class Model:
 
 SupportedModel = Literal[
     # openai
+    "gpt-5.2",
+    "gpt-5.2-pro",
     "gpt-5.1",
-    "gpt-5.1-pro",
-    "gpt-5.1-mini",
-    "gpt-5.1-nano",
     "gpt-5",
+    "gpt-5-pro",
     "gpt-5-mini",
     "gpt-5-nano",
     "gpt-4.1-mini",
     "gpt-4o-mini",
     # gemini
-    "gemini-3-preview",
+    "gemini-3-flash-preview",
+    "gemini-3-pro-preview",
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
+    # anthropic
+    "claude-haiku-4-5",
+    "claude-sonnet-4-5",
+    "claude-opus-4-1",
     # mistral
     "mistral-small",
     "mistral-medium",
     "mistral-large",
     # voyage
     "voyage-law-2",
-    # anthropic
-    "claude-haiku-4-5",
-    "claude-sonnet-4-5",
-    "claude-opus-4-1",
-    "claude-3-7-sonnet",
     # xai
-    "grok-4-fast-reasoning",
-    "grok-4-fast-non-reasoning",
+    "grok-4-1-fast-reasoning",
+    "grok-4-1-fast-non-reasoning",
     "grok-3-mini",
+    # openrouter
+    "kimi-k2-thinking",
 ]
 
 DEFAULT_MODEL_PRIORITY: list[SupportedModel] = [
-    # "gpt-5.1",
-    "gemini-2.5-flash",
-    "mistral-medium",
+    "gemini-3-flash-preview",
+    "grok-4-1-fast-non-reasoning",
+    "gpt-5-mini",
+    "kimi-k2-thinking",
 ]
 
 
@@ -67,7 +70,7 @@ def _sanitize_model_kwargs(model_name: SupportedModel, kwargs: dict[str, Any]) -
     """
     sanitized_kwargs = dict(kwargs)
 
-    if model_name in {"gpt-5-mini", "gpt-5-nano"}:
+    if model_name in {"gpt-5-mini", "gpt-5-nano", "gemini-3-flash-preview"}:
         temperature = sanitized_kwargs.get("temperature")
         if temperature is not None and temperature != 1:
             logger.debug(
@@ -164,29 +167,40 @@ def get_model(model_name: SupportedModel) -> Model:
             model=f"voyage/{model_name}",
             api_key=VOYAGE_API_KEY,
         )
+    # OpenRouter models (kimi-*)
+    elif model_name.startswith("kimi"):
+        OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+        if not OPENROUTER_API_KEY:
+            raise ValueError("OPENROUTER_API_KEY is not set")
+
+        # Map model names to OpenRouter format: openrouter/{provider}/{model}
+        model_mapping = {
+            "kimi-k2-thinking": "openrouter/moonshotai/kimi-k2-thinking",
+        }
+
+        full_model = model_mapping.get(model_name, f"openrouter/{model_name}")
+        return Model(
+            model=full_model,
+            api_key=OPENROUTER_API_KEY,
+        )
     else:
         raise ValueError(f"Unsupported model: {model_name}")
 
 
-async def acompletion_with_fallback(
+async def _completion_with_fallback_impl(
     messages: list[dict[str, str]],
+    completion_fn: Callable[..., Awaitable[ModelResponse]],
     model_priority: list[SupportedModel] | None = None,
     **kwargs: Any,
 ) -> ModelResponse:
     """
-    Execute LLM completion with fallback to alternative models on failure.
-
-    Tries models in priority order until one succeeds. Each call is independent
-    and does not maintain state across calls (thread-safe for concurrent use).
-
-    Usage tracking is automatic via context variables. Set a tracker using:
-    - set_usage_tracker(callback) from src.utils.llm_usage for the current context
-    - usage_tracking(callback) from src.utils.llm_usage as an async context manager
+    Internal implementation of completion with fallback logic.
 
     Args:
         messages: List of message dicts for the LLM
+        completion_fn: Async callable that performs the completion (acompletion or wrapped completion)
         model_priority: Optional list of models to try in order. If None, uses DEFAULT_MODEL_PRIORITY.
-        **kwargs: Additional arguments to pass to acompletion (temperature, response_format, etc.)
+        **kwargs: Additional arguments to pass to completion function
 
     Returns:
         ModelResponse from the first model that succeeds
@@ -206,7 +220,7 @@ async def acompletion_with_fallback(
         try:
             call_kwargs = _sanitize_model_kwargs(model_name, kwargs)
             start_time = time.time()
-            response = await acompletion(
+            response = await completion_fn(
                 model=model.model,
                 api_key=model.api_key,
                 messages=messages,
@@ -237,6 +251,40 @@ async def acompletion_with_fallback(
     )
     logger.error(error_msg)
     raise Exception(error_msg) from last_exception
+
+
+async def acompletion_with_fallback(
+    messages: list[dict[str, str]],
+    model_priority: list[SupportedModel] | None = None,
+    **kwargs: Any,
+) -> ModelResponse:
+    """
+    Execute LLM completion with fallback to alternative models on failure.
+
+    Tries models in priority order until one succeeds. Each call is independent
+    and does not maintain state across calls (thread-safe for concurrent use).
+
+    Usage tracking is automatic via context variables. Set a tracker using:
+    - set_usage_tracker(callback) from src.utils.llm_usage for the current context
+    - usage_tracking(callback) from src.utils.llm_usage as an async context manager
+
+    Args:
+        messages: List of message dicts for the LLM
+        model_priority: Optional list of models to try in order. If None, uses DEFAULT_MODEL_PRIORITY.
+        **kwargs: Additional arguments to pass to acompletion (temperature, response_format, etc.)
+
+    Returns:
+        ModelResponse from the first model that succeeds
+
+    Raises:
+        Exception: If all models fail, raises the last exception encountered
+    """
+    return await _completion_with_fallback_impl(
+        messages=messages,
+        completion_fn=acompletion,
+        model_priority=model_priority,
+        **kwargs,
+    )
 
 
 def completion_with_fallback(
@@ -266,49 +314,14 @@ def completion_with_fallback(
     Raises:
         Exception: If all models fail, raises the last exception encountered
     """
-    # Use provided priority or default
-    models_to_try = model_priority.copy() if model_priority else DEFAULT_MODEL_PRIORITY.copy()
-    last_exception: Exception | None = None
-
-    # Try each model in order until one succeeds
-    for model_name in models_to_try:
-        model = get_model(model_name)
-        logger.debug(f"Attempting completion with model: {model_name} ({model.model})")
-
-        try:
-            call_kwargs = _sanitize_model_kwargs(model_name, kwargs)
-            start_time = time.time()
-            response = completion(
-                model=model.model,
-                api_key=model.api_key,
-                messages=messages,
-                **call_kwargs,
-            )
-            duration = time.time() - start_time
-
-            # Success - return immediately
-            logger.debug(f"Successfully completed with model: {model_name}")
-
-            # Track usage automatically via context
-            provider_model = getattr(response, "model", None) or model.model
-            track_usage(response, model_name, provider_model, duration=duration)
-
-            return response
-
-        except Exception as e:
-            last_exception = e
-            logger.warning(f"Model {model_name} failed: {e}. Trying next model...")
-            # Continue to next model
-            continue
-
-    # All models failed
-    error_msg = (
-        f"All {len(models_to_try)} models failed. "
-        f"Tried: {', '.join(models_to_try)}. "
-        f"Last error: {last_exception}"
+    return asyncio.run(
+        _completion_with_fallback_impl(
+            messages=messages,
+            completion_fn=acompletion,
+            model_priority=model_priority,
+            **kwargs,
+        )
     )
-    logger.error(error_msg)
-    raise Exception(error_msg) from last_exception
 
 
 async def get_embeddings(

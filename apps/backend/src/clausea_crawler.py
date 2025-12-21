@@ -8,6 +8,7 @@ import logging
 import re
 import time
 from collections import OrderedDict, deque
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ from urllib.parse import ParseResult, urljoin, urlparse, urlunparse
 import aiohttp
 import markdownify
 from bs4 import BeautifulSoup
+from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 from pydantic import BaseModel, Field
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -27,16 +29,24 @@ logger = get_logger(__name__)
 class CrawlResult(BaseModel):
     """Container for crawl results."""
 
-    url: str
-    title: str
-    content: str
-    markdown: str
-    metadata: dict[str, Any]
-    status_code: int
-    success: bool
-    error_message: str | None = None
-    legal_score: float = 0.0
-    discovered_urls: list[str] = Field(default_factory=list)
+    url: str = Field(description="The final URL after redirects")
+    title: str = Field(description="The page title")
+    content: str = Field(description="The raw text content of the page")
+    markdown: str = Field(description="The content converted to Markdown format")
+    metadata: dict[str, Any] = Field(
+        description="Metadata extracted from the page (e.g., tags, headers)"
+    )
+    status_code: int = Field(description="The HTTP status code of the response")
+    success: bool = Field(description="Whether the crawl was successful")
+    error_message: str | None = Field(
+        default=None, description="Detailed error message if crawl failed"
+    )
+    legal_score: float = Field(
+        default=0.0, description="Calculated relevance score for legal content"
+    )
+    discovered_links: list[dict[str, str]] = Field(
+        default_factory=list, description="List of links with both URL and original anchor text"
+    )
 
 
 class CrawlStats(BaseModel):
@@ -190,7 +200,7 @@ class URLScorer:
         }
 
     @lru_cache(maxsize=10000)  # noqa: B019 - Cache is bounded and per-instance
-    def score_url(self, url: str) -> float:
+    def score_url(self, url: str, anchor_text: str | None = None) -> float:
         """
         Score a URL based on legal document relevance.
 
@@ -204,10 +214,25 @@ class URLScorer:
 
         score = 0.0
 
-        # Check high-value patterns using compiled regex
+        # Check high-value patterns in URL using compiled regex
         for pattern, weight in self.compiled_high_value_patterns.items():
             if pattern.search(url_lower):
                 score += weight
+
+        # Score based on anchor text if provided
+        if anchor_text:
+            anchor_lower = anchor_text.lower()
+            # If anchor text explicitly contains legal keywords, give it a high boost
+            anchor_words = self.word_pattern.findall(anchor_lower)
+            for word in anchor_words:
+                if word in self.legal_keywords:
+                    # Give anchor text matches a weight boost
+                    score += self.legal_keywords[word] * 1.5
+
+            # Also check for phrases in anchor text
+            for pattern, weight in self.compiled_high_value_patterns.items():
+                if pattern.search(anchor_lower):
+                    score += weight * 1.5
 
         # Score based on path patterns using compiled regex
         for pattern, weight in self.compiled_path_patterns.items():
@@ -552,7 +577,7 @@ class RobotsTxtChecker:
         """
         self.robots_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.max_cache_size = max_cache_size
-        self.user_agent = "ToastCrawler/2.0"
+        self.user_agent = "ClauseaCrawler/2.0"
         # Common user agent patterns that should be treated as wildcards
         self.user_agent_patterns = [
             "*",  # Standard wildcard
@@ -730,14 +755,11 @@ class RobotsTxtChecker:
                         )
                 return False, f"Blocked by pattern: {disallow_pattern}"
 
-        # If we have disallow rules but no match, default behavior depends on allow rules
+        # If we have disallow rules but no match, the path is allowed
+        # (Disallow creates a blacklist, not a whitelist)
         if applicable_rules.get("disallow"):
-            # If there are any allow rules, default is to disallow unless explicitly allowed
-            if applicable_rules.get("allow"):
-                return False, "Default disallow with allow rules present"
-            else:
-                # Only disallow rules exist, so allow anything not explicitly disallowed
-                return True, "No matching disallow rules"
+            # No matching disallow rule found, so path is allowed
+            return True, "No matching disallow rules"
 
         # No rules or only allow rules - default is to allow
         return True, "No blocking rules found"
@@ -767,7 +789,26 @@ class RobotsTxtChecker:
         return path.startswith(pattern)
 
 
-class ToastCrawler:
+class AsyncFileLogHandler(logging.Handler):
+    """Async logging handler that writes to file in a thread pool (fire-and-forget)."""
+
+    def __init__(self, file_handler: logging.FileHandler, executor: ThreadPoolExecutor):
+        super().__init__()
+        self.file_handler = file_handler
+        self.executor = executor
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Write log record to file in thread pool without blocking."""
+        try:
+            # Submit file write to thread pool - truly fire-and-forget
+            # This doesn't block the calling thread at all
+            self.executor.submit(self.file_handler.emit, record)
+        except Exception:
+            # Ignore any errors to prevent logging from breaking the crawler
+            self.handleError(record)
+
+
+class ClauseaCrawler:
     """Powerful legal document crawler."""
 
     def __init__(
@@ -779,7 +820,7 @@ class ToastCrawler:
         timeout: int = 30,
         allowed_domains: list[str] | None = None,
         respect_robots_txt: bool = True,
-        user_agent: str = "ToastCrawler/2.0 (Legal Document Discovery Bot; website coming soon)",
+        user_agent: str = "ClauseaCrawler/2.0 (Legal Document Discovery Bot; website coming soon)",
         follow_external_links: bool = False,
         min_legal_score: float = 2.0,
         strategy: str = "bfs",  # "bfs", "dfs", "best_first"
@@ -787,9 +828,13 @@ class ToastCrawler:
         | None = None,  # List of domains to ignore robots.txt for
         max_retries: int = 3,  # Maximum retry attempts for transient errors
         log_file_path: str | None = None,  # Optional path to log file for crawl session
+        use_browser: bool = False,  # Whether to use a headless browser for dynamic rendering
+        proxy: str | None = None,  # Optional proxy URL (e.g., "http://user:pass@host:port")
+        allowed_paths: list[str] | None = None,  # Optional list of allowed path regexes
+        denied_paths: list[str] | None = None,  # Optional list of denied path regexes
     ):
         """
-        Initialize the ToastCrawler.
+        Initialize the ClauseaCrawler.
 
         Args:
             max_depth: Maximum crawl depth
@@ -806,6 +851,8 @@ class ToastCrawler:
             ignore_robots_for_domains: List of domains to ignore robots.txt for
             max_retries: Maximum retry attempts for transient network errors (default: 3)
             log_file_path: Optional path to log file for crawl session (e.g., "logs/20240101_123456_companyid_crawl.log")
+            use_browser: Whether to use a headless browser for dynamic rendering
+            proxy: Optional proxy URL
         """
         self.max_depth = max_depth
         self.max_pages = max_pages
@@ -821,6 +868,16 @@ class ToastCrawler:
         self.ignore_robots_for_domains = set(ignore_robots_for_domains or [])
         self.max_retries = max_retries
         self.log_file_path = log_file_path
+        self.use_browser = use_browser
+        self.proxy = proxy
+        self.allowed_paths = allowed_paths
+        self.denied_paths = denied_paths
+
+        # Compile path patterns
+        self.compiled_allowed_paths = (
+            [re.compile(p) for p in allowed_paths] if allowed_paths else []
+        )
+        self.compiled_denied_paths = [re.compile(p) for p in denied_paths] if denied_paths else []
 
         # Components
         self.url_scorer = URLScorer()
@@ -829,8 +886,15 @@ class ToastCrawler:
 
         # Set up file logging if log_file_path is provided
         self.file_handler: logging.FileHandler | None = None
+        self._async_handler: AsyncFileLogHandler | None = None
+        self._log_executor: ThreadPoolExecutor | None = None
         if self.log_file_path:
             self._setup_file_logging()
+
+        # Browser state
+        self.browser_instance: Browser | None = None
+        self.browser_context: BrowserContext | None = None
+        self.browser_lock = asyncio.Lock()
 
         # State
         self.visited_urls: set[str] = set()
@@ -860,7 +924,7 @@ class ToastCrawler:
         ]
 
     def _setup_file_logging(self) -> None:
-        """Set up file logging for the crawl session."""
+        """Set up file logging for the crawl session with fire-and-forget thread pool pattern."""
         if not self.log_file_path:
             return
 
@@ -880,20 +944,56 @@ class ToastCrawler:
             )
             self.file_handler.setFormatter(formatter)
 
+            # Create thread pool executor for fire-and-forget file writes
+            # Single thread is sufficient for sequential file writes
+            self._log_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="log-writer")
+
+            # Create async handler that writes in thread pool
+            self._async_handler = AsyncFileLogHandler(self.file_handler, self._log_executor)
+            self._async_handler.setLevel(logging.DEBUG)
+            self._async_handler.setFormatter(formatter)
+
             # Add handler to the root logger (structlog uses standard logging underneath)
             root_logger = logging.getLogger()
-            root_logger.addHandler(self.file_handler)
+            root_logger.addHandler(self._async_handler)
 
-            logger.info(f"📝 File logging enabled: {self.log_file_path}")
+            logger.info(f"📝 File logging enabled (async): {self.log_file_path}")
         except Exception as e:
             logger.warning(f"Failed to set up file logging: {e}")
 
+    async def _shutdown_log_executor(self) -> None:
+        """Shutdown the log executor and wait for pending writes to complete."""
+        if self._log_executor:
+            # Shutdown executor and wait for pending tasks to complete
+            # Use asyncio.to_thread to avoid blocking the event loop
+            await asyncio.to_thread(self._log_executor.shutdown, wait=True)
+
     def _cleanup_file_logging(self) -> None:
         """Clean up file logging handler. Safe to call multiple times."""
+        root_logger = logging.getLogger()
+
+        # Remove async handler if it exists
+        if self._async_handler:
+            try:
+                if self._async_handler in root_logger.handlers:
+                    root_logger.removeHandler(self._async_handler)
+            except Exception as e:
+                logger.warning(f"Error removing async handler: {e}")
+            finally:
+                self._async_handler = None
+
+        # Shutdown executor if it exists
+        if self._log_executor:
+            try:
+                self._log_executor.shutdown(wait=False)  # Don't wait in sync cleanup
+            except Exception as e:
+                logger.warning(f"Error shutting down log executor: {e}")
+            finally:
+                self._log_executor = None
+
+        # Close file handler if it exists
         if self.file_handler:
             try:
-                root_logger = logging.getLogger()
-                # Remove handler if it's still attached
                 if self.file_handler in root_logger.handlers:
                     root_logger.removeHandler(self.file_handler)
                 self.file_handler.close()
@@ -903,6 +1003,105 @@ class ToastCrawler:
                 logger.warning(f"Error closing file handler: {e}")
             finally:
                 self.file_handler = None
+
+    async def _setup_browser(self) -> tuple[Browser, BrowserContext]:
+        """Initialize and return a Playwright browser and context."""
+        async with self.browser_lock:
+            if self.browser_instance is None:
+                pw = await async_playwright().start()
+                # Choose browser (chromium is most reliable for legal sites)
+                self.browser_instance = await pw.chromium.launch(headless=True)
+
+                # Configure context with resource blocking
+                context_args = {
+                    "user_agent": self.user_agent,
+                    "viewport": {"width": 1280, "height": 800},
+                }
+
+                if self.proxy:
+                    context_args["proxy"] = {"server": self.proxy}
+
+                self.browser_context = await self.browser_instance.new_context(**context_args)
+
+            return self.browser_instance, self.browser_context
+
+    async def _cleanup_browser(self) -> None:
+        """Clean up Playwright resources."""
+        async with self.browser_lock:
+            if self.browser_instance:
+                await self.browser_instance.close()
+                self.browser_instance = None
+                self.browser_context = None
+                logger.debug("🌐 Playwright browser closed")
+
+    async def _fetch_with_browser(self, url: str) -> CrawlResult:
+        """Fetch page content using a headless browser (for dynamic rendering)."""
+        browser, context = await self._setup_browser()
+        page: Page = await context.new_page()
+
+        try:
+            # Block heavy resources for performance
+            await page.route(
+                "**/*.{png,jpg,jpeg,gif,svg,css,woff,woff2,ttf,otf}", lambda route: route.abort()
+            )
+
+            # Navigate with timeout
+            response = await page.goto(url, wait_until="networkidle", timeout=self.timeout * 1000)
+
+            if not response:
+                return CrawlResult(
+                    url=url,
+                    title="",
+                    content="",
+                    markdown="",
+                    metadata={},
+                    status_code=500,
+                    success=False,
+                    error_message="No response from browser",
+                )
+
+            # Extract content
+            title = await page.title()
+            content = await page.content()
+
+            # Process with BeautifulSoup to extract structured data (links, metadata)
+            soup = BeautifulSoup(content, "html.parser")
+
+            # Remove script and style elements
+            for script in soup(["script", "style"]):
+                script.decompose()
+
+            text_content = soup.get_text()
+            text_content = re.sub(r"\s+", " ", text_content).strip()
+            markdown_content = markdownify.markdownify(str(soup), heading_style="ATX")
+            metadata = self.extract_metadata(soup)
+            discovered_links = self.extract_links(soup, url)
+
+            return CrawlResult(
+                url=url,
+                title=title,
+                content=text_content,
+                markdown=markdown_content,
+                metadata=metadata,
+                status_code=response.status,
+                success=True,
+                discovered_links=discovered_links,
+            )
+
+        except Exception as e:
+            logger.warning(f"Browser fetch failed for {url}: {e}")
+            return CrawlResult(
+                url=url,
+                title="",
+                content="",
+                markdown="",
+                metadata={},
+                status_code=500,
+                success=False,
+                error_message=f"Browser fetch error: {str(e)}",
+            )
+        finally:
+            await page.close()
 
     @staticmethod
     @lru_cache(maxsize=50000)  # noqa: B019 - Static method cache is safe
@@ -1016,10 +1215,35 @@ class ToastCrawler:
         if not self.follow_external_links:
             parsed_base = self._parse_url(base_url)
             base_domain = self._normalize_domain(parsed_base.netloc)
-            if url_domain != base_domain:
+            # Check if URL is same domain or subdomain of base domain
+            is_same_domain = url_domain == base_domain or url_domain.endswith("." + base_domain)
+
+            # If we have allowed_domains, we already checked that this URL is in one of them.
+            # In that case, we permit it even if it's "external" relative to the current base_url.
+            if not is_same_domain and not self.allowed_domains:
                 logger.debug(
                     f"❌ URL {url} rejected: external link and follow_external_links=False"
                 )
+                return False
+
+        # Check path-based allow/deny rules
+        path = parsed_url.path or "/"
+
+        # 1. Deny rules take precedence
+        for pattern in self.compiled_denied_paths:
+            if pattern.search(path):
+                logger.debug(f"❌ URL {url} rejected: path matches deny pattern {pattern.pattern}")
+                return False
+
+        # 2. If allow rules exist, path must match at least one
+        if self.compiled_allowed_paths:
+            is_path_allowed = False
+            for pattern in self.compiled_allowed_paths:
+                if pattern.search(path):
+                    is_path_allowed = True
+                    break
+            if not is_path_allowed:
+                logger.debug(f"❌ URL {url} rejected: path does not match any allow patterns")
                 return False
 
         # Skip common non-content URLs using compiled patterns
@@ -1031,13 +1255,14 @@ class ToastCrawler:
         logger.debug(f"✅ URL {url} accepted for crawling at depth {depth}")
         return True
 
-    def extract_links(self, soup: BeautifulSoup, base_url: str) -> list[str]:
+    def extract_links(self, soup: BeautifulSoup, base_url: str) -> list[dict[str, str]]:
         """Extract links from HTML."""
-        links: list[str] = []
+        links: list[dict[str, str]] = []
 
         for link in soup.find_all("a", href=True):
             if hasattr(link, "get"):
                 href_attr = link.get("href")
+                anchor_text = link.get_text().strip()
                 if href_attr:
                     href = str(href_attr).strip()
                     if not href:
@@ -1047,13 +1272,19 @@ class ToastCrawler:
                     absolute_url = urljoin(base_url, href)
                     normalized_url = self.normalize_url(absolute_url)
 
-                    links.append(normalized_url)
+                    links.append({"url": normalized_url, "text": anchor_text})
 
-        # Remove duplicates and log discovered links
-        unique_links: list[str] = list(set(links))
+        # Remove duplicates based on URL and log discovered links
+        seen_urls = set()
+        unique_links = []
+        for link in links:
+            if link["url"] not in seen_urls:
+                seen_urls.add(link["url"])
+                unique_links.append(link)
+
         logger.debug(f"🔗 Discovered {len(unique_links)} unique links from {base_url}")
         for link in unique_links[:10]:
-            logger.debug(f"  - {link}")
+            logger.debug(f"  - {link['url']} ({link['text'][:30]})")
         if len(unique_links) > 10:
             logger.debug(f"  ... and {len(unique_links) - 10} more links")
 
@@ -1062,6 +1293,11 @@ class ToastCrawler:
     def extract_metadata(self, soup: BeautifulSoup) -> dict[str, Any]:
         """Extract metadata from HTML."""
         metadata: dict[str, Any] = {}
+
+        # HTML lang attribute (most reliable for language detection)
+        html_tag = soup.find("html")
+        if html_tag and html_tag.get("lang"):
+            metadata["lang"] = html_tag.get("lang")
 
         # Title
         title_tag = soup.find("title")
@@ -1076,6 +1312,39 @@ class ToastCrawler:
 
                 if name and content and isinstance(name, str):
                     metadata[name.lower()] = content
+
+        # Link tags (canonical, alternate languages, etc.)
+        for link in soup.find_all("link", rel=True):
+            rel = link.get("rel")
+            href = link.get("href")
+            if rel and href:
+                # rel can be a list or string
+                rel_list = rel if isinstance(rel, list) else [rel]
+                for rel_value in rel_list:
+                    rel_lower = rel_value.lower()
+                    if rel_lower == "canonical":
+                        metadata["canonical_url"] = href
+                    elif rel_lower == "alternate":
+                        hreflang = link.get("hreflang")
+                        if hreflang:
+                            if "alternate_languages" not in metadata:
+                                metadata["alternate_languages"] = {}
+                            metadata["alternate_languages"][hreflang] = href
+
+        # Character encoding (useful for proper text extraction)
+        charset_tag = soup.find("meta", charset=True)
+        if charset_tag:
+            metadata["charset"] = charset_tag.get("charset")
+        else:
+            # Fallback: check http-equiv charset
+            charset_equiv = soup.find(
+                "meta", attrs={"http-equiv": re.compile(r"content-type", re.I)}
+            )
+            if charset_equiv and charset_equiv.get("content"):
+                content = charset_equiv.get("content", "")
+                charset_match = re.search(r"charset=([^;]+)", content, re.I)
+                if charset_match:
+                    metadata["charset"] = charset_match.group(1).strip()
 
         # Headers
         for i in range(1, 7):
@@ -1166,7 +1435,15 @@ class ToastCrawler:
             timeout = aiohttp.ClientTimeout(total=self.timeout)
             headers = {"User-Agent": self.user_agent}
 
-            async with session.get(url, timeout=timeout, headers=headers) as response:
+            # Use proxy if configured
+            request_args = {
+                "timeout": timeout,
+                "headers": headers,
+            }
+            if self.proxy:
+                request_args["proxy"] = self.proxy
+
+            async with session.get(url, **request_args) as response:
                 content_type = response.headers.get("content-type", "").lower()
 
                 # Process both HTML and plain text content
@@ -1198,8 +1475,30 @@ class ToastCrawler:
 
                     # Get text content
                     text_content = soup.get_text()
-                    # Clean up whitespace
                     text_content = re.sub(r"\s+", " ", text_content).strip()
+
+                    # Check if we should fallback to browser for dynamic content
+                    # Fallback criteria:
+                    # 1. use_browser is enabled
+                    # 2. Content is very short (likely bootstrap only)
+                    # 3. Content contains JS required markers
+                    js_required_markers = [
+                        "javascript is required",
+                        "enable javascript",
+                        "you need to enable javascript",
+                        "please enable js",
+                    ]
+
+                    should_fallback = self.use_browser and (
+                        len(text_content) < 500
+                        or any(marker in text_content.lower() for marker in js_required_markers)
+                    )
+
+                    if should_fallback:
+                        logger.info(
+                            f"🔄 Detected dynamic content or short page, falling back to browser: {url}"
+                        )
+                        return await self._fetch_with_browser(url)
 
                     # Convert to markdown
                     markdown_content = markdownify.markdownify(str(soup), heading_style="ATX")
@@ -1208,7 +1507,7 @@ class ToastCrawler:
                     metadata = self.extract_metadata(soup)
 
                     # Extract links
-                    discovered_urls = self.extract_links(soup, url)
+                    discovered_links = self.extract_links(soup, url)
 
                 # Handle plain text content
                 elif "text/plain" in content_type:
@@ -1258,7 +1557,7 @@ class ToastCrawler:
                     }
 
                     # No links can be extracted from plain text
-                    discovered_urls = []
+                    discovered_links = []
 
                 # Analyze content for legal relevance (works for both HTML and plain text)
                 is_legal, legal_score, indicators = self.content_analyzer.analyze_content(
@@ -1277,7 +1576,7 @@ class ToastCrawler:
                     status_code=response.status,
                     success=True,
                     legal_score=legal_score,
-                    discovered_urls=discovered_urls,
+                    discovered_links=discovered_links,
                 )
         except aiohttp.ClientResponseError as e:
             # Handle HTTP errors
@@ -1446,9 +1745,12 @@ class ToastCrawler:
 
         return potential_urls
 
-    def add_urls_to_queue(self, urls: list[str], base_url: str, depth: int) -> None:
+    def add_urls_to_queue(self, links: list[dict[str, str]], base_url: str, depth: int) -> None:
         """Add URLs to the appropriate queue based on strategy."""
-        for url in urls:
+        for link in links:
+            url = link["url"]
+            anchor_text = link.get("text")
+
             if not self.should_crawl_url(url, base_url, depth + 1):
                 continue
 
@@ -1459,9 +1761,11 @@ class ToastCrawler:
                 self.url_stack.append((url, depth + 1))
                 logger.debug(f"Added to DFS stack: {url} (depth: {depth + 1})")
             elif self.strategy == "best_first":
-                score = self.url_scorer.score_url(url)
+                score = self.url_scorer.score_url(url, anchor_text=anchor_text)
                 heapq.heappush(self.url_priority_queue, (-score, url, depth + 1))
-                logger.debug(f"Added to Best-First queue: {url} (score: {score:.2f})")
+                logger.debug(
+                    f"Added to Best-First queue: {url} (score: {score:.2f}, text: {anchor_text})"
+                )
 
         # If we're at depth 0 (starting page), also add potential legal URLs
         if depth == 0:
@@ -1479,7 +1783,8 @@ class ToastCrawler:
                     self.url_stack.append((url, 1))
                     logger.debug(f"Added potential legal URL to DFS stack: {url}")
                 elif self.strategy == "best_first":
-                    score = self.url_scorer.score_url(url)
+                    # For generated URLs, we don't have anchor text
+                    score = self.url_scorer.score_url(url, anchor_text=None)
                     heapq.heappush(self.url_priority_queue, (-score, url, 1))
                     logger.debug(
                         f"Added potential legal URL to Best-First queue: {url} (score: {score:.2f})"
@@ -1506,104 +1811,108 @@ class ToastCrawler:
         Returns:
             List of crawl results
         """
-        logger.info(f"🕷️  Starting crawl from: {base_url}")
-        logger.info(
-            f"📊 Strategy: {self.strategy}, Max depth: {self.max_depth}, Max pages: {self.max_pages}"
-        )
+        try:
+            logger.info(f"🕷️  Starting crawl from: {base_url}")
+            logger.info(
+                f"📊 Strategy: {self.strategy}, Max depth: {self.max_depth}, Max pages: {self.max_pages}"
+            )
 
-        # Initialize
-        base_url = self.normalize_url(base_url)
-        self.stats = CrawlStats()
+            # Initialize
+            base_url = self.normalize_url(base_url)
+            self.stats = CrawlStats()
 
-        # Add base URL to queue
-        if self.strategy == "bfs":
-            self.url_queue.append((base_url, 0))
-            logger.debug(f"Added base URL to BFS queue: {base_url} (depth: 0)")
-        elif self.strategy == "dfs":
-            self.url_stack.append((base_url, 0))
-            logger.debug(f"Added base URL to DFS stack: {base_url} (depth: 0)")
-        elif self.strategy == "best_first":
-            score = self.url_scorer.score_url(base_url)
-            heapq.heappush(self.url_priority_queue, (-score, base_url, 0))
-            logger.debug(f"Added base URL to Best-First queue: {base_url} (score: {score:.2f})")
+            # Add base URL to queue
+            if self.strategy == "bfs":
+                self.url_queue.append((base_url, 0))
+                logger.debug(f"Added base URL to BFS queue: {base_url} (depth: 0)")
+            elif self.strategy == "dfs":
+                self.url_stack.append((base_url, 0))
+                logger.debug(f"Added base URL to DFS stack: {base_url} (depth: 0)")
+            elif self.strategy == "best_first":
+                score = self.url_scorer.score_url(base_url)
+                heapq.heappush(self.url_priority_queue, (-score, base_url, 0))
+                logger.debug(f"Added base URL to Best-First queue: {base_url} (score: {score:.2f})")
 
-        # Create session with connection pooling
-        connector = aiohttp.TCPConnector(limit=self.max_concurrent)
-        timeout = aiohttp.ClientTimeout(total=self.timeout)
+            # Create session with connection pooling
+            connector = aiohttp.TCPConnector(limit=self.max_concurrent)
+            timeout = aiohttp.ClientTimeout(total=self.timeout)
 
-        async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-            # Semaphore to limit concurrent requests
-            semaphore = asyncio.Semaphore(self.max_concurrent)
+            async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+                # Semaphore to limit concurrent requests
+                semaphore = asyncio.Semaphore(self.max_concurrent)
 
-            async def process_url(url: str, depth: int) -> CrawlResult:
-                async with semaphore:
-                    return await self.fetch_page(session, url)
+                async def process_url(url: str, depth: int) -> CrawlResult:
+                    async with semaphore:
+                        return await self.fetch_page(session, url)
 
-            # Main crawl loop
-            while len(self.visited_urls) < self.max_pages:
-                # Get batch of URLs to process
-                batch = []
-                batch_size = min(self.max_concurrent, self.max_pages - len(self.visited_urls))
+                # Main crawl loop
+                while len(self.visited_urls) < self.max_pages:
+                    # Get batch of URLs to process
+                    batch = []
+                    batch_size = min(self.max_concurrent, self.max_pages - len(self.visited_urls))
 
-                for _ in range(batch_size):
-                    next_item = self.get_next_url()
-                    if next_item is None:
+                    for _ in range(batch_size):
+                        next_item = self.get_next_url()
+                        if next_item is None:
+                            break
+                        url, depth = next_item
+                        if url not in self.visited_urls:
+                            batch.append((url, depth))
+                            self.visited_urls.add(url)
+
+                    if not batch:
                         break
-                    url, depth = next_item
-                    if url not in self.visited_urls:
-                        batch.append((url, depth))
-                        self.visited_urls.add(url)
 
-                if not batch:
-                    break
+                    # Process batch concurrently
+                    tasks = [process_url(url, depth) for url, depth in batch]
+                    batch_results = await asyncio.gather(*tasks)
 
-                # Process batch concurrently
-                tasks = [process_url(url, depth) for url, depth in batch]
-                batch_results = await asyncio.gather(*tasks)
+                    # Process results
+                    for result, (url, depth) in zip(batch_results, batch, strict=False):
+                        self.stats.total_urls += 1
 
-                # Process results
-                for result, (url, depth) in zip(batch_results, batch, strict=False):
-                    self.stats.total_urls += 1
+                        if result.success:
+                            self.stats.crawled_urls += 1
+                            self.results.append(result)
 
-                    if result.success:
-                        self.stats.crawled_urls += 1
-                        self.results.append(result)
+                            # Add discovered URLs to queue
+                            if depth < self.max_depth:
+                                self.add_urls_to_queue(result.discovered_links, base_url, depth)
 
-                        # Add discovered URLs to queue
-                        if depth < self.max_depth:
-                            self.add_urls_to_queue(result.discovered_urls, base_url, depth)
+                            logger.info(
+                                f"✅ [{self.stats.crawled_urls}/{self.max_pages}] "
+                                f"{url} (Legal: {result.legal_score:.1f}) "
+                                f"Found: {len(result.discovered_links)} links"
+                            )
+                        else:
+                            self.stats.failed_urls += 1
+                            self.failed_urls.add(url)
+                            logger.warning(f"❌ Failed: {url} - {result.error_message}")
 
+                    # Progress update
+                    if self.stats.crawled_urls % 10 == 0:
                         logger.info(
-                            f"✅ [{self.stats.crawled_urls}/{self.max_pages}] "
-                            f"{url} (Legal: {result.legal_score:.1f}) "
-                            f"Found: {len(result.discovered_urls)} links"
+                            f"📊 Progress: {self.stats.crawled_urls} crawled, "
+                            f"{self.stats.legal_documents_found} legal docs, "
+                            f"{self.stats.crawl_rate:.1f} pages/sec"
                         )
-                    else:
-                        self.stats.failed_urls += 1
-                        self.failed_urls.add(url)
-                        logger.warning(f"❌ Failed: {url} - {result.error_message}")
 
-                # Progress update
-                if self.stats.crawled_urls % 10 == 0:
-                    logger.info(
-                        f"📊 Progress: {self.stats.crawled_urls} crawled, "
-                        f"{self.stats.legal_documents_found} legal docs, "
-                        f"{self.stats.crawl_rate:.1f} pages/sec"
-                    )
+            # Final statistics
+            logger.info("🎉 Crawl completed!")
+            logger.info(f"📊 Total URLs: {self.stats.total_urls}")
+            logger.info(f"✅ Successfully crawled: {self.stats.crawled_urls}")
+            logger.info(f"❌ Failed: {self.stats.failed_urls}")
+            logger.info(f"⚖️  Legal documents found: {self.stats.legal_documents_found}")
+            logger.info(f"⏱️  Total time: {self.stats.elapsed_time:.1f} seconds")
+            logger.info(f"🚀 Average rate: {self.stats.crawl_rate:.1f} pages/sec")
 
-        # Final statistics
-        logger.info("🎉 Crawl completed!")
-        logger.info(f"📊 Total URLs: {self.stats.total_urls}")
-        logger.info(f"✅ Successfully crawled: {self.stats.crawled_urls}")
-        logger.info(f"❌ Failed: {self.stats.failed_urls}")
-        logger.info(f"⚖️  Legal documents found: {self.stats.legal_documents_found}")
-        logger.info(f"⏱️  Total time: {self.stats.elapsed_time:.1f} seconds")
-        logger.info(f"🚀 Average rate: {self.stats.crawl_rate:.1f} pages/sec")
+            # Sort results by legal score (highest first)
+            self.results.sort(key=lambda x: x.legal_score, reverse=True)
 
-        # Sort results by legal score (highest first)
-        self.results.sort(key=lambda x: x.legal_score, reverse=True)
-
-        return self.results
+            return self.results
+        finally:
+            # Shutdown log executor to ensure all pending writes complete
+            await self._shutdown_log_executor()
 
     def clear_rate_limiter_cache(self) -> None:
         """Clear the rate limiter cache (useful between crawl sessions)."""
@@ -1654,7 +1963,7 @@ async def crawl_for_legal_documents(
     Returns:
         List of crawl results, sorted by legal relevance
     """
-    crawler = ToastCrawler(
+    crawler = ClauseaCrawler(
         max_depth=max_depth, max_pages=max_pages, strategy=strategy, min_legal_score=0.0
     )
 
@@ -1671,7 +1980,7 @@ async def test_specific_url(url: str) -> CrawlResult:
     Returns:
         CrawlResult for the specific URL
     """
-    crawler = ToastCrawler(max_depth=1, max_pages=1, strategy="bfs", min_legal_score=0.0)
+    crawler = ClauseaCrawler(max_depth=1, max_pages=1, strategy="bfs", min_legal_score=0.0)
 
     # Test URL scoring
     url_score = crawler.url_scorer.score_url(url)
@@ -1690,7 +1999,7 @@ async def test_specific_url(url: str) -> CrawlResult:
             logger.info(f"📄 Title: {result.title}")
             logger.info(f"⚖️ Legal Score: {result.legal_score}")
             logger.info(f"📊 Content Length: {len(result.content)} chars")
-            logger.info(f"🔗 Discovered URLs: {len(result.discovered_urls)}")
+            logger.info(f"🔗 Discovered Links: {len(result.discovered_links)}")
         else:
             logger.error(f"❌ Failed to fetch: {url} - {result.error_message}")
 
@@ -1699,11 +2008,11 @@ async def test_specific_url(url: str) -> CrawlResult:
 
 # Example usage
 async def main() -> None:
-    """Example usage of the ToastCrawler."""
+    """Example usage of the ClauseaCrawler."""
     import sys
 
     if len(sys.argv) < 2:
-        logger.info("Usage: python toast_crawler.py <base_url> [--test-url specific_url]")
+        logger.info("Usage: python clausea_crawler.py <base_url> [--test-url specific_url]")
         return
 
     # Check if we're testing a specific URL

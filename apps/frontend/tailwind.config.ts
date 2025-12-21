@@ -60,11 +60,12 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
         display: [
-          "var(--font-cal-sans)",
+          "var(--font-jakarta)",
           "var(--font-inter)",
           "system-ui",
           "sans-serif",
         ],
+        serif: ["var(--font-serif)", "serif"],
       },
       keyframes: {
         "accordion-down": {

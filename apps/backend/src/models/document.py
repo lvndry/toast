@@ -1,8 +1,9 @@
+import json
 from datetime import datetime
 from typing import Any, Literal
 
 import shortuuid
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class DocumentAnalysisScores(BaseModel):
@@ -27,6 +28,7 @@ class DocumentAnalysis(BaseModel):
     - liability_risk: (Optional) Risk of liability exposure from contract terms (0-10, for business users).
     - compliance_status: (Optional) Compliance scores per regulation (e.g., {"GDPR": 8, "CCPA": 7}).
     - keypoints: A list of bullet points capturing the most relevant and impactful ideas.
+    - scope: (Optional) The scope of the document - whether it applies globally, to specific products, regions, or services.
     """
 
     summary: str
@@ -42,6 +44,28 @@ class DocumentAnalysis(BaseModel):
         default=None, description="Compliance scores per regulation (e.g., {'GDPR': 8, 'CCPA': 7})"
     )
     keypoints: list[str] | None = None
+    scope: str | None = Field(
+        default=None,
+        description="Document scope - e.g., 'Global privacy policy', 'Terms for Product X', 'EU-specific policy'",
+    )
+
+    @field_validator("summary", mode="before")
+    @classmethod
+    def clean_summary(cls, v: Any) -> str:
+        """Clean summary string, handling potential JSON-encoded responses."""
+        if not isinstance(v, str):
+            return str(v) if v is not None else ""
+
+        v = v.strip()
+        # If summary looks like JSON, try to extract the actual summary
+        if v.startswith("{") and '"summary"' in v:
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, dict) and "summary" in parsed:
+                    return str(parsed["summary"])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return v
 
 
 class MetaSummaryScore(BaseModel):
@@ -196,6 +220,29 @@ class DocumentSummary(BaseModel):
     ) = None
     risk_score: int | None = Field(default=None, ge=0, le=10)
     top_concerns: list[str] | None = None  # Top 3
+    summary: str | None = None  # User-oriented explanation from analysis
+    keypoints: list[str] | None = None  # Key bullet points from analysis
+
+    @classmethod
+    def from_document(cls, doc: "Document") -> "DocumentSummary":
+        """Factory method to create a DocumentSummary from a Document model."""
+        # Only extract the fields that DocumentSummary needs from Document
+        summary_data = doc.model_dump()
+
+        summary_data["last_updated"] = doc.effective_date
+
+        if doc.analysis:
+            summary_data["summary"] = doc.analysis.summary
+            summary_data["keypoints"] = doc.analysis.keypoints
+            summary_data["verdict"] = doc.analysis.verdict
+            summary_data["risk_score"] = doc.analysis.risk_score
+        else:
+            summary_data["summary"] = None
+            summary_data["keypoints"] = None
+            summary_data["verdict"] = None
+            summary_data["risk_score"] = None
+
+        return cls(**summary_data)
 
 
 class CompanyAnalysis(BaseModel):
@@ -265,6 +312,10 @@ class DocumentRiskBreakdown(BaseModel):
     top_concerns: list[str] = Field(default_factory=list)  # Specific concerns
     positive_protections: list[str] = Field(default_factory=list)  # Good practices
     missing_information: list[str] = Field(default_factory=list)  # What's not mentioned
+    scope: str | None = Field(
+        default=None,
+        description="Document scope - e.g., 'Global privacy policy', 'Terms for Product X', 'EU-specific policy'. Used to contextualize risk assessment.",
+    )
 
 
 class DocumentDeepAnalysis(BaseModel):

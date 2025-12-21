@@ -1,4 +1,4 @@
-"""Pytest configuration and shared fixtures for Toast AI tests."""
+"""Pytest configuration and shared fixtures for Clausea tests."""
 
 # Add src to path for imports
 import sys

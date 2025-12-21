@@ -16,9 +16,9 @@ export default function SignInPage() {
 
   // Track sign-in events
   useEffect(() => {
-    const handleSignIn = () => {
+    function handleSignIn() {
       trackUserJourney.signIn("clerk");
-    };
+    }
 
     // Listen for sign-in success
     window.addEventListener("clerk-sign-in-complete", handleSignIn);
@@ -34,7 +34,7 @@ export default function SignInPage() {
         <div className="flex flex-col gap-4 text-center">
           <h1 className="text-4xl font-bold">Welcome Back</h1>
           <p className="text-lg text-muted-foreground">
-            Sign in to your ToastAI account to continue
+            Sign in to your Clausea account to continue
           </p>
         </div>
         <div className="w-full max-w-[400px]">
@@ -47,6 +47,7 @@ export default function SignInPage() {
                 headerSubtitle: "hidden",
               },
             }}
+            fallbackRedirectUrl="/onboarding"
           />
         </div>
       </div>

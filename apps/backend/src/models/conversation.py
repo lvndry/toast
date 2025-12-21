@@ -21,7 +21,6 @@ class Conversation(BaseModel):
 
     # Optional metadata for UX/filters
     title: str | None = None
-    mode: Literal["qa", "summary", "compliance", "custom"] = "qa"
     archived: bool = False
     pinned: bool = False
     tags: list[str] = Field(default_factory=list)

@@ -49,16 +49,16 @@ async def handle_subscription_created(
         tier = UserTier.FREE
 
         # Map price_id to tier
-        from src.core.config import settings
+        from src.core.config import config
 
         if price_id in [
-            settings.paddle.price_individual_monthly,
-            settings.paddle.price_individual_annual,
+            config.paddle.price_individual_monthly,
+            config.paddle.price_individual_annual,
         ]:
             tier = UserTier.INDIVIDUAL
         elif price_id in [
-            settings.paddle.price_business_monthly,
-            settings.paddle.price_business_annual,
+            config.paddle.price_business_monthly,
+            config.paddle.price_business_annual,
         ]:
             tier = UserTier.BUSINESS
 

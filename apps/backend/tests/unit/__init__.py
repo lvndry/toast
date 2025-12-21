@@ -1,1 +1,1 @@
-"""Unit tests for Toast AI backend components."""
+"""Unit tests for Clausea backend components."""

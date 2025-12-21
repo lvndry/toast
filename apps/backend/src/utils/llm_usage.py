@@ -14,7 +14,7 @@ from typing import Any
 
 from litellm import ModelResponse
 
-from src.core.config import settings
+from src.core.config import config
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -199,7 +199,7 @@ def _get_usage_file_logger() -> logging.Logger | None:
     global _usage_file_handler, _usage_file_logger
 
     # Only create file logger in development mode
-    if not settings.app.is_development:
+    if not config.app.is_development:
         return None
 
     # Return existing logger if already created

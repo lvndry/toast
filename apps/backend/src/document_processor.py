@@ -34,13 +34,11 @@ class DocumentProcessor:
     def __init__(
         self,
         model: SupportedModel | None = None,
-        temperature: float = 0.1,
         max_content_length: int = 5000,
     ):
         """Initialize the document processor."""
         # Store model_name for potential future use, but we'll use fallback system
         self.model_name = model
-        self.temperature = temperature
         self.max_content_length = max_content_length
 
         # Document type categories for classification
@@ -212,6 +210,14 @@ Please return a JSON object with the following fields:
 - is_legal_document: a boolean. This should be True only if the document contains substantive legal text (e.g., terms of service, privacy policy, data protection policy, etc.)
 - is_legal_document_justification: a short rationale for your legal classification decision
 
+Example output:
+{{
+  "classification": "privacy_policy",
+  "classification_justification": "The document outlines data collection practices, user rights, and privacy protections consistent with a privacy policy.",
+  "is_legal_document": true,
+  "is_legal_document_justification": "The document contains substantive legal text defining privacy rights, data handling obligations, and user consent mechanisms."
+}}
+
 Use caution: If the content appears incomplete, vague, or primarily promotional, treat it with skepticism and prefer "other" unless clear evidence suggests a more specific classification."""
 
         system_prompt = """You are a legal document classifier. Identify substantive legal content and categorize accurately."""
@@ -223,8 +229,6 @@ Use caution: If the content appears incomplete, vague, or primarily promotional,
                     {"role": "user", "content": prompt},
                 ],
                 response_format={"type": "json_object"},
-                temperature=self.temperature,
-                model_priority=["gpt-5-mini", "grok-4-fast-non-reasoning", "gemini-2.5-flash"],
             )
 
             result: dict[str, Any] = json.loads(response.choices[0].message.content)

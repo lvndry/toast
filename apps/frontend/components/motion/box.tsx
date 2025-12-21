@@ -1,8 +1,8 @@
 "use client";
 
-import { type MotionProps, motion } from "framer-motion";
+import { motion } from "motion/react";
 
-export interface MotionBoxProps extends MotionProps {
+export interface MotionBoxProps {
   children?: React.ReactNode;
 }
 

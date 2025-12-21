@@ -11,7 +11,11 @@ export function Provider(props: { children: React.ReactNode }) {
   return (
     <PostHogProvider>
       <ClerkProvider>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+        >
           <LenisProvider>{props.children}</LenisProvider>
         </ThemeProvider>
       </ClerkProvider>

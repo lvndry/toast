@@ -21,7 +21,6 @@ class CreateConversationRequest(BaseModel):
     company_slug: str
     company_description: str | None = None
     title: str | None = None
-    mode: str | None = None
 
 
 class SendMessageRequest(BaseModel):
@@ -31,7 +30,6 @@ class SendMessageRequest(BaseModel):
 
 class PatchConversationRequest(BaseModel):
     title: str | None = None
-    mode: str | None = None
     archived: bool | None = None
     pinned: bool | None = None
     tags: list[str] | None = None
@@ -53,7 +51,6 @@ async def create_new_conversation(
             company_slug=request.company_slug,
             company_description=request.company_description,
             title=request.title,
-            mode=request.mode or "qa",
         )
         return created_conversation
     except Exception as e:

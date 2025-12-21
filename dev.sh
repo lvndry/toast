@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Toast AI Development Script
+# Clausea Development Script
 # Runs both frontend and backend simultaneously
 
 set -e  # Exit on any error
@@ -45,7 +45,7 @@ cleanup() {
     fi
 
     # Remove temporary files
-    rm -f /tmp/toast_backend.pid /tmp/toast_frontend.pid
+    rm -f /tmp/clausea_backend.pid /tmp/clausea_frontend.pid
 
     print_success "Development environment cleaned up"
     exit 0
@@ -122,7 +122,7 @@ start_backend() {
     source .venv/bin/activate
     python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
     BACKEND_PID=$!
-    echo $BACKEND_PID > /tmp/toast_backend.pid
+    echo $BACKEND_PID > /tmp/clausea_backend.pid
 
     cd ../..
     print_success "Backend server started on http://localhost:8000 (PID: $BACKEND_PID)"
@@ -136,7 +136,7 @@ start_frontend() {
     # Start Next.js development server
     bun run dev &
     FRONTEND_PID=$!
-    echo $FRONTEND_PID > /tmp/toast_frontend.pid
+    echo $FRONTEND_PID > /tmp/clausea_frontend.pid
 
     cd ../..
     print_success "Frontend server started on http://localhost:3000 (PID: $FRONTEND_PID)"
@@ -177,7 +177,7 @@ wait_for_servers() {
 
 # Main execution
 main() {
-    echo "🚀 Starting Toast AI Development Environment"
+    echo "🚀 Starting Clausea Development Environment"
     echo "=============================================="
 
     # Check dependencies

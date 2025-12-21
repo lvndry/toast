@@ -1,6 +1,6 @@
 "use client";
 
-export const Logo = () => {
+export function Logo() {
   return (
     <svg
       version="1.1"
@@ -47,4 +47,4 @@ export const Logo = () => {
       />
     </svg>
   );
-};
+}

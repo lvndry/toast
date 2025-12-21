@@ -12,7 +12,7 @@ if not PINECONE_API_KEY:
 
 
 pc = Pinecone(api_key=PINECONE_API_KEY)
-INDEX_NAME = "toast-pinecone"
+INDEX_NAME = "clausea-pinecone"
 
 
 def init_pinecone_index(dimension: int, index_name: str = INDEX_NAME) -> None:

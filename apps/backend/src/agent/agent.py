@@ -69,7 +69,6 @@ class Agent:
                 messages=messages,
                 tools=tools,
                 tool_choice="auto",
-                temperature=0.4,
             )
         except Exception as e:
             logger.error(f"Agent error in decision step: {e}")
@@ -173,7 +172,6 @@ class Agent:
             response = await acompletion_with_fallback(
                 messages=messages,
                 stream=True,
-                temperature=0.4,
             )
 
             async for chunk in response:

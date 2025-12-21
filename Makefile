@@ -1,11 +1,11 @@
-# Toast AI Makefile
+# Clausea Makefile
 # Provides convenient commands for setting up and running the development environment
 
 .PHONY: help setup dev clean install-deps setup-backend setup-frontend setup-precommit run-backend run-frontend test lint format check-deps
 
 # Default target
 help:
-	@echo "🚀 Toast AI Development Commands"
+	@echo "🚀 Clausea Development Commands"
 	@echo "================================"
 	@echo ""
 	@echo "Setup Commands:"
@@ -30,7 +30,7 @@ help:
 
 # Complete project setup
 setup: check-deps setup-permissions install-deps setup-precommit
-	@echo "✅ Toast AI setup complete!"
+	@echo "✅ Clausea setup complete!"
 	@echo "Run 'make dev' to start the development environment"
 
 # Install all dependencies
@@ -64,7 +64,7 @@ setup-permissions:
 
 # Start development environment
 dev: check-deps
-	@echo "🚀 Starting Toast AI development environment..."
+	@echo "🚀 Starting Clausea development environment..."
 	@./dev.sh
 
 # Start backend server only
@@ -147,8 +147,8 @@ build:
 # Docker commands (if using Docker)
 docker-build:
 	@echo "🐳 Building Docker images..."
-	@docker build -t toast-backend apps/backend/
-	@docker build -t toast-frontend apps/frontend/
+	@docker build -t clausea-backend apps/backend/
+	@docker build -t clausea-frontend apps/frontend/
 
 docker-run:
 	@echo "🐳 Running with Docker Compose..."

@@ -6,12 +6,12 @@ import certifi
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from src.core.config import settings
+from src.core.config import config
 
 load_dotenv()
 
-MONGO_URI = settings.database.mongodb_uri
-DATABASE_NAME = "toast"
+MONGO_URI = config.database.mongodb_uri
+DATABASE_NAME = "clausea"
 
 
 async def test_connection() -> bool:

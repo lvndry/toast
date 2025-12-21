@@ -1,6 +1,6 @@
-# Contributing to Toast AI 🍞
+# Contributing to Clausea 🌊
 
-Thank you for your interest in contributing to Toast AI! We're building the definitive legal document intelligence platform.
+Thank you for your interest in contributing to Clausea! We're building the definitive legal document intelligence platform.
 
 ## 🚀 Quick Start
 
@@ -15,8 +15,8 @@ Thank you for your interest in contributing to Toast AI! We're building the defi
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/toast.git
-cd toast
+git clone https://github.com/your-org/clausea.git
+cd clausea
 
 # Complete project setup
 make setup
@@ -33,11 +33,11 @@ For a complete list of available commands, run `make help`.
 
 ```bash
 # Fork the repository on GitHub, then clone your fork
-git clone https://github.com/your-username/toast.git
-cd toast
+git clone https://github.com/your-username/clausea.git
+cd clausea
 
 # Add upstream remote
-git remote add upstream https://github.com/your-org/toast.git
+git remote add upstream https://github.com/your-org/clausea.git
 ```
 
 ### 2. Create a Feature Branch
@@ -134,4 +134,4 @@ cd apps/frontend && bun test
 
 ## 📄 License
 
-By contributing to Toast AI, you agree that your contributions will be licensed under the [AGPL-3.0 License](LICENSE).
+By contributing to Clausea, you agree that your contributions will be licensed under the [AGPL-3.0 License](LICENSE).

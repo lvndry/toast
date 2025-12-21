@@ -8,7 +8,7 @@ export default {
         "https://pbs.twimg.com/profile_images/1470742164024008706/k-eXHtu0_normal.jpg",
       children: (
         <>
-          "ToastAI saved our team hours of work. What used to take days now
+          "Clausea saved our team hours of work. What used to take days now
           takes minutes. Finally, a tool that makes legal documents actually
           readable."
         </>
@@ -21,7 +21,7 @@ export default {
       children: (
         <>
           "As a startup founder, I need to understand legal agreements quickly.
-          ToastAI's AI assistant helped me understand complex terms without
+          Clausea's AI assistant helped me understand complex terms without
           hiring expensive lawyers."
         </>
       ),

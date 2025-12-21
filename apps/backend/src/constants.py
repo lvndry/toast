@@ -26,7 +26,7 @@ TIER_DISPLAY_NAMES = {
 
 # Tier descriptions
 TIER_DESCRIPTIONS = {
-    UserTier.FREE: "Perfect for trying out Toast AI with basic privacy analysis.",
+    UserTier.FREE: "Perfect for trying out Clausea with basic privacy analysis.",
     UserTier.INDIVIDUAL: "For privacy-conscious individuals who want unlimited analysis.",
     UserTier.BUSINESS: "For growing legal teams and small businesses.",
     UserTier.ENTERPRISE: "For large legal teams and organizations with advanced needs.",

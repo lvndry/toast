@@ -1,5 +1,6 @@
 "use client";
 
+import { Gavel } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { useEffect, useState } from "react";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 
 import { useAnalytics } from "../../../hooks/useAnalytics";
@@ -80,7 +82,7 @@ export default function OnboardingPage() {
     }
 
     if (!useCase) {
-      newErrors.useCase = "Please select how you want to use Toast AI";
+      newErrors.useCase = "Please select how you want to use Clausea";
     }
 
     setErrors(newErrors);
@@ -137,8 +139,15 @@ export default function OnboardingPage() {
   // Show loading while checking user data
   if (userDataLoading) {
     return (
-      <div className="container max-w-2xl mx-auto px-4 py-12">
-        <h2 className="text-2xl font-bold mb-6">Loading...</h2>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 bg-primary/10 border border-white/10 rounded-xl flex items-center justify-center animate-pulse">
+            <Gavel className="w-6 h-6 text-secondary" />
+          </div>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-primary/40">
+            Loading...
+          </p>
+        </div>
       </div>
     );
   }
@@ -149,86 +158,156 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-12">
-      <h2 className="text-2xl font-bold mb-6">Tell us about you</h2>
-      <p className="text-muted-foreground mb-8">
-        This helps tailor legal analysis to your needs.
-      </p>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            placeholder="First name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <Input
-            placeholder="Last name"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-20">
+      <div className="w-full max-w-2xl">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-primary/10 border border-white/10 rounded-xl flex items-center justify-center">
+              <Gavel className="w-6 h-6 text-secondary" />
+            </div>
+            <span className="font-display font-bold text-3xl tracking-tighter text-primary">
+              LegalLens{" "}
+              <span className="text-secondary font-serif italic font-normal tracking-normal">
+                AI
+              </span>
+            </span>
+          </div>
+          <h1 className="font-display font-bold text-5xl tracking-tighter text-primary mb-4">
+            Tell us about you
+          </h1>
+          <p className="text-lg text-primary/60 max-w-md mx-auto">
+            This helps tailor legal analysis to your needs and deliver insights
+            that matter to you.
+          </p>
         </div>
-        <div>
-          <Input
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className={errors.email ? "border-red-500" : ""}
-          />
-          {errors.email && (
-            <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-          )}
+
+        {/* Form Card */}
+        <div className="rounded-3xl bg-background/20 backdrop-blur-2xl border border-white/10 shadow-2xl p-8 md:p-12">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
+                  First Name
+                </label>
+                <Input
+                  placeholder="John"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="h-12 rounded-xl bg-background/40 border-white/10 focus:border-secondary/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
+                  Last Name
+                </label>
+                <Input
+                  placeholder="Doe"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="h-12 rounded-xl bg-background/40 border-white/10 focus:border-secondary/50"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
+                Email
+              </label>
+              <Input
+                placeholder="john@example.com"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className={cn(
+                  "h-12 rounded-xl bg-background/40 border-white/10 focus:border-secondary/50",
+                  errors.email && "border-red-500/50 focus:border-red-500",
+                )}
+              />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-2">{errors.email}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
+                I am a...
+              </label>
+              <Select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className={cn(
+                  "h-12 rounded-xl bg-background/40 border-white/10 focus:border-secondary/50",
+                  errors.role && "border-red-500/50 focus:border-red-500",
+                )}
+              >
+                <option value="">Select your role</option>
+                <option value="individual">Privacy-conscious individual</option>
+                <option value="founder">Founder</option>
+                <option value="compliance_officer">Compliance officer</option>
+                <option value="legal_team">Legal team</option>
+                <option value="other">Other</option>
+              </Select>
+              {errors.role && (
+                <p className="text-red-500 text-sm mt-2">{errors.role}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
+                I want to use Clausea to...
+              </label>
+              <Select
+                value={useCase}
+                onChange={(e) => setUseCase(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className={cn(
+                  "h-12 rounded-xl bg-background/40 border-white/10 focus:border-secondary/50",
+                  errors.useCase && "border-red-500/50 focus:border-red-500",
+                )}
+              >
+                <option value="">Select your use case</option>
+                <option value="analyze_privacy_policies">
+                  Understand privacy policies
+                </option>
+                <option value="vendor_risk">
+                  Assess vendor and contract risk
+                </option>
+                <option value="monitor_changes">Monitor policy changes</option>
+                <option value="bulk_review">Bulk review for legal team</option>
+              </Select>
+              {errors.useCase && (
+                <p className="text-red-500 text-sm mt-2">{errors.useCase}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
+                Tell us about your goals and what you hope to achieve...
+              </label>
+              <Textarea
+                placeholder="What are your priorities, how could Clausea help you?"
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="min-h-[120px] rounded-xl bg-background/40 border-white/10 focus:border-secondary/50 resize-none"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-full h-14 font-bold uppercase tracking-widest bg-secondary text-primary hover:bg-secondary/80 shadow-lg shadow-secondary/10 disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+            >
+              {loading ? "Saving..." : "Continue"}
+            </Button>
+          </form>
         </div>
-        <div>
-          <Select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className={errors.role ? "border-red-500" : ""}
-          >
-            <option value="">I am a...</option>
-            <option value="individual">Privacy-conscious individual</option>
-            <option value="founder">Founder</option>
-            <option value="compliance_officer">Compliance officer</option>
-            <option value="legal_team">Legal team</option>
-            <option value="other">Other</option>
-          </Select>
-          {errors.role && (
-            <p className="text-red-500 text-sm mt-1">{errors.role}</p>
-          )}
-        </div>
-        <div>
-          <Select
-            value={useCase}
-            onChange={(e) => setUseCase(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className={errors.useCase ? "border-red-500" : ""}
-          >
-            <option value="">I want to use Toast AI to...</option>
-            <option value="analyze_privacy_policies">
-              Understand privacy policies
-            </option>
-            <option value="vendor_risk">Assess vendor and contract risk</option>
-            <option value="monitor_changes">Monitor policy changes</option>
-            <option value="bulk_review">Bulk review for legal team</option>
-          </Select>
-          {errors.useCase && (
-            <p className="text-red-500 text-sm mt-1">{errors.useCase}</p>
-          )}
-        </div>
-        <Textarea
-          placeholder="What success looks like for you"
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Saving..." : "Continue"}
-        </Button>
-      </form>
+      </div>
     </div>
   );
 }

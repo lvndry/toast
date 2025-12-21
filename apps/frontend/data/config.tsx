@@ -7,7 +7,7 @@ import { Logo } from "./logo";
 const siteConfig = {
   logo: Logo,
   seo: {
-    title: "Toast AI",
+    title: "Clausea",
     description: "The AI-powered legal document analysis tool",
   },
   termsUrl: "#",

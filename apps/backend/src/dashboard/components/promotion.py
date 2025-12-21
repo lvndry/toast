@@ -20,27 +20,27 @@ def run_async(coro: Coroutine[Any, Any, Any]) -> Any:
     return loop.run_until_complete(coro)
 
 
-async def get_migration_summary_async(api_url: str) -> tuple[dict[str, Any], int]:
-    """Async function to get migration summary"""
+async def get_promotion_summary_async(api_url: str) -> tuple[dict[str, Any], int]:
+    """Async function to get promotion summary"""
     result: tuple[dict[str, Any], int] = await make_api_request(
-        f"{api_url}/toast/migration/summary"
+        f"{api_url}/promotion/summary"
     )
     return result
 
 
-async def run_migration_async(
+async def run_promotion_async(
     api_url: str, endpoint: str, data: dict[str, Any] | None = None
 ) -> tuple[dict[str, Any], int]:
-    """Async function to run migration operations"""
+    """Async function to run promotion operations"""
     result: tuple[dict[str, Any], int] = await make_api_request(
         f"{api_url}{endpoint}", "POST", data
     )
     return result
 
 
-def show_migration() -> None:
-    st.title("Database Migration")
-    st.markdown("Migrate data from localhost to production database")
+def show_promotion() -> None:
+    st.title("Data Promotion")
+    st.markdown("Promote data from localhost to production database")
 
     # Configuration section
     st.header("Configuration")
@@ -68,26 +68,26 @@ def show_migration() -> None:
     # API Configuration
     st.subheader("API Configuration")
     api_url = st.text_input(
-        "API Base URL", value="http://localhost:8000", help="Base URL for the Toast API"
+        "API Base URL", value="http://localhost:8000", help="Base URL for the Clausea API"
     )
 
-    # Migration Summary
-    st.header("Migration Summary")
+    # Promotion Summary
+    st.header("Promotion Summary")
 
-    if st.button("Get Migration Summary", type="primary"):
+    if st.button("Get Promotion Summary", type="primary"):
         if not api_url:
             st.error("Please provide API Base URL")
             return
 
         try:
-            with st.spinner("Fetching migration summary..."):
-                result, status_code = run_async(get_migration_summary_async(api_url))
+            with st.spinner("Fetching promotion summary..."):
+                result, status_code = run_async(get_promotion_summary_async(api_url))
 
                 if status_code == 200:
                     if result.get("success"):
                         summary = result.get("data", {})
 
-                        st.success("Migration summary retrieved successfully!")
+                        st.success("Promotion summary retrieved successfully!")
 
                         # Display summary
                         col1, col2, col3 = st.columns(3)
@@ -135,7 +135,7 @@ def show_migration() -> None:
                             )
 
                         # Store summary in session state
-                        st.session_state["migration_summary"] = summary
+                        st.session_state["promotion_summary"] = summary
 
                         # Show detailed summary
                         with st.expander("Detailed Summary"):
@@ -146,112 +146,112 @@ def show_migration() -> None:
                     st.error(f"API request failed with status {status_code}")
 
         except Exception as e:
-            st.error(f"Error fetching migration summary: {str(e)}")
+            st.error(f"Error fetching promotion summary: {str(e)}")
 
-    # Migration Actions
-    st.header("Migration Actions")
+    # Promotion Actions
+    st.header("Promotion Actions")
 
     # Dry Run Section
     st.subheader("Dry Run")
     st.info(
-        "A dry run will show you what would be migrated without actually performing the migration."
+        "A dry run will show you what would be promoted without actually performing the promotion."
     )
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
         if st.button("Dry Run - All Data"):
-            run_migration(api_url, "/toast/migration/dry-run", "Full dry run migration")
+            run_promotion(api_url, "/promotion/dry-run", "Full dry run promotion")
 
     with col2:
         if st.button("Dry Run - Companies Only"):
-            run_migration(
+            run_promotion(
                 api_url,
-                "/toast/migration/migrate-companies",
-                "Companies dry run migration",
+                "/promotion/promote-companies",
+                "Companies dry run promotion",
                 {"dry_run": True},
             )
 
     with col3:
         if st.button("Dry Run - Documents Only"):
-            run_migration(
+            run_promotion(
                 api_url,
-                "/toast/migration/migrate-documents",
-                "Documents dry run migration",
+                "/promotion/promote-documents",
+                "Documents dry run promotion",
                 {"dry_run": True},
             )
 
-    # Actual Migration Section
-    st.subheader("Execute Migration")
-    st.warning("⚠️ This will actually migrate data to production. Make sure you have a backup!")
+    # Actual Promotion Section
+    st.subheader("Execute Promotion")
+    st.warning("⚠️ This will actually promote data to production. Make sure you have a backup!")
 
     # Confirmation checkbox
-    migration_confirmed = st.checkbox(
-        "I understand this will migrate data to production and I have a backup"
+    promotion_confirmed = st.checkbox(
+        "I understand this will promote data to production and I have a backup"
     )
 
-    if migration_confirmed:
+    if promotion_confirmed:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            if st.button("Migrate All Data", type="secondary"):
-                run_migration(
+            if st.button("Promote All Data", type="secondary"):
+                run_promotion(
                     api_url,
-                    "/toast/migration/execute",
-                    "Full migration",
+                    "/promotion/execute",
+                    "Full promotion",
                     {"dry_run": False},
                 )
 
         with col2:
-            if st.button("Migrate Companies Only", type="secondary"):
-                run_migration(
+            if st.button("Promote Companies Only", type="secondary"):
+                run_promotion(
                     api_url,
-                    "/toast/migration/migrate-companies",
-                    "Companies migration",
+                    "/promotion/promote-companies",
+                    "Companies promotion",
                     {"dry_run": False},
                 )
 
         with col3:
-            if st.button("Migrate Documents Only", type="secondary"):
-                run_migration(
+            if st.button("Promote Documents Only", type="secondary"):
+                run_promotion(
                     api_url,
-                    "/toast/migration/migrate-documents",
-                    "Documents migration",
+                    "/promotion/promote-documents",
+                    "Documents promotion",
                     {"dry_run": False},
                 )
     else:
-        st.info("Please confirm that you understand the migration will modify production data.")
+        st.info("Please confirm that you understand the promotion will modify production data.")
 
-    # Migration History
-    if "migration_results" in st.session_state:
-        st.header("Migration Results")
+    # Promotion History
+    if "promotion_results" in st.session_state:
+        st.header("Promotion Results")
 
-        for result in st.session_state["migration_results"]:
+        for result in st.session_state["promotion_results"]:
             with st.expander(f"{result['timestamp']} - {result['action']}"):
                 st.json(result["data"])
 
 
-def run_migration(
+def run_promotion(
     api_url: str, endpoint: str, action: str, data: dict[str, Any] | None = None
 ) -> None:
-    """Helper function to run migration operations"""
+    """Helper function to run promotion operations"""
     if not api_url:
         st.error("Please provide API Base URL")
         return
 
     try:
         with st.spinner(f"Running {action}..."):
-            result, status_code = run_async(run_migration_async(api_url, endpoint, data))
+            result, status_code = run_async(run_promotion_async(api_url, endpoint, data))
 
             if status_code == 200:
                 if result.get("success"):
                     st.success(f"{action} completed successfully!")
 
                     # Store result in session state
-                    if "migration_results" not in st.session_state:
-                        st.session_state["migration_results"] = []
+                    if "promotion_results" not in st.session_state:
+                        st.session_state["promotion_results"] = []
 
-                    st.session_state["migration_results"].append(
+                    st.session_state["promotion_results"].append(
                         {
                             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                             "action": action,
@@ -261,7 +261,7 @@ def run_migration(
 
                     # Display results
                     st.subheader(f"Results for {action}")
-                    display_migration_results(result.get("data", {}))
+                    display_promotion_results(result.get("data", {}))
                 else:
                     st.error(f"{action} failed: {result.get('message', 'Unknown error')}")
             else:
@@ -271,8 +271,8 @@ def run_migration(
         st.error(f"Error running {action}: {str(e)}")
 
 
-def display_migration_results(data: dict[str, Any]) -> None:
-    """Display migration results in a formatted way"""
+def display_promotion_results(data: dict[str, Any]) -> None:
+    """Display promotion results in a formatted way"""
     if not data:
         st.info("No data to display")
         return
@@ -323,23 +323,23 @@ def display_migration_results(data: dict[str, Any]) -> None:
                             meta_summaries if isinstance(meta_summaries, int | float) else 0,
                         )
 
-    # Migration results
-    st.subheader("Migration Results")
+    # Promotion results
+    st.subheader("Promotion Results")
 
-    # Check if this is a single collection result or full migration result
-    if "migrated_count" in data and "skipped_count" in data:
+    # Check if this is a single collection result or full promotion result
+    if "promoted" in data and "skipped" in data:
         # Single collection result (e.g., documents only, companies only)
         result = data
-        collection_name = "Migration"  # Generic name for single collection
+        collection_name = "Promotion"  # Generic name for single collection
 
         with st.expander(f"{collection_name}"):
             col1, col2, col3 = st.columns(3)
 
             with col1:
-                st.metric("Migrated", result.get("migrated_count", 0))
+                st.metric("Promoted", result.get("promoted", 0))
 
             with col2:
-                st.metric("Skipped", result.get("skipped_count", 0))
+                st.metric("Skipped", result.get("skipped", 0))
 
             with col3:
                 st.metric("Errors", len(result.get("errors", [])))
@@ -350,11 +350,11 @@ def display_migration_results(data: dict[str, Any]) -> None:
                     st.text(f"• {error}")
 
             if result.get("dry_run"):
-                st.info("This was a dry run - no actual data was migrated")
+                st.info("This was a dry run - no actual data was promoted")
             else:
-                st.success("Data was successfully migrated")
+                st.success("Data was successfully promoted")
     else:
-        # Full migration result with multiple collections
+        # Full promotion result with multiple collections
         for collection_name, result_value in data.items():
             if (
                 collection_name != "summary"
@@ -370,11 +370,11 @@ def display_migration_results(data: dict[str, Any]) -> None:
                 if not hasattr(result, "get") or not isinstance(result, dict):  # noqa: PLR1702
                     st.error(
                         f"**Invalid data structure for '{collection_name}' collection**\n\n"
-                        f"- **Expected:** Dictionary with migration results\n"
+                        f"- **Expected:** Dictionary with promotion results\n"
                         f"- **Got:** {type(result).__name__}\n"
                         f"- **Value:** `{result}`\n\n"
-                        f"This field should contain a dictionary with keys like 'migrated_count', "
-                        f"'skipped_count', and 'errors', but instead received a {type(result).__name__}."
+                        f"This field should contain a dictionary with keys like 'promoted', "
+                        f"'skipped', and 'errors', but instead received a {type(result).__name__}."
                     )
                     with st.expander(f"🔍 Debug: Raw value for '{collection_name}'"):
                         st.json(result)
@@ -382,15 +382,15 @@ def display_migration_results(data: dict[str, Any]) -> None:
 
                 # Handle case where result might not have expected structure
                 try:
-                    with st.expander(f"{collection_name.title()} Migration"):
+                    with st.expander(f"{collection_name.title()} Promotion"):
                         col1, col2, col3 = st.columns(3)
 
                         with col1:
-                            migrated_count = result.get("migrated_count", 0)
-                            st.metric("Migrated", migrated_count)
+                            promoted_count = result.get("promoted", 0)
+                            st.metric("Promoted", promoted_count)
 
                         with col2:
-                            skipped_count = result.get("skipped_count", 0)
+                            skipped_count = result.get("skipped", 0)
                             st.metric("Skipped", skipped_count)
 
                         with col3:
@@ -403,21 +403,21 @@ def display_migration_results(data: dict[str, Any]) -> None:
                                 st.text(f"• {error}")
 
                         if result.get("dry_run"):
-                            st.info("This was a dry run - no actual data was migrated")
+                            st.info("This was a dry run - no actual data was promoted")
                         else:
-                            st.success("Data was successfully migrated")
+                            st.success("Data was successfully promoted")
                 except (AttributeError, TypeError, KeyError) as e:
                     # Handle case where result structure doesn't match expectations
                     error_type = type(e).__name__
                     error_details = str(e)
 
                     st.error(
-                        f"**Error processing '{collection_name}' migration results**\n\n"
+                        f"**Error processing '{collection_name}' promotion results**\n\n"
                         f"- **Error Type:** `{error_type}`\n"
                         f"- **Error Details:** `{error_details}`\n"
                         f"- **Collection Name:** `{collection_name}`\n\n"
                         f"The data structure for this collection doesn't match the expected format. "
-                        f"Expected a dictionary with keys: 'migrated_count', 'skipped_count', 'errors', etc."
+                        f"Expected a dictionary with keys: 'promoted', 'skipped', 'errors', etc."
                     )
                     with st.expander(f"🔍 Debug: Raw data structure for '{collection_name}'"):
                         st.json(result)
@@ -428,19 +428,19 @@ def display_migration_results(data: dict[str, Any]) -> None:
     # If we couldn't parse the data structure, show raw data for debugging
     if isinstance(data, dict) and not any(
         [
-            "migrated_count" in data,
+            "promoted" in data,
             "summary" in data,
             any(
-                isinstance(v, dict) and ("migrated_count" in v or "skipped_count" in v)
+                isinstance(v, dict) and ("promoted" in v or "skipped" in v)
                 for v in data.values()
                 if isinstance(v, dict)
             ),
         ]
     ):
-        with st.expander("Raw Migration Data (Debug)"):
+        with st.expander("Raw Promotion Data (Debug)"):
             st.json(data)
 
-    # Tier Visibility Migration Section
+    # Tier Visibility Management Section
     st.write("---")
     st.header("Tier Visibility Management")
     st.markdown("Manage which user tiers can access specific companies")

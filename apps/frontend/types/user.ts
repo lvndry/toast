@@ -1,4 +1,4 @@
-// User and subscription types for Toast AI
+// User and subscription types for Clausea
 
 export type UserTier = "free" | "individual" | "business" | "enterprise";
 

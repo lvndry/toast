@@ -102,22 +102,22 @@ class CompanyService:
         return companies
 
     # ============================================================================
-    # Meta-Summary Cache Operations
+    # Meta-Summary Storage Operations
     # ============================================================================
 
-    async def invalidate_meta_summary_cache(self, db: AgnosticDatabase, slug: str) -> None:
-        """Invalidate the meta-summary cache for a company.
+    async def delete_meta_summary(self, db: AgnosticDatabase, slug: str) -> None:
+        """Delete the stored meta-summary for a company.
 
         Args:
             db: Database instance
             slug: Company slug
         """
-        await self._company_repo.invalidate_meta_summary_cache(db, slug)
+        await self._company_repo.delete_meta_summary(db, slug)
 
-    async def get_meta_summary_cache(
+    async def get_meta_summary(
         self, db: AgnosticDatabase, company_slug: str
     ) -> dict[str, Any] | None:
-        """Get the cached meta-summary data for a company.
+        """Get the stored meta-summary data for a company.
 
         Args:
             db: Database instance
@@ -126,38 +126,38 @@ class CompanyService:
         Returns:
             Dictionary with 'meta_summary' and 'document_signature' keys, or None
         """
-        meta_summary_cache: dict[str, Any] | None = await self._company_repo.get_meta_summary_cache(
+        meta_summary_data: dict[str, Any] | None = await self._company_repo.get_meta_summary(
             db, company_slug
         )
-        return meta_summary_cache
+        return meta_summary_data
 
-    async def set_meta_summary_cache(
+    async def save_meta_summary(
         self,
         db: AgnosticDatabase,
         company_slug: str,
         meta_summary: MetaSummary,
         document_signature: str,
     ) -> None:
-        """Store the meta-summary in cache with document signature.
+        """Save the meta-summary to the database with document signature.
 
         Args:
             db: Database instance
             company_slug: Company slug
-            meta_summary: MetaSummary object to cache
+            meta_summary: MetaSummary object to save
             document_signature: Hash signature of all document contents
         """
-        await self._company_repo.set_meta_summary_cache(
+        await self._company_repo.save_meta_summary(
             db, company_slug, meta_summary, document_signature
         )
 
     # ============================================================================
-    # Deep Analysis Cache Operations
+    # Deep Analysis Storage Operations
     # ============================================================================
 
-    async def get_deep_analysis_cache(
+    async def get_deep_analysis(
         self, db: AgnosticDatabase, company_slug: str
     ) -> dict[str, Any] | None:
-        """Get the cached deep analysis data for a company.
+        """Get the stored deep analysis data for a company.
 
         Args:
             db: Database instance
@@ -166,27 +166,27 @@ class CompanyService:
         Returns:
             Dictionary with 'deep_analysis' and 'document_signature' keys, or None
         """
-        deep_analysis_cache: (
+        deep_analysis_data: (
             dict[str, Any] | None
-        ) = await self._company_repo.get_deep_analysis_cache(db, company_slug)
-        return deep_analysis_cache
+        ) = await self._company_repo.get_deep_analysis(db, company_slug)
+        return deep_analysis_data
 
-    async def set_deep_analysis_cache(
+    async def save_deep_analysis(
         self,
         db: AgnosticDatabase,
         company_slug: str,
         deep_analysis: CompanyDeepAnalysis,
         document_signature: str,
     ) -> None:
-        """Store the deep analysis in cache with document signature.
+        """Save the deep analysis to the database with document signature.
 
         Args:
             db: Database instance
             company_slug: Company slug
-            deep_analysis: CompanyDeepAnalysis object to cache
+            deep_analysis: CompanyDeepAnalysis object to save
             document_signature: Hash signature of all document contents
         """
-        await self._company_repo.set_deep_analysis_cache(
+        await self._company_repo.save_deep_analysis(
             db, company_slug, deep_analysis, document_signature
         )
 
@@ -206,7 +206,7 @@ class CompanyService:
         Returns:
             CompanyOverview or None if not available
         """
-        meta_summary_data = await self._company_repo.get_meta_summary_cache(db, slug)
+        meta_summary_data = await self._company_repo.get_meta_summary(db, slug)
         if not meta_summary_data:
             return None
 
@@ -257,7 +257,7 @@ class CompanyService:
         Returns:
             CompanyAnalysis or None if not available
         """
-        meta_summary_data = await self._company_repo.get_meta_summary_cache(db, slug)
+        meta_summary_data = await self._company_repo.get_meta_summary(db, slug)
         if not meta_summary_data:
             return None
         meta_summary = MetaSummary(**meta_summary_data["meta_summary"])
@@ -277,7 +277,7 @@ class CompanyService:
         documents: list[DocumentSummary] = []
         if company:
             docs = await self._document_repo.find_by_company_id(db, company.id)
-            documents = [DocumentSummary(**doc.model_dump()) for doc in docs]
+            documents = [DocumentSummary.from_document(doc) for doc in docs]
 
         return CompanyAnalysis(
             overview=overview,
@@ -302,7 +302,7 @@ class CompanyService:
             return []
 
         docs = await self._document_repo.find_by_company_id(db, company.id)
-        return [DocumentSummary(**doc.model_dump()) for doc in docs]
+        return [DocumentSummary.from_document(doc) for doc in docs]
 
     async def get_company_deep_analysis(
         self, db: AgnosticDatabase, slug: str
@@ -316,12 +316,12 @@ class CompanyService:
         Returns:
             CompanyDeepAnalysis or None if not available
         """
-        cached_data = await self._company_repo.get_deep_analysis_cache(db, slug)
-        if not cached_data:
+        stored_data = await self._company_repo.get_deep_analysis(db, slug)
+        if not stored_data:
             return None
 
         try:
-            deep_analysis = CompanyDeepAnalysis.model_validate(cached_data["deep_analysis"])
+            deep_analysis = CompanyDeepAnalysis.model_validate(stored_data["deep_analysis"])
             return deep_analysis
         except Exception as e:
             logger.error(f"Failed to parse deep analysis for {slug}: {e}")

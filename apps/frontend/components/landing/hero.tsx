@@ -1,216 +1,157 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, FileText, ShieldAlert } from "lucide-react";
-import Link from "next/link";
+import { CheckCircle2, FileText, Sparkles } from "lucide-react";
+import { Variants, motion } from "motion/react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+const container: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.3,
+    },
+  },
+};
+
+const item: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const },
+  },
+};
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-32">
-      {/* Light, Subtle Background */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 via-white to-white"></div>
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-20 mesh-gradient">
+      <div className="container mx-auto px-4 md:px-6 relative z-10">
+        <motion.div
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="grid lg:grid-cols-2 gap-16 items-center max-w-7xl mx-auto"
+        >
+          {/* Content Left */}
+          <div className="space-y-10 text-left">
+            <motion.div variants={item}>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.2em] border border-primary/20 shadow-sm">
+                <Sparkles className="h-3.5 w-3.5" />
+                Intelligence for Legal Teams
+              </div>
+            </motion.div>
 
-      <div className="w-full container mx-auto px-4 md:px-6 relative z-10">
-        <div className="max-w-5xl mx-auto w-full">
-          {/* Copy - More Compelling */}
-          <div className="text-center space-y-8 mb-20">
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.6,
-                delay: 0.1,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-              className="text-5xl font-bold tracking-tight md:text-6xl lg:text-7xl leading-[1.1]"
+              variants={item}
+              className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter text-secondary leading-[0.95] text-balance"
             >
-              Terms of service were
-              <br />
-              <span className="text-gradient">not written for you.</span>
+              Analyze Legal <br />
+              <span className="text-primary">Instantly.</span>
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.6,
-                delay: 0.2,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-              className="max-w-2xl mx-auto text-xl text-muted-foreground leading-relaxed"
+              variants={item}
+              className="text-xl md:text-2xl text-muted-foreground leading-relaxed max-w-xl font-medium"
             >
-              Until now. Toast AI reads privacy policies in seconds, exposing
-              hidden risks and data traps in plain English.
+              Clausea transforms complex legal documents into clear, actionable
+              insights using Retrieval-Augmented Generation (RAG).
             </motion.p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.6,
-                delay: 0.3,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4"
-            >
-              <Button
-                size="lg"
-                className="h-12 px-8 text-base rounded-full"
-                asChild
-              >
-                <Link href="/companies">
-                  Start analyzing free <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Free forever • No credit card required
-              </p>
+            <motion.div variants={item} className="space-y-6">
+              <div className="p-1 rounded-4xl bg-white/40 backdrop-blur-2xl border border-white/40 shadow-[0_20px_50px_rgba(0,0,0,0.05)] max-w-md group focus-within:ring-2 ring-primary/20 transition-all">
+                <form
+                  className="flex flex-col sm:flex-row gap-2 p-1.5"
+                  onSubmit={(e) => e.preventDefault()}
+                >
+                  <Input
+                    placeholder="Enter your work email"
+                    className="h-14 border-none bg-transparent focus-visible:ring-0 text-secondary placeholder:text-muted-foreground/50 font-semibold px-6 text-lg"
+                    type="email"
+                  />
+                  <Button className="h-14 px-10 rounded-3xl bg-primary text-white font-black text-lg hover:bg-primary/90 shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.95]">
+                    Start Free
+                  </Button>
+                </form>
+              </div>
+
+              <div className="flex items-center gap-6 px-4 text-xs font-bold text-secondary/60 uppercase tracking-widest">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  No credit card
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  GDPR Compliant
+                </div>
+              </div>
             </motion.div>
           </div>
 
-          {/* Visual Demo - More Refined */}
+          {/* Visual Right */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="relative mx-auto max-w-4xl"
+            initial={{ opacity: 0, scale: 0.9, rotateY: 10 }}
+            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
+            className="relative"
           >
-            {/* The Document Card - Simpler, More Professional */}
-            <div className="relative z-10 rounded-2xl border border-white/10 bg-card/90 backdrop-blur-xl p-8 shadow-2xl">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">
-                      Spotify Privacy Policy
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      12,405 words • Last updated 2 days ago
-                    </p>
-                  </div>
-                </div>
-                <div className="px-3 py-1 rounded-full bg-red-500/10 text-red-500 text-xs font-medium border border-red-500/20">
-                  High Risk
-                </div>
-              </div>
+            {/* Background Glow */}
+            <div className="absolute -inset-20 bg-primary/20 rounded-full blur-[150px] opacity-20 animate-pulse-glow"></div>
 
-              {/* Key Findings - Clear and Professional */}
-              <div className="space-y-6">
-                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                  Key Findings
-                </h4>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.6 }}
-                    className="flex items-start gap-3 p-4 rounded-xl bg-red-500/5 border border-red-500/10"
-                  >
-                    <div className="mt-0.5 p-1.5 rounded-full bg-red-500/10 text-red-500">
-                      <ShieldAlert className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm mb-1">
-                        Data monetization detected
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Shares listening habits with advertisers
-                      </p>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.7 }}
-                    className="flex items-start gap-3 p-4 rounded-xl bg-red-500/5 border border-red-500/10"
-                  >
-                    <div className="mt-0.5 p-1.5 rounded-full bg-red-500/10 text-red-500">
-                      <ShieldAlert className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm mb-1">
-                        Indefinite data retention
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        No automatic deletion policy
-                      </p>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.8 }}
-                    className="flex items-start gap-3 p-4 rounded-xl bg-green-500/5 border border-green-500/10"
-                  >
-                    <div className="mt-0.5 p-1.5 rounded-full bg-green-500/10 text-green-500">
-                      <CheckCircle2 className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm mb-1">
-                        Encrypted transmission
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        TLS 1.3 encryption in transit
-                      </p>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.9 }}
-                    className="flex items-start gap-3 p-4 rounded-xl bg-green-500/5 border border-green-500/10"
-                  >
-                    <div className="mt-0.5 p-1.5 rounded-full bg-green-500/10 text-green-500">
-                      <CheckCircle2 className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm mb-1">GDPR compliant</p>
-                      <p className="text-xs text-muted-foreground">
-                        EU data protection standards
-                      </p>
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-                <div>
-                  <span className="text-sm text-muted-foreground">
-                    Risk Score
-                  </span>
-                  <span className="ml-3 text-2xl font-bold text-red-500">
-                    7.5
-                    <span className="text-sm text-muted-foreground">/10</span>
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-primary"
-                  asChild
-                >
-                  <Link href="/companies">
-                    View full analysis <ArrowRight className="ml-1 h-3 w-3" />
-                  </Link>
-                </Button>
-              </div>
+            <div className="relative rounded-[2.5rem] overflow-hidden border border-white/20 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] group bg-white/5 backdrop-blur-sm">
+              <Image
+                src="/clausea-hero-premium.png"
+                alt="Clausea Premium Interface"
+                width={1200}
+                height={900}
+                className="w-full h-auto transition-transform duration-1000 group-hover:scale-105"
+                priority
+              />
+              <div className="absolute inset-0 bg-linear-to-t from-secondary/10 to-transparent pointer-events-none"></div>
             </div>
 
-            {/* Subtle Background Glow */}
-            <div className="absolute -inset-x-20 -inset-y-20 bg-primary/5 rounded-full blur-3xl -z-10 opacity-50"></div>
+            {/* Floating Tags */}
+            <motion.div
+              animate={{ y: [0, -15, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -top-10 -left-10 p-6 rounded-3xl bg-secondary text-white shadow-2xl hidden xl:block"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest opacity-60">
+                    Scanning
+                  </p>
+                  <p className="text-lg font-bold italic">MSA_v2.pdf</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              animate={{ y: [0, 15, 0] }}
+              transition={{
+                duration: 7,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 1,
+              }}
+              className="absolute -bottom-10 -right-10 p-8 rounded-3xl bg-white border border-border shadow-2xl hidden xl:block"
+            >
+              <p className="text-5xl font-black text-primary tracking-tighter">
+                98%
+              </p>
+              <p className="text-[10px] uppercase tracking-widest font-black text-secondary/40 mt-1">
+                Accuracy in RAG
+              </p>
+            </motion.div>
           </motion.div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

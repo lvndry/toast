@@ -1,23 +1,21 @@
-import { CTA } from "@/components/landing/cta";
-import { Features } from "@/components/landing/features";
-import { LandingFooter } from "@/components/landing/footer";
-import { LandingHeader } from "@/components/landing/header";
-import { Hero } from "@/components/landing/hero";
-import { InteractiveDemo } from "@/components/landing/interactive-demo";
-import { ProblemSection } from "@/components/landing/problem-section";
+import AsymmetricGrid from "@/components/legallens/AsymmetricGrid";
+import ComplexityToClarity from "@/components/legallens/ComplexityToClarity";
+import Hero from "@/components/legallens/Hero";
+import { CustomCursor, Header } from "@/components/legallens/Navigation";
+import { Footer, Pricing } from "@/components/legallens/PricingAndFooter";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 w-full">
-      <LandingHeader />
+    <div className="min-h-screen bg-background text-foreground selection:bg-secondary/30 w-full overflow-hidden">
+      <CustomCursor />
+      <Header />
       <main className="flex-1 w-full">
         <Hero />
-        <ProblemSection />
-        <InteractiveDemo />
-        <Features />
-        <CTA />
+        <ComplexityToClarity />
+        <AsymmetricGrid />
+        <Pricing />
       </main>
-      <LandingFooter />
+      <Footer />
     </div>
   );
 }

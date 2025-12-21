@@ -10,6 +10,17 @@ from src.models.company import Company
 def show_company_creation() -> None:
     st.title("Create New Company")
 
+    # Show success message if company was just created
+    if "company_created" in st.session_state and st.session_state.company_created:
+        st.success(f"✅ Company '{st.session_state.company_created_name}' created successfully!")
+        st.info(f"**Company ID:** `{st.session_state.company_created_id}`")
+        st.info(f"**Company Slug:** `{st.session_state.company_created_slug}`")
+        # Clear the success state after showing
+        del st.session_state.company_created
+        del st.session_state.company_created_name
+        del st.session_state.company_created_id
+        del st.session_state.company_created_slug
+
     with st.form("company_form"):
         name = st.text_input("Company Name", placeholder="Enter company name...")
         slug = st.text_input(
@@ -98,9 +109,11 @@ def show_company_creation() -> None:
                     success = run_async_with_retry(create_company_isolated(company))
 
                 if success:
-                    st.success(f"✅ Company '{name}' created successfully!")
-                    st.info(f"**Company ID:** `{company.id}`")
-                    st.info(f"**Company Slug:** `{company.slug}`")
+                    # Store success state in session to show after rerun
+                    st.session_state.company_created = True
+                    st.session_state.company_created_name = name.strip()
+                    st.session_state.company_created_id = company.id
+                    st.session_state.company_created_slug = company.slug
 
                     # Clear the form by rerunning
                     st.rerun()

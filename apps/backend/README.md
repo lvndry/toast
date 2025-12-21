@@ -1,8 +1,8 @@
-# Toast AI - Legal Document Intelligence API
+# Clausea - Legal Document Intelligence API
 
 > The definitive platform for legal document analysis, privacy policy intelligence, and compliance monitoring.
 
-Toast AI transforms complex legal documents into actionable insights using advanced AI and LLM orchestration. Our API provides legal-grade accuracy with sub-10-second response times, helping individuals and businesses understand what they're agreeing to.
+Clausea transforms complex legal documents into actionable insights using advanced AI and LLM orchestration. Our API provides legal-grade accuracy with sub-10-second response times, helping individuals and businesses understand what they're agreeing to.
 
 ## 🚀 Features
 
@@ -68,7 +68,7 @@ ENVIRONMENT=development
 PORT=8000
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/toast_ai
+MONGODB_URI=mongodb://localhost:27017/clausea
 MONGODB_SSL_CA_CERTS=
 MONGODB_SSL_CERTFILE=
 MONGODB_SSL_KEYFILE=
@@ -103,10 +103,10 @@ uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
 ```bash
 # Build the image
-docker build -t toast-api .
+docker build -t clausea-api .
 
 # Run the container
-docker run -p 8000:8000 --env-file .env toast-api
+docker run -p 8000:8000 --env-file .env clausea-api
 ```
 
 ## 📚 API Documentation
@@ -134,7 +134,7 @@ Once the server is running, visit:
 | Endpoint     | Method | Description                     |
 | ------------ | ------ | ------------------------------- |
 | `/crawler`   | POST   | Crawl and process web documents |
-| `/migration` | POST   | Migrate data between systems    |
+| `/promotion` | POST   | Promote data between systems    |
 | `/list`      | GET    | List documents with filters     |
 
 ### User Management
@@ -318,6 +318,6 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Built with ❤️ by the Toast AI team**
+**Built with ❤️ by the Clausea team**
 
 _Empowering legal understanding through intelligent document analysis._

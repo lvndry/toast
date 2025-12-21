@@ -19,7 +19,7 @@ export function Logo(props: React.SVGProps<SVGSVGElement>) {
         fontFamily="system-ui, -apple-system, sans-serif"
         className="fill-[#231f20] dark:fill-white"
       >
-        ToastAI
+        Clausea
       </text>
     </svg>
   );

@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
-from src.core.config import settings
+from src.core.config import config
 from src.models.clerkUser import ClerkUser
 
 logger = structlog.get_logger(service="jwt")
@@ -20,7 +20,7 @@ class ClerkAuthService:
 
     def __init__(self) -> None:
         self.jwks_cache: dict[str, dict[str, Any]] = {}
-        self.default_jwks_url = settings.security.clerk_jwks_url
+        self.default_jwks_url = config.security.clerk_jwks_url
 
     async def get_jwks(self, jwks_url: str) -> dict[str, Any]:
         """Fetch JWKS from Clerk issuer-specific URL with simple cache"""
