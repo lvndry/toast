@@ -55,13 +55,13 @@ from typing import Any, cast
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
+from src.clausea_crawler import ClauseaCrawler, CrawlResult
 from src.core.database import get_db
 from src.core.logging import get_logger
 from src.llm import SupportedModel, acompletion_with_fallback
 from src.models.company import Company
 from src.models.document import Document, Region
 from src.services.service_factory import create_company_service, create_document_service
-from src.clausea_crawler import CrawlResult, ClauseaCrawler
 from src.utils.llm_usage import usage_tracking
 from src.utils.llm_usage_tracking_mixin import LLMUsageTrackingMixin
 from src.utils.markdown import markdown_to_text
