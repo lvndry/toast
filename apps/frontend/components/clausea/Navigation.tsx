@@ -18,11 +18,11 @@ import { useGSAP } from "@gsap/react";
 export function CustomCursor() {
   const cursorRef = useRef<HTMLDivElement>(null);
   const followerRef = useRef<HTMLDivElement>(null);
-  const [isTouch, setIsTouch] = useState(true);
-
-  useEffect(() => {
-    setIsTouch(window.matchMedia("(pointer: coarse)").matches);
-  }, []);
+  const [isTouch] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(pointer: coarse)").matches
+      : true,
+  );
 
   useEffect(() => {
     if (isTouch) return;

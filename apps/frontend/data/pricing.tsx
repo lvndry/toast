@@ -1,4 +1,4 @@
-export default {
+const pricing = {
   title: "Pricing for every legal team",
   description: "Choose the plan that fits your legal document analysis needs.",
   plans: [
@@ -120,3 +120,5 @@ export default {
     },
   ],
 };
+
+export default pricing;

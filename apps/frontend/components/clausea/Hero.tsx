@@ -4,7 +4,7 @@ import gsap from "gsap";
 import { Anchor, ArrowRight, Waves } from "lucide-react";
 import dynamic from "next/dynamic";
 
-import { useRef } from "react";
+import { Suspense, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useGSAP } from "@gsap/react";
@@ -74,7 +74,7 @@ export default function Hero() {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20 px-4 md:px-8 ocean-gradient"
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20 px-4 md:px-8 ocean-gradient bg-background"
     >
       {/* Ambient ocean glow effects */}
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-secondary/8 rounded-full blur-[180px] pointer-events-none animate-pulse" />
@@ -83,7 +83,11 @@ export default function Hero() {
       {/* Subtle wave pattern */}
       <div className="absolute inset-0 wave-pattern opacity-30 pointer-events-none" />
 
-      <Scene />
+      <Suspense
+        fallback={<div className="absolute inset-0 z-0 bg-transparent" />}
+      >
+        <Scene />
+      </Suspense>
 
       <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col lg:flex-row items-center justify-between gap-12">
         <div ref={textRef} className="flex-1 text-left">

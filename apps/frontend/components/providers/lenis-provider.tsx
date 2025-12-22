@@ -3,6 +3,7 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
 import Lenis from "lenis";
+import "lenis/dist/lenis.css";
 
 import { useEffect } from "react";
 
@@ -12,6 +13,7 @@ if (typeof window !== "undefined") {
 
 export function LenisProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
+    // Initialize a new Lenis instance for smooth scrolling
     const lenis = new Lenis({
       lerp: 0.1,
       duration: 1.2,
@@ -35,13 +37,18 @@ export function LenisProvider({ children }: { children: React.ReactNode }) {
       },
     });
 
-    // Sync Lenis with GSAP ScrollTrigger
+    // Synchronize Lenis scrolling with GSAP's ScrollTrigger plugin
     lenis.on("scroll", ScrollTrigger.update);
 
-    gsap.ticker.add((time) => {
-      lenis.raf(time * 1000);
-    });
+    // Add Lenis's requestAnimationFrame (raf) method to GSAP's ticker
+    // This ensures Lenis's smooth scroll animation updates on each GSAP tick
+    // Store the callback so we can properly remove it on cleanup
+    function rafCallback(time: number) {
+      lenis.raf(time * 1000); // Convert time from seconds to milliseconds
+    }
+    gsap.ticker.add(rafCallback);
 
+    // Disable lag smoothing in GSAP to prevent any delay in scroll animations
     gsap.ticker.lagSmoothing(0);
 
     // Refresh ScrollTrigger after layout settles
@@ -51,7 +58,8 @@ export function LenisProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       clearTimeout(refreshTimeout);
-      gsap.ticker.remove(lenis.raf);
+      // Remove the same callback reference that was added
+      gsap.ticker.remove(rafCallback);
       lenis.destroy();
     };
   }, []);

@@ -2,7 +2,7 @@
 
 import * as THREE from "three";
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 
 import {
   Environment,
@@ -83,12 +83,8 @@ function OceanOrb({
 }
 
 function SceneContent() {
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Wait for client-side mount to avoid hydration issues and Strict Mode problems
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const [isMounted] = useState(() => true);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   if (!isMounted) {
     return (
@@ -97,8 +93,13 @@ function SceneContent() {
   }
 
   return (
-    <div className="absolute inset-0 z-0 bg-transparent pointer-events-none">
+    <div
+      ref={containerRef}
+      className="absolute inset-0 z-0 bg-transparent pointer-events-none"
+      style={{ width: "100%", height: "100%" }}
+    >
       <Canvas
+        key="scene-canvas" // Stable key to prevent unnecessary remounts
         shadows
         dpr={[1, 2]}
         frameloop="always"
@@ -107,12 +108,23 @@ function SceneContent() {
           alpha: true,
           antialias: true,
           powerPreference: "default",
-          preserveDrawingBuffer: true,
+          preserveDrawingBuffer: false, // Changed to false for better performance
           failIfMajorPerformanceCaveat: false, // Don't fail on low-end devices
+          stencil: false, // Disable stencil buffer for better performance
+          depth: true,
         }}
-        style={{ background: "transparent" }}
-        onCreated={({ gl }) => {
+        style={{
+          background: "transparent",
+          width: "100%",
+          height: "100%",
+        }}
+        onCreated={({ gl, scene }) => {
           gl.setClearColor(0x000000, 0);
+          // Ensure scene persists through Strict Mode remounts
+          scene.matrixAutoUpdate = true;
+        }}
+        onError={(error) => {
+          console.error("Three.js Canvas error:", error);
         }}
       >
         <PerspectiveCamera makeDefault position={[0, 0, 6]} fov={50} />

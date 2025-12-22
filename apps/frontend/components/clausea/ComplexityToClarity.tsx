@@ -26,20 +26,25 @@ export default function ComplexityToClarity() {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
-          start: "top 20%",
-          end: "bottom top",
+          start: "center center",
+          end: "+=200%",
           pin: true,
           scrub: 1.5,
         },
       });
 
-      // Transition animation
-      tl.to(scramble, {
-        opacity: 0,
-        filter: "blur(12px)",
-        scale: 0.9,
-        duration: 1,
-      })
+      // Hold period - content stays visible and centered (first 40% of scroll)
+      // Transition animation starts after the hold period
+      tl.to(
+        scramble,
+        {
+          opacity: 0,
+          filter: "blur(12px)",
+          scale: 0.9,
+          duration: 1,
+        },
+        0.4,
+      ) // Start transition after hold period
         .to(
           clear,
           {
@@ -48,7 +53,7 @@ export default function ComplexityToClarity() {
             scale: 1,
             duration: 1,
           },
-          "-=0.6",
+          0.8, // Start slightly before scramble finishes
         )
         .to(
           ".clarity-badge",
@@ -57,10 +62,10 @@ export default function ComplexityToClarity() {
             opacity: 1,
             duration: 0.5,
           },
-          "-=0.3",
+          1.1, // Start when clear text is mostly visible
         );
 
-      // Animate beams
+      // Animate beams - start with the transition
       tl.to(
         beams,
         {
@@ -69,7 +74,7 @@ export default function ComplexityToClarity() {
           stagger: 0.15,
           duration: 1,
         },
-        0,
+        0.4, // Start when transition begins (after hold period)
       );
 
       // useGSAP handles cleanup automatically via revert()
@@ -80,7 +85,7 @@ export default function ComplexityToClarity() {
   return (
     <section
       ref={containerRef}
-      className="h-screen bg-background text-primary flex flex-col items-center justify-center relative overflow-hidden"
+      className="h-[300vh] bg-background text-primary flex flex-col items-center justify-center relative overflow-hidden"
     >
       {/* Ambient glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-secondary/5 rounded-full blur-[180px] pointer-events-none" />

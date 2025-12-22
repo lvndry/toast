@@ -1,4 +1,4 @@
-export default {
+const testimonials = {
   title: "Trusted by legal professionals",
   items: [
     {
@@ -40,3 +40,5 @@ export default {
     },
   ],
 };
+
+export default testimonials;
