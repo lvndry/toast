@@ -1,15 +1,11 @@
 "use client";
 
-import {
-  Building2,
-  FileText,
-  Menu,
-  Settings,
-} from "lucide-react";
+import { Building2, Menu, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/data/logo";
 import { cn } from "@/lib/utils";
 
 import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
@@ -24,43 +20,87 @@ export function Sidebar({ className }: SidebarProps) {
       label: "Companies",
       icon: Building2,
       href: "/companies",
-      active: pathname?.startsWith("/companies"),
-    },
-    {
-      label: "Documents",
-      icon: FileText,
-      href: "/documents",
-      active: pathname?.startsWith("/documents"),
-    },
-    {
-      label: "Settings",
-      icon: Settings,
-      href: "/settings",
-      active: pathname === "/settings",
+      active: pathname?.startsWith("/companies") || pathname?.startsWith("/c/"),
+      description: "Privacy analysis",
     },
   ];
 
   return (
-    <div className={cn("pb-12", className)}>
-      <div className="space-y-4 py-4">
-        <div className="px-3 py-2">
-          <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-            Clausea
-          </h2>
-          <div className="space-y-1">
-            {routes.map((route) => (
-              <Button
-                key={route.href}
-                variant={route.active ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                asChild
+    <div className={cn("h-full flex flex-col", className)}>
+      {/* Logo Section */}
+      <div className="p-6">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="relative w-10 h-10 bg-linear-to-br from-primary/20 to-primary/5 border border-primary/20 rounded-xl flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-500 overflow-hidden shadow-sm">
+            <Logo className="w-5 h-5 text-primary" />
+            <div className="absolute inset-0 bg-linear-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-display font-bold text-lg tracking-tight text-foreground">
+              Clausea
+            </span>
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+              Intelligence
+            </span>
+          </div>
+        </Link>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 py-4 px-4">
+        <div className="space-y-1.5">
+          {routes.map((route) => (
+            <Link key={route.href} href={route.href}>
+              <div
+                className={cn(
+                  "group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300",
+                  route.active
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                )}
               >
-                <Link href={route.href}>
-                  <route.icon className="mr-2 h-4 w-4" />
-                  {route.label}
-                </Link>
-              </Button>
-            ))}
+                {/* Active indicator */}
+                {route.active && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                )}
+
+                <div
+                  className={cn(
+                    "flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-300",
+                    route.active
+                      ? "bg-primary/15"
+                      : "bg-transparent group-hover:bg-muted",
+                  )}
+                >
+                  <route.icon className="h-[18px] w-[18px]" />
+                </div>
+
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm">{route.label}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {route.description}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </nav>
+
+      {/* Bottom Section */}
+      <div className="p-4 border-t border-border/50">
+        <div className="rounded-xl bg-linear-to-br from-primary/5 via-transparent to-secondary/5 border border-border/50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-secondary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm text-foreground">
+                AI-Powered Analysis
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Legal docs simplified with human accuracy
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -72,11 +112,15 @@ export function MobileSidebar() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden h-10 w-10 rounded-xl hover:bg-muted"
+        >
+          <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="p-0">
+      <SheetContent side="left" className="p-0 w-72 glass-sidebar border-r-0">
         <Sidebar />
       </SheetContent>
     </Sheet>

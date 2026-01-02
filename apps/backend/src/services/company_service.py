@@ -321,7 +321,9 @@ class CompanyService:
             return None
 
         try:
-            deep_analysis = CompanyDeepAnalysis.model_validate(stored_data["deep_analysis"])
+            deep_analysis: CompanyDeepAnalysis = CompanyDeepAnalysis.model_validate(
+                stored_data["deep_analysis"]
+            )
             return deep_analysis
         except Exception as e:
             logger.error(f"Failed to parse deep analysis for {slug}: {e}")

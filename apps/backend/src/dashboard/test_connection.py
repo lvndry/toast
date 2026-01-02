@@ -11,7 +11,8 @@ from src.core.config import config
 load_dotenv()
 
 MONGO_URI = config.database.mongodb_uri
-DATABASE_NAME = "clausea"
+# TODO: Change to clausea
+DATABASE_NAME = "toast"
 
 
 async def test_connection() -> bool:

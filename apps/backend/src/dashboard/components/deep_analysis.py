@@ -80,7 +80,7 @@ def show_deep_analysis() -> None:
             if existing_analysis.cross_document_analysis.information_gaps:
                 st.write("**Information Gaps:**")
                 for item in existing_analysis.cross_document_analysis.information_gaps:
-                    st.warning(f"• {item}")
+                    st.warning(f"• {str(item)}")
 
         # Display Business Impact
         if existing_analysis.business_impact:

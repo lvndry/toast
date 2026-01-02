@@ -1,11 +1,17 @@
 "use client";
 
 import gsap from "gsap";
-import { Sparkles, Waves } from "lucide-react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Sparkles } from "lucide-react";
 
 import { useRef } from "react";
 
 import { useGSAP } from "@gsap/react";
+
+// Register ScrollTrigger plugin
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 export default function ComplexityToClarity() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,54 +33,55 @@ export default function ComplexityToClarity() {
         scrollTrigger: {
           trigger: containerRef.current,
           start: "center center",
-          end: "+=200%",
+          // Reduced scroll duration for tighter experience
+          end: "+=150%",
           pin: true,
-          scrub: 1.5,
+          scrub: 2,
         },
       });
 
-      // Hold period - content stays visible and centered (first 40% of scroll)
-      // Transition animation starts after the hold period
+      // Extended hold period - content stays visible and centered longer
+      // Start transition at 50% of scroll (more time to read the first state)
       tl.to(
         scramble,
         {
           opacity: 0,
           filter: "blur(12px)",
           scale: 0.9,
-          duration: 1,
+          duration: 1.2,
         },
-        0.4,
-      ) // Start transition after hold period
+        0.5,
+      )
         .to(
           clear,
           {
             opacity: 1,
             filter: "blur(0px)",
             scale: 1,
-            duration: 1,
+            duration: 1.2,
           },
-          0.8, // Start slightly before scramble finishes
+          0.9,
         )
         .to(
           ".clarity-badge",
           {
             y: 0,
             opacity: 1,
-            duration: 0.5,
+            duration: 0.6,
           },
-          1.1, // Start when clear text is mostly visible
+          1.3,
         );
 
       // Animate beams - start with the transition
       tl.to(
         beams,
         {
-          opacity: 0.15,
+          opacity: 0.08,
           scaleY: 1.5,
           stagger: 0.15,
-          duration: 1,
+          duration: 1.2,
         },
-        0.4, // Start when transition begins (after hold period)
+        0.5,
       );
 
       // useGSAP handles cleanup automatically via revert()
@@ -85,13 +92,13 @@ export default function ComplexityToClarity() {
   return (
     <section
       ref={containerRef}
-      className="h-[300vh] bg-background text-primary flex flex-col items-center justify-center relative overflow-hidden"
+      className="h-[200vh] bg-background text-foreground flex flex-col items-center justify-center relative overflow-hidden"
     >
-      {/* Ambient glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-secondary/5 rounded-full blur-[180px] pointer-events-none" />
+      {/* Ambient glow - warm tones */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[180px] pointer-events-none" />
 
       {/* Background "Complexity" - Dense Jargon Pattern */}
-      <div className="absolute inset-0 opacity-[0.04] select-none pointer-events-none font-mono text-[10px] leading-none whitespace-pre overflow-hidden text-primary/40">
+      <div className="absolute inset-0 opacity-[0.03] select-none pointer-events-none font-mono text-[10px] leading-none whitespace-pre overflow-hidden text-foreground/40 dark:text-foreground/20">
         {Array.from({ length: 80 }).map((_, i) => (
           <div key={i}>
             {"PURSUANT TO SUBSECTION 4(A)(II) THE LICENSOR HEREBY DISCLAIMS ALL WARRANTIES EXPRESS OR IMPLIED INCLUDING BUT NOT LIMITED TO MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE NOTWITHSTANDING ANY CONSEQUENTIAL DAMAGES ".repeat(
@@ -105,41 +112,42 @@ export default function ComplexityToClarity() {
       <div className="relative z-10 max-w-5xl text-center px-4">
         {/* Scrambled/Complex State */}
         <div className="scramble-text">
-          <h2 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-8 leading-[1.1] tracking-tighter">
-            <span className="text-primary">Dense. Overwhelming.</span> <br />
+          <h2 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-8 leading-[1.1] tracking-tight">
+            <span className="text-foreground">Dense. Overwhelming.</span> <br />
             <span className="text-muted-foreground/60 font-serif italic font-normal tracking-normal">
               Designed to obscure.
             </span>
           </h2>
           <p className="text-muted-foreground text-lg md:text-2xl font-medium tracking-tight max-w-3xl mx-auto">
             The average legal policy takes{" "}
-            <span className="text-secondary">45 minutes</span> to parse. <br />
+            <span className="text-primary font-semibold">45 minutes</span> to
+            parse. <br />
             Most sign without ever reading the terms.
           </p>
         </div>
 
         {/* Clear/Illuminated State */}
         <div className="clear-text absolute inset-0 flex flex-col items-center justify-center opacity-0 pointer-events-none">
-          <div className="clarity-badge mb-10 flex items-center gap-3 bg-secondary/10 border border-secondary/20 px-6 py-2.5 rounded-full backdrop-blur-xl">
-            <Sparkles className="w-5 h-5 text-secondary" />
-            <span className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">
+          <div className="clarity-badge mb-10 flex items-center gap-3 bg-primary/10 border border-primary/20 px-6 py-2.5 rounded-full backdrop-blur-xl">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <span className="text-xs font-medium tracking-wider uppercase text-primary">
               Crystal Clear
             </span>
           </div>
 
-          <h2 className="text-5xl md:text-7xl lg:text-9xl font-display font-bold mb-10 leading-[0.9] tracking-tighter">
-            <span className="text-primary">Clarity</span>{" "}
-            <span className="text-gradient-ocean font-serif italic font-normal tracking-normal">
+          <h2 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold mb-10 leading-[0.9] tracking-tight">
+            <span className="text-foreground">Clarity</span>{" "}
+            <span className="text-gradient-warm font-serif italic font-normal tracking-normal">
               surfaces.
             </span>
           </h2>
 
-          <p className="text-muted-foreground text-xl md:text-2xl max-w-3xl leading-relaxed font-medium">
+          <p className="text-muted-foreground text-xl md:text-2xl max-w-3xl leading-relaxed">
             Clausea dives deep, extracting the essential risks. <br />
-            <span className="text-primary/90">
+            <span className="text-foreground/90 font-medium">
               No jargon. No hidden clauses.
             </span>{" "}
-            Just the crystalline facts you need.
+            Just the clear facts you need.
           </p>
 
           {/* Social Proof */}
@@ -148,21 +156,22 @@ export default function ComplexityToClarity() {
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="w-11 h-11 rounded-full border-2 border-background bg-linear-to-br from-secondary/20 to-accent/20 flex items-center justify-center text-[10px] font-bold text-secondary"
+                  className="w-11 h-11 rounded-full border-2 border-background bg-linear-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-xs font-bold text-primary"
                 >
-                  <Waves className="w-4 h-4" />
+                  {["JD", "AS", "MK", "LP"][i - 1]}
                 </div>
               ))}
             </div>
-            <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-              Trusted by <span className="text-secondary">5,000+</span> Legal
+            <p className="text-sm font-medium text-muted-foreground">
+              Trusted by{" "}
+              <span className="text-primary font-semibold">5,000+</span> Legal
               Teams
             </p>
           </div>
         </div>
       </div>
 
-      {/* Decorative Light Beams - Ocean-themed */}
+      {/* Decorative Light Beams - Warm-themed */}
       <div className="absolute inset-0 pointer-events-none -z-10 overflow-hidden">
         {[...Array(6)].map((_, i) => (
           <div
@@ -170,7 +179,7 @@ export default function ComplexityToClarity() {
             className="beam absolute top-[-50%] w-px h-[200%] origin-top opacity-0"
             style={{
               left: `${15 + i * 14}%`,
-              background: `linear-gradient(180deg, transparent 0%, hsla(185, 70%, 50%, 0.25) 50%, transparent 100%)`,
+              background: `linear-gradient(180deg, transparent 0%, hsla(18, 55%, 54%, 0.15) 50%, transparent 100%)`,
               transform: `rotate(${-5 + i * 2}deg)`,
             }}
           />

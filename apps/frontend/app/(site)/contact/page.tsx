@@ -4,7 +4,7 @@ import * as z from "zod";
 import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { CustomCursor, Header } from "@/components/clausea/Navigation";
+import { Header } from "@/components/clausea/Header";
 import { Footer } from "@/components/clausea/PricingAndFooter";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,7 +35,6 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-secondary/30 w-full overflow-hidden">
-      <CustomCursor />
       <Header />
 
       <main className="pt-32 pb-24 px-4 md:px-8">

@@ -51,15 +51,15 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Sea-themed extended palette
-        ocean: {
-          DEFAULT: "hsl(var(--ocean))",
-          deep: "hsl(var(--ocean-deep))",
+        // Warm theme extended palette
+        warm: {
+          DEFAULT: "hsl(var(--warm))",
+          foreground: "hsl(var(--warm-foreground))",
         },
-        seafoam: "hsl(var(--seafoam))",
-        coral: "hsl(var(--coral))",
-        pearl: "hsl(var(--pearl))",
-        tide: "hsl(var(--tide))",
+        sage: "hsl(var(--sage))",
+        terracotta: "hsl(var(--terracotta))",
+        ivory: "hsl(var(--ivory))",
+        sand: "hsl(var(--sand))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -74,7 +74,7 @@ const config: Config = {
           "system-ui",
           "sans-serif",
         ],
-        serif: ["var(--font-serif)", "serif"],
+        serif: ["var(--font-fraunces)", "Georgia", "serif"],
       },
       keyframes: {
         "accordion-down": {
@@ -101,20 +101,13 @@ const config: Config = {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-12px)" },
         },
-        wave: {
-          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
-          "25%": { transform: "translateY(-8px) rotate(1deg)" },
-          "50%": { transform: "translateY(0) rotate(0deg)" },
-          "75%": { transform: "translateY(8px) rotate(-1deg)" },
-        },
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
-        ripple: {
-          "0%": { transform: "scale(0.95)", opacity: "0.5" },
-          "50%": { transform: "scale(1)", opacity: "0.3" },
-          "100%": { transform: "scale(0.95)", opacity: "0.5" },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "0.4", transform: "scale(1)" },
+          "50%": { opacity: "0.7", transform: "scale(1.02)" },
         },
       },
       animation: {
@@ -124,15 +117,14 @@ const config: Config = {
         "fade-up": "fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
         "slide-in": "slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
         float: "float 6s ease-in-out infinite",
-        wave: "wave 8s ease-in-out infinite",
         shimmer: "shimmer 2.5s ease-in-out infinite",
-        ripple: "ripple 3s ease-out infinite",
+        "pulse-soft": "pulse-soft 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
       backgroundImage: {
-        "ocean-gradient":
-          "linear-gradient(180deg, hsl(210, 50%, 6%) 0%, hsl(215, 55%, 8%) 100%)",
-        "glow-conic":
-          "conic-gradient(from 180deg at 50% 50%, hsl(185, 70%, 50%) 0deg, hsl(168, 60%, 55%) 90deg, hsl(195, 65%, 45%) 180deg, hsl(185, 70%, 50%) 360deg)",
+        "warm-gradient":
+          "linear-gradient(180deg, hsl(40, 25%, 97%) 0%, hsl(35, 20%, 95%) 100%)",
+        "glow-warm":
+          "conic-gradient(from 180deg at 50% 50%, hsl(18, 55%, 54%) 0deg, hsl(32, 45%, 65%) 90deg, hsl(150, 20%, 49%) 180deg, hsl(18, 55%, 54%) 360deg)",
       },
     },
   },

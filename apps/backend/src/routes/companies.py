@@ -37,7 +37,7 @@ async def get_all_companies(
             companies = await service.get_all_companies(db)
         else:
             companies = await service.get_companies_with_documents(db)
-        return companies  # type: ignore
+        return companies
 
 
 @router.get("/{slug}/overview", response_model=CompanyOverview)
@@ -166,7 +166,7 @@ async def get_company_documents(slug: str) -> list[DocumentSummary]:
     async with get_db() as db:
         service = create_company_service()
         documents = await service.get_company_documents(db, slug)
-        return documents  # type: ignore
+        return documents
 
 
 @router.get("/{slug}/deep-analysis", response_model=CompanyDeepAnalysis)

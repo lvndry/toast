@@ -1,4 +1,4 @@
-import { Inter, Newsreader, Plus_Jakarta_Sans } from "next/font/google";
+import { Fraunces, Inter, Plus_Jakarta_Sans } from "next/font/google";
 
 import "./globals.css";
 import { Provider } from "./provider";
@@ -13,10 +13,10 @@ const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
 });
 
-const newsreader = Newsreader({
+const fraunces = Fraunces({
   subsets: ["latin"],
-  style: "italic",
-  variable: "--font-serif",
+  style: ["normal", "italic"],
+  variable: "--font-fraunces",
 });
 
 export const metadata = {
@@ -29,7 +29,7 @@ export default function Layout(props: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jakarta.variable} ${newsreader.variable} scroll-smooth dark bg-background text-foreground`}
+      className={`${inter.variable} ${jakarta.variable} ${fraunces.variable} scroll-smooth`}
       suppressHydrationWarning
     >
       <head>

@@ -41,7 +41,8 @@ class DatabaseConfig:
         self.mongodb_ssl_ca_certs: str | None = os.getenv("MONGODB_SSL_CA_CERTS")
         self.mongodb_ssl_certfile: str | None = os.getenv("MONGODB_SSL_CERTFILE")
         self.mongodb_ssl_keyfile: str | None = os.getenv("MONGODB_SSL_KEYFILE")
-        self.mongodb_database: str = os.getenv("MONGODB_DATABASE", "clausea")
+        # TODO: Change to clausea
+        self.mongodb_database: str = os.getenv("MONGODB_DATABASE", "toast")
 
         if self.mongodb_uri is None:
             raise ValueError("MONGO_URI is not set")

@@ -1,5 +1,8 @@
 "use client";
 
+import { ArrowLeft, Calendar, FileText, LayoutDashboard } from "lucide-react";
+import { motion } from "motion/react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { useEffect, useState } from "react";
@@ -9,6 +12,9 @@ import { SharingMap } from "@/components/dashboard/overview/sharing-map";
 import { VerdictHero } from "@/components/dashboard/overview/verdict-hero";
 import { YourPower } from "@/components/dashboard/overview/your-power";
 import { SourcesList } from "@/components/dashboard/sources-list";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,7 +34,7 @@ interface ThirdPartyRecipient {
 interface CompanyOverview {
   company_name: string;
   company_slug: string;
-  last_updated: string; // ISO datetime string
+  last_updated: string;
   verdict:
     | "very_user_friendly"
     | "user_friendly"
@@ -39,7 +45,6 @@ interface CompanyOverview {
   one_line_summary: string;
   data_collected?: string[] | null;
   data_purposes?: string[] | null;
-  // New structured fields
   data_collection_details?: DataPurposeLink[] | null;
   third_party_details?: ThirdPartyRecipient[] | null;
   your_rights?: string[] | null;
@@ -73,7 +78,6 @@ function DeepAnalysisTab({ slug }: { slug: string }) {
       setError(null);
       try {
         const res = await fetch(`/api/companies/${slug}/deep-analysis`);
-
         if (res.ok) {
           const json = await res.json();
           setDeepAnalysis(json);
@@ -93,9 +97,9 @@ function DeepAnalysisTab({ slug }: { slug: string }) {
   if (loading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-12 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
@@ -114,226 +118,135 @@ function DeepAnalysisTab({ slug }: { slug: string }) {
     <div className="space-y-8">
       {/* Risk Prioritization */}
       {deepAnalysis.risk_prioritization && (
-        <div className="rounded-lg border p-6">
-          <h2 className="text-xl font-semibold mb-4">Risk Prioritization</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {deepAnalysis.risk_prioritization.critical?.length > 0 && (
-              <div>
-                <h3 className="font-medium text-red-600 mb-2">Critical</h3>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  {deepAnalysis.risk_prioritization.critical.map(
-                    (risk: string, i: number) => (
-                      <li key={i}>{risk}</li>
-                    ),
-                  )}
-                </ul>
-              </div>
-            )}
-            {deepAnalysis.risk_prioritization.high?.length > 0 && (
-              <div>
-                <h3 className="font-medium text-orange-600 mb-2">High</h3>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  {deepAnalysis.risk_prioritization.high.map(
-                    (risk: string, i: number) => (
-                      <li key={i}>{risk}</li>
-                    ),
-                  )}
-                </ul>
-              </div>
-            )}
-            {deepAnalysis.risk_prioritization.medium?.length > 0 && (
-              <div>
-                <h3 className="font-medium text-yellow-600 mb-2">Medium</h3>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  {deepAnalysis.risk_prioritization.medium.map(
-                    (risk: string, i: number) => (
-                      <li key={i}>{risk}</li>
-                    ),
-                  )}
-                </ul>
-              </div>
-            )}
-            {deepAnalysis.risk_prioritization.low?.length > 0 && (
-              <div>
-                <h3 className="font-medium text-green-600 mb-2">Low</h3>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  {deepAnalysis.risk_prioritization.low.map(
-                    (risk: string, i: number) => (
-                      <li key={i}>{risk}</li>
-                    ),
-                  )}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
+        <Card variant="elevated">
+          <CardContent className="p-6">
+            <h2 className="text-xl font-semibold font-display mb-4">
+              Risk Prioritization
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {deepAnalysis.risk_prioritization.critical?.length > 0 && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                  <h3 className="font-medium text-red-600 dark:text-red-400 mb-2">
+                    Critical
+                  </h3>
+                  <ul className="space-y-1 text-sm">
+                    {deepAnalysis.risk_prioritization.critical.map(
+                      (risk: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
+                          {risk}
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                </div>
+              )}
+              {deepAnalysis.risk_prioritization.high?.length > 0 && (
+                <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                  <h3 className="font-medium text-orange-600 dark:text-orange-400 mb-2">
+                    High
+                  </h3>
+                  <ul className="space-y-1 text-sm">
+                    {deepAnalysis.risk_prioritization.high.map(
+                      (risk: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
+                          {risk}
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                </div>
+              )}
+              {deepAnalysis.risk_prioritization.medium?.length > 0 && (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <h3 className="font-medium text-amber-600 dark:text-amber-400 mb-2">
+                    Medium
+                  </h3>
+                  <ul className="space-y-1 text-sm">
+                    {deepAnalysis.risk_prioritization.medium.map(
+                      (risk: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                          {risk}
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                </div>
+              )}
+              {deepAnalysis.risk_prioritization.low?.length > 0 && (
+                <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                  <h3 className="font-medium text-green-600 dark:text-green-400 mb-2">
+                    Low
+                  </h3>
+                  <ul className="space-y-1 text-sm">
+                    {deepAnalysis.risk_prioritization.low.map(
+                      (risk: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 shrink-0" />
+                          {risk}
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Enhanced Compliance */}
       {deepAnalysis.enhanced_compliance &&
         Object.keys(deepAnalysis.enhanced_compliance).length > 0 && (
-          <div className="rounded-lg border p-6">
-            <h2 className="text-xl font-semibold mb-4">Compliance Analysis</h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {Object.entries(deepAnalysis.enhanced_compliance).map(
-                ([reg, comp]: [string, any]) => (
-                  <div key={reg} className="border rounded p-4">
-                    <h3 className="font-semibold mb-2">{reg}</h3>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="font-medium">Status: </span>
-                        <span>{comp.status}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Score: </span>
-                        <span>{comp.score}/10</span>
-                      </div>
-                      {comp.violations?.length > 0 && (
-                        <div>
-                          <span className="font-medium">Violations: </span>
-                          <ul className="list-disc list-inside mt-1">
-                            {comp.violations.map((v: any, i: number) => (
-                              <li key={i}>{v.requirement}</li>
-                            ))}
-                          </ul>
+          <Card variant="elevated">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold font-display mb-4">
+                Compliance Analysis
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                {Object.entries(deepAnalysis.enhanced_compliance).map(
+                  ([reg, comp]: [string, any]) => (
+                    <div
+                      key={reg}
+                      className="p-4 rounded-xl border border-border/50 bg-muted/30"
+                    >
+                      <h3 className="font-semibold mb-2">{reg}</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Status</span>
+                          <span className="font-medium">{comp.status}</span>
                         </div>
-                      )}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Score</span>
+                          <span className="font-medium">{comp.score}/10</span>
+                        </div>
+                        {comp.violations?.length > 0 && (
+                          <div className="pt-2 border-t border-border/50">
+                            <span className="text-muted-foreground">
+                              Violations:
+                            </span>
+                            <ul className="mt-1 space-y-1">
+                              {comp.violations.map((v: any, i: number) => (
+                                <li
+                                  key={i}
+                                  className="text-red-600 dark:text-red-400"
+                                >
+                                  {v.requirement}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ),
-              )}
-            </div>
-          </div>
+                  ),
+                )}
+              </div>
+            </CardContent>
+          </Card>
         )}
-
-      {/* Business Impact */}
-      {deepAnalysis.business_impact && (
-        <div className="rounded-lg border p-6">
-          <h2 className="text-xl font-semibold mb-4">Business Impact</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <h3 className="font-medium mb-2">For Individuals</h3>
-              <div className="text-sm space-y-1">
-                <div>
-                  <span className="font-medium">Privacy Risk: </span>
-                  <span>
-                    {
-                      deepAnalysis.business_impact.for_individuals
-                        ?.privacy_risk_level
-                    }
-                  </span>
-                </div>
-                <p className="text-muted-foreground">
-                  {
-                    deepAnalysis.business_impact.for_individuals
-                      ?.data_exposure_summary
-                  }
-                </p>
-              </div>
-            </div>
-            <div>
-              <h3 className="font-medium mb-2">For Businesses</h3>
-              <div className="text-sm space-y-1">
-                <div>
-                  <span className="font-medium">Vendor Risk: </span>
-                  <span>
-                    {
-                      deepAnalysis.business_impact.for_businesses
-                        ?.vendor_risk_score
-                    }
-                    /10
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium">Liability Exposure: </span>
-                  <span>
-                    {
-                      deepAnalysis.business_impact.for_businesses
-                        ?.liability_exposure
-                    }
-                    /10
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Document Analyses */}
-      {deepAnalysis.document_analyses?.length > 0 && (
-        <div className="rounded-lg border p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Document-by-Document Analysis
-          </h2>
-          <div className="space-y-6">
-            {deepAnalysis.document_analyses.map(
-              (docAnalysis: any, i: number) => (
-                <div key={i} className="border rounded p-4">
-                  <h3 className="font-semibold mb-2">
-                    {docAnalysis.title || docAnalysis.document_type}
-                  </h3>
-                  <div className="text-sm space-y-2">
-                    {docAnalysis.critical_clauses?.length > 0 && (
-                      <div>
-                        <span className="font-medium">Critical Clauses: </span>
-                        <ul className="list-disc list-inside mt-1">
-                          {docAnalysis.critical_clauses
-                            .slice(0, 3)
-                            .map((clause: any, j: number) => (
-                              <li key={j}>
-                                {clause.clause_type} ({clause.risk_level})
-                              </li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ),
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Cross-Document Analysis */}
-      {deepAnalysis.cross_document_analysis && (
-        <div className="rounded-lg border p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Cross-Document Analysis
-          </h2>
-          {deepAnalysis.cross_document_analysis.contradictions?.length > 0 && (
-            <div className="mb-4">
-              <h3 className="font-medium mb-2">Contradictions</h3>
-              <div className="space-y-2">
-                {deepAnalysis.cross_document_analysis.contradictions.map(
-                  (cont: any, i: number) => (
-                    <div key={i} className="border rounded p-3 text-sm">
-                      <div className="font-medium">{cont.description}</div>
-                      <div className="text-muted-foreground mt-1">
-                        {cont.document_a} vs {cont.document_b}
-                      </div>
-                    </div>
-                  ),
-                )}
-              </div>
-            </div>
-          )}
-          {deepAnalysis.cross_document_analysis.information_gaps?.length >
-            0 && (
-            <div>
-              <h3 className="font-medium mb-2">Information Gaps</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                {deepAnalysis.cross_document_analysis.information_gaps.map(
-                  (gap: string, i: number) => (
-                    <li key={i}>{gap}</li>
-                  ),
-                )}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -350,7 +263,6 @@ export default function CompanyPage() {
     async function fetchData() {
       try {
         const res = await fetch(`/api/meta-summary/${slug}`);
-
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -366,13 +278,11 @@ export default function CompanyPage() {
     fetchData();
   }, [slug]);
 
-  // Fetch documents when sources tab might be viewed
   useEffect(() => {
     async function fetchDocuments() {
       setDocumentsLoading(true);
       try {
         const res = await fetch(`/api/companies/${slug}/documents`);
-
         if (res.ok) {
           const json = await res.json();
           setDocuments(json);
@@ -390,11 +300,18 @@ export default function CompanyPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-12 w-1/3" />
+      <div className="space-y-8">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10 rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <Skeleton className="h-64 w-full rounded-3xl" />
         <div className="grid gap-6 md:grid-cols-2">
-          <Skeleton className="h-48" />
-          <Skeleton className="h-48" />
+          <Skeleton className="h-48 rounded-2xl" />
+          <Skeleton className="h-48 rounded-2xl" />
         </div>
       </div>
     );
@@ -412,25 +329,78 @@ export default function CompanyPage() {
     );
   }
 
+  const formattedDate = data.last_updated
+    ? new Date(data.last_updated).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : null;
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          {data.company_name}
-        </h1>
-        <p className="text-muted-foreground">Privacy Analysis & Overview</p>
-      </div>
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"
+      >
+        <div className="flex items-start gap-4">
+          <Link href="/companies">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl h-10 w-10 shrink-0 hover:bg-muted"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold font-display tracking-tight text-foreground">
+              {data.company_name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <Badge variant="outline" className="gap-1.5">
+                Privacy Analysis
+              </Badge>
+              {formattedDate && (
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Updated {formattedDate}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          {/*           <TabsTrigger value="analysis">Deep Analysis</TabsTrigger>
-           */}
-          <TabsTrigger value="sources">Sources</TabsTrigger>
-        </TabsList>
+      {/* Tabs */}
+      <Tabs defaultValue="overview" className="space-y-8">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <TabsList variant="pills" className="w-full sm:w-auto">
+            <TabsTrigger value="overview" variant="pills" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="sources" variant="pills" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Sources
+              {documents.length > 0 && (
+                <Badge variant="secondary" size="sm" className="ml-1">
+                  {documents.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </motion.div>
 
-        <TabsContent value="overview" className="space-y-6">
-          {/* Section 1: Verdict Hero */}
+        <TabsContent value="overview" className="space-y-6 mt-0">
+          {/* Verdict Hero */}
           <VerdictHero
             companyName={data.company_name}
             verdict={data.verdict}
@@ -439,20 +409,20 @@ export default function CompanyPage() {
             keypoints={data.keypoints}
           />
 
-          {/* Section 2: Data Story */}
+          {/* Data Story */}
           <DataStory
             dataCollectionDetails={data.data_collection_details}
             dataCollected={data.data_collected}
             dataPurposes={data.data_purposes}
           />
 
-          {/* Section 3: Sharing Map */}
+          {/* Sharing Map */}
           <SharingMap
             thirdPartyDetails={data.third_party_details}
             thirdPartySharing={data.third_party_sharing}
           />
 
-          {/* Section 4: Your Power */}
+          {/* Your Power */}
           <YourPower
             rights={data.your_rights}
             dangers={data.dangers}
@@ -460,17 +430,17 @@ export default function CompanyPage() {
           />
         </TabsContent>
 
-        <TabsContent value="analysis">
+        <TabsContent value="analysis" className="mt-0">
           <DeepAnalysisTab slug={slug} />
         </TabsContent>
 
-        <TabsContent value="sources">
+        <TabsContent value="sources" className="mt-0">
           {documentsLoading ? (
             <div className="space-y-4">
-              <Skeleton className="h-12 w-64" />
-              <Skeleton className="h-24" />
-              <Skeleton className="h-24" />
-              <Skeleton className="h-24" />
+              <Skeleton className="h-12 w-64 rounded-xl" />
+              <Skeleton className="h-32 rounded-2xl" />
+              <Skeleton className="h-32 rounded-2xl" />
+              <Skeleton className="h-32 rounded-2xl" />
             </div>
           ) : (
             <SourcesList documents={documents} />

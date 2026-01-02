@@ -2,13 +2,12 @@ import { Cpu, Lock, Shield, Zap } from "lucide-react";
 
 import AsymmetricGrid from "@/components/clausea/AsymmetricGrid";
 import FeatureInteractions from "@/components/clausea/FeatureInteractions";
-import { CustomCursor, Header } from "@/components/clausea/Navigation";
+import { Header } from "@/components/clausea/Header";
 import { Footer } from "@/components/clausea/PricingAndFooter";
 
 export default function FeaturesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-secondary/30 w-full overflow-hidden">
-      <CustomCursor />
       <Header />
 
       <main className="pt-32">

@@ -6,7 +6,6 @@ import { httpJson } from "@lib/http";
 export async function GET(request: NextRequest) {
   try {
     const url = apiEndpoints.companies();
-    console.log("[API Route] Companies URL:", url);
     const companies = await httpJson(url, {
       method: "GET",
     });

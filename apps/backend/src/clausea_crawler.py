@@ -652,7 +652,7 @@ class RobotsTxtChecker:
         lines = [line.strip() for line in content.split("\n") if line.strip()]
         logger.debug(f"Parsing robots.txt with {len(lines)} lines")
 
-        user_agents: dict[str, dict[str, list[str]]] = {}
+        user_agents: dict[str, dict[str, Any]] = {}
         current_user_agent = None
 
         for line in lines:
@@ -690,7 +690,7 @@ class RobotsTxtChecker:
                     # Store crawl delay for rate limiting
                     try:
                         delay = float(value)
-                        user_agents[current_user_agent]["crawl_delay"] = delay  # type: ignore
+                        user_agents[current_user_agent]["crawl_delay"] = delay
                         logger.debug(f"Added crawl-delay for {current_user_agent}: {delay}")
                     except ValueError:
                         logger.warning(f"Invalid crawl-delay value: {value}")
@@ -796,16 +796,33 @@ class AsyncFileLogHandler(logging.Handler):
         super().__init__()
         self.file_handler = file_handler
         self.executor = executor
+        self._shutdown = False  # Track if executor is shut down
+
+    def set_shutdown(self, shutdown: bool = True) -> None:
+        """Mark handler as shut down to prevent new submissions."""
+        self._shutdown = shutdown
 
     def emit(self, record: logging.LogRecord) -> None:
         """Write log record to file in thread pool without blocking."""
+        # Silently ignore if executor is shut down
+        if self._shutdown:
+            return
+
         try:
             # Submit file write to thread pool - truly fire-and-forget
             # This doesn't block the calling thread at all
             self.executor.submit(self.file_handler.emit, record)
+        except RuntimeError as e:
+            # Executor is shut down - silently ignore to prevent logging loops
+            if "cannot schedule new futures after shutdown" in str(e):
+                self._shutdown = True
+                return
+            # Re-raise other RuntimeErrors
+            raise
         except Exception:
-            # Ignore any errors to prevent logging from breaking the crawler
-            self.handleError(record)
+            # Ignore any other errors to prevent logging from breaking the crawler
+            # Don't call handleError to avoid potential logging loops
+            pass
 
 
 class ClauseaCrawler:
@@ -963,6 +980,13 @@ class ClauseaCrawler:
 
     async def _shutdown_log_executor(self) -> None:
         """Shutdown the log executor and wait for pending writes to complete."""
+        # Mark handler as shut down first to prevent new log submissions
+        if self._async_handler:
+            try:
+                self._async_handler.set_shutdown(True)
+            except Exception:
+                pass
+
         if self._log_executor:
             # Shutdown executor and wait for pending tasks to complete
             # Use asyncio.to_thread to avoid blocking the event loop
@@ -972,7 +996,15 @@ class ClauseaCrawler:
         """Clean up file logging handler. Safe to call multiple times."""
         root_logger = logging.getLogger()
 
-        # Remove async handler if it exists
+        # Mark handler as shut down FIRST to prevent new log submissions
+        if self._async_handler:
+            try:
+                self._async_handler.set_shutdown(True)
+            except Exception:
+                pass
+
+        # Remove async handler from logger BEFORE shutting down executor
+        # This prevents new log records from reaching the handler
         if self._async_handler:
             try:
                 if self._async_handler in root_logger.handlers:
@@ -982,7 +1014,7 @@ class ClauseaCrawler:
             finally:
                 self._async_handler = None
 
-        # Shutdown executor if it exists
+        # Shutdown executor if it exists (after handler is removed)
         if self._log_executor:
             try:
                 self._log_executor.shutdown(wait=False)  # Don't wait in sync cleanup
@@ -1628,7 +1660,7 @@ class ClauseaCrawler:
         # We need to create a new retry decorator with the configured max_retries
         max_attempts = self.max_retries + 1  # +1 for initial attempt
 
-        @retry(  # type: ignore[misc]
+        @retry(
             stop=stop_after_attempt(max_attempts),
             wait=wait_exponential(multiplier=1, min=2, max=10),
             retry=retry_if_exception_type((aiohttp.ClientError, TimeoutError)),

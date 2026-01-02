@@ -199,13 +199,15 @@ def _ensure_required_scores(parsed: DocumentAnalysis) -> DocumentAnalysis:
         else:
             score_obj = parsed.scores[score_name]
             # If score is None or invalid, set to default
-            if not isinstance(score_obj, DocumentAnalysisScores) or score_obj.score is None:
+            if not isinstance(score_obj, DocumentAnalysisScores):
+                parsed.scores[score_name] = DocumentAnalysisScores(
+                    score=5, justification="Not specified in document"
+                )
+            elif score_obj.score is None:
                 parsed.scores[score_name] = DocumentAnalysisScores(
                     score=5,  # Default middle score if not specified
                     justification=(
-                        score_obj.justification
-                        if isinstance(score_obj, DocumentAnalysisScores) and score_obj.justification
-                        else "Not specified in document"
+                        score_obj.justification if score_obj.justification else "Not specified in document"
                     ),
                 )
 
@@ -283,10 +285,10 @@ def _get_model_priority(document: Document) -> list[SupportedModel]:
     if should_use_reasoning_model(document):
         # For complex documents, prefer reasoning models (provider-agnostic)
         # The fallback chain will select the best available reasoning model
-        return ["gpt-5-mini", "grok-4-fast-reasoning", "gemini-2.5-flash"]
+        return ["gpt-5-mini", "grok-4-1-fast-reasoning", "gemini-2.5-flash"]  # type: ignore[list-item]
     else:
         # For simpler documents, use cost-effective models
-        return ["gpt-5-mini", "grok-4-fast-non-reasoning", "gemini-2.5-flash"]
+        return ["gpt-5-mini", "grok-4-1-fast-non-reasoning", "gemini-2.5-flash"]  # type: ignore[list-item]
 
 
 async def summarize_document(

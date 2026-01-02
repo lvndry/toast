@@ -88,12 +88,7 @@ setup_backend() {
     print_status "Setting up backend..."
     cd apps/backend
 
-    # Install dependencies using uv
-    if [ ! -d ".venv" ]; then
-        print_status "Creating virtual environment..."
-        uv venv
-    fi
-
+    # Install dependencies using uv sync (handles venv creation)
     print_status "Installing backend dependencies..."
     uv sync
 
@@ -118,9 +113,8 @@ start_backend() {
     print_status "Starting backend server..."
     cd apps/backend
 
-    # Activate virtual environment and start server
-    source .venv/bin/activate
-    python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
+    # Start backend server using uv
+    uv run python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
     BACKEND_PID=$!
     echo $BACKEND_PID > /tmp/clausea_backend.pid
 

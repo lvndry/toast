@@ -18,7 +18,8 @@ from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-DATABASE_NAME = "clausea"
+# TODO: Change to clausea
+DATABASE_NAME = "toast"
 MONGO_URI = config.database.mongodb_uri
 
 

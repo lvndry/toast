@@ -1,202 +1,133 @@
 "use client";
 
-import gsap from "gsap";
-import { Anchor, ArrowRight, Waves } from "lucide-react";
-import dynamic from "next/dynamic";
+import { ArrowRight } from "lucide-react";
+import { motion, useInView } from "motion/react";
+import Link from "next/link";
 
-import { Suspense, useRef } from "react";
+import { useRef } from "react";
 
 import { Button } from "@/components/ui/button";
-import { useGSAP } from "@gsap/react";
-
-const Scene = dynamic(() => import("./Scene"), {
-  ssr: false,
-  loading: () => <div className="absolute inset-0 z-0 bg-transparent" />,
-});
 
 export default function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(
-    () => {
-      const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
-
-      // Staggered reveal animation
-      tl.from(".hero-badge", {
-        y: 30,
-        opacity: 0,
-        duration: 0.8,
-      })
-        .from(
-          ".hero-title-line",
-          {
-            y: 80,
-            opacity: 0,
-            duration: 1,
-            stagger: 0.15,
-          },
-          "-=0.4",
-        )
-        .from(
-          ".hero-description",
-          {
-            y: 40,
-            opacity: 0,
-            duration: 0.8,
-          },
-          "-=0.6",
-        )
-        .from(
-          ".hero-cta",
-          {
-            scale: 0.9,
-            opacity: 0,
-            duration: 0.8,
-            ease: "back.out(1.7)",
-          },
-          "-=0.4",
-        )
-        .from(
-          ".hero-stat",
-          {
-            y: 30,
-            opacity: 0,
-            duration: 0.6,
-            stagger: 0.1,
-          },
-          "-=0.4",
-        );
-    },
-    { scope: containerRef },
-  );
+  const isInView = useInView(containerRef, { once: true, amount: 0.3 });
 
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20 px-4 md:px-8 ocean-gradient bg-background"
+      className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden px-4 md:px-8 pt-20 md:pt-32 warm-gradient"
     >
-      {/* Ambient ocean glow effects */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-secondary/8 rounded-full blur-[180px] pointer-events-none animate-pulse" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-accent/6 rounded-full blur-[160px] pointer-events-none animate-ripple" />
+      {/* Subtle ambient glows */}
+      <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-secondary/6 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/5 rounded-full blur-[180px] pointer-events-none" />
 
-      {/* Subtle wave pattern */}
-      <div className="absolute inset-0 wave-pattern opacity-30 pointer-events-none" />
-
-      <Suspense
-        fallback={<div className="absolute inset-0 z-0 bg-transparent" />}
-      >
-        <Scene />
-      </Suspense>
-
-      <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col lg:flex-row items-center justify-between gap-12">
-        <div ref={textRef} className="flex-1 text-left">
-          {/* Badge */}
-          <div className="hero-badge mb-8 flex items-center gap-3 bg-secondary/10 border border-secondary/20 px-5 py-2 rounded-full w-fit backdrop-blur-sm">
-            <Waves className="w-4 h-4 text-secondary" />
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary/70">
-              Navigate Legal Depths
+      <div className="relative z-10 max-w-5xl mx-auto w-full text-center">
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+          className="mb-6 font-display font-bold leading-[1.1] tracking-tight"
+        >
+          <span className="block text-4xl md:text-6xl lg:text-7xl text-foreground">
+            Legal documents
+          </span>
+          <span className="block text-4xl md:text-6xl lg:text-7xl text-primary font-serif italic font-normal tracking-normal my-3">
+            were not written for you...
+          </span>
+          <span className="block text-4xl md:text-6xl lg:text-7xl text-foreground">
+            <span className="relative inline-block">
+              <span className="text-secondary underline-warm">until now</span>
             </span>
-          </div>
+            .
+          </span>
+        </motion.h1>
 
-          {/* Title */}
-          <h1 className="mb-10 font-display font-bold leading-[0.9] tracking-tighter">
-            <span className="hero-title-line block text-5xl md:text-7xl lg:text-8xl text-primary">
-              Legal documents
-            </span>
-            <span className="hero-title-line block text-5xl md:text-7xl lg:text-8xl text-secondary font-serif italic font-normal tracking-normal my-2">
-              were not written for you...
-            </span>
-            <span className="hero-title-line block text-5xl md:text-7xl lg:text-8xl text-primary">
-              <span className="relative inline-block">
-                <span className="text-accent">until now</span>
-                <svg
-                  className="absolute -bottom-2 left-0 w-full"
-                  height="8"
-                  viewBox="0 0 200 8"
-                  fill="none"
-                >
-                  <path
-                    d="M1 5.5C40 2 80 7 120 4C160 1 180 6 199 3.5"
-                    stroke="hsl(var(--accent))"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    className="opacity-50"
-                  />
-                </svg>
-              </span>
-              .
-            </span>
-          </h1>
+        {/* Description */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+          className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+        >
+          <span className="text-foreground/90">
+            Transform complexity into clarity.
+          </span>{" "}
+          Clausea AI analyzes dense legal jargon and surfaces the risks, rights,
+          and key terms hidden in privacy policies and terms of service.
+        </motion.p>
 
-          {/* Description */}
-          <p className="hero-description text-lg md:text-xl text-muted-foreground max-w-2xl mb-12 leading-relaxed font-medium">
-            <span className="text-primary/90">Dive deep into clarity.</span>{" "}
-            Clausea AI transforms dense legal jargon into crystalline insights,
-            surfacing the risks and rights hidden beneath the surface.
-          </p>
-
-          {/* CTAs */}
-          <div className="hero-cta flex flex-col sm:flex-row items-start gap-5">
+        {/* CTAs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4"
+        >
+          <Link href="/sign-up">
             <Button
               size="lg"
-              className="group h-16 px-10 rounded-full text-lg font-bold uppercase tracking-widest transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[0_0_50px_hsla(185,70%,50%,0.25)] relative overflow-hidden"
+              className="group h-14 px-8 rounded-full text-base font-medium transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg relative overflow-hidden"
             >
               <span className="relative z-10 flex items-center">
                 Start Exploring
-                <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </span>
               <div className="absolute inset-0 shimmer" />
             </Button>
+          </Link>
+          <Link href="/features">
             <Button
               size="lg"
               variant="outline"
-              className="h-16 px-10 rounded-full text-lg font-bold uppercase tracking-widest border-primary/15 hover:border-secondary/50 hover:bg-secondary/5 backdrop-blur-sm transition-all duration-300"
+              className="h-14 px-8 rounded-full text-base font-medium border-border hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
             >
-              <Anchor className="mr-3 w-5 h-5" />
-              Watch Demo
+              See How It Works
             </Button>
-          </div>
+          </Link>
+        </motion.div>
 
-          {/* Stats */}
-          <div className="my-16 flex items-center gap-8 border-t border-primary/10 pt-10 max-w-2xl">
-            <div className="hero-stat space-y-1">
-              <p className="text-3xl md:text-4xl font-display font-bold text-primary">
-                10<span className="text-secondary">s</span>
-              </p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">
-                Avg. Analysis
-              </p>
-            </div>
-            <div className="h-12 w-px bg-primary/10" />
-            <div className="hero-stat space-y-1">
-              <p className="text-3xl md:text-4xl font-display font-bold text-primary">
-                99.8<span className="text-secondary">%</span>
-              </p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">
-                RAG Accuracy
-              </p>
-            </div>
-            <div className="h-12 w-px bg-primary/10" />
-            <div className="hero-stat space-y-1">
-              <p className="text-3xl md:text-4xl font-display font-bold text-accent">
-                5k<span className="text-secondary">+</span>
-              </p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">
-                Legal Teams
-              </p>
-            </div>
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+          className="mt-12 md:mt-16 flex items-center justify-center gap-8 md:gap-12 border-t border-border/50 pt-10 max-w-2xl mx-auto"
+        >
+          <div className="text-center">
+            <p className="text-3xl md:text-4xl font-display font-bold text-foreground">
+              10<span className="text-primary">s</span>
+            </p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mt-1">
+              Avg. Analysis
+            </p>
           </div>
-        </div>
-
-        {/* 3D Scene placeholder */}
-        <div className="flex-1 w-full lg:max-w-md hidden lg:block">
-          <div className="h-[500px]" />
-        </div>
+          <div className="h-10 w-px bg-border" />
+          <div className="text-center">
+            <p className="text-3xl md:text-4xl font-display font-bold text-foreground">
+              99.8<span className="text-primary">%</span>
+            </p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mt-1">
+              Accuracy
+            </p>
+          </div>
+          <div className="h-10 w-px bg-border" />
+          <div className="text-center">
+            <p className="text-3xl md:text-4xl font-display font-bold text-secondary">
+              5k<span className="text-primary">+</span>
+            </p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mt-1">
+              Companies
+            </p>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Bottom gradient fade */}
+      {/* Decorative elements - Abstract shapes */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-background to-transparent pointer-events-none" />
+
+      {/* Subtle grain overlay for premium feel */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iLjAyIi8+PC9zdmc+')] opacity-50 pointer-events-none" />
     </section>
   );
 }

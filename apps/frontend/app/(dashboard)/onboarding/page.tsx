@@ -1,14 +1,17 @@
 "use client";
 
-import { Gavel } from "lucide-react";
+import { ArrowRight, Shield, Sparkles } from "lucide-react";
+import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Logo } from "@/data/logo";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 
@@ -33,7 +36,6 @@ export default function OnboardingPage() {
   const [goal, setGoal] = useState("");
 
   useEffect(() => {
-    // Track onboarding start
     trackUserJourney.onboardingStarted();
 
     if (user) {
@@ -41,14 +43,12 @@ export default function OnboardingPage() {
       setLastName(user.lastName || "");
       setEmail(user.primaryEmailAddress?.emailAddress || "");
 
-      // Identify user in PostHog early
       posthog.identify(user.id, {
         email: user.primaryEmailAddress?.emailAddress,
         first_name: user.firstName,
         last_name: user.lastName,
       });
 
-      // Ensure user exists in backend
       void fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,7 +61,6 @@ export default function OnboardingPage() {
     }
   }, [user, trackUserJourney]);
 
-  // Redirect if user has already completed onboarding
   useEffect(() => {
     if (!userDataLoading && userData?.onboarding_completed) {
       router.push("/companies");
@@ -101,7 +100,6 @@ export default function OnboardingPage() {
 
     if (!user) return;
 
-    // Validate form before submitting
     if (!validateForm()) {
       return;
     }
@@ -109,17 +107,14 @@ export default function OnboardingPage() {
     setLoading(true);
 
     try {
-      // Capture onboarding answers in PostHog
       posthog.capture("onboarding_submitted", {
         role,
         use_case: useCase,
         goal,
       });
 
-      // Mark onboarding completed in backend
       await fetch("/api/users/complete-onboarding", { method: "POST" });
 
-      // Track onboarding completion
       trackUserJourney.onboardingCompleted({
         user_id: user.id,
         email: user.primaryEmailAddress?.emailAddress,
@@ -136,177 +131,225 @@ export default function OnboardingPage() {
     }
   }
 
-  // Show loading while checking user data
   if (userDataLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 bg-primary/10 border border-white/10 rounded-xl flex items-center justify-center animate-pulse">
-            <Gavel className="w-6 h-6 text-secondary" />
+      <div className="min-h-screen flex items-center justify-center dashboard-bg">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="w-14 h-14 bg-linear-to-br from-primary/20 to-secondary/20 border border-primary/20 rounded-2xl flex items-center justify-center">
+            <Logo className="w-7 h-7 text-primary animate-pulse" />
           </div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-primary/40">
+          <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
             Loading...
           </p>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
-  // Don't render form if user has completed onboarding (redirect will happen)
   if (userData?.onboarding_completed) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-20">
+    <div className="min-h-screen dashboard-bg flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-2xl">
         {/* Header */}
-        <div className="text-center mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-10"
+        >
           <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-primary/10 border border-white/10 rounded-xl flex items-center justify-center">
-              <Gavel className="w-6 h-6 text-secondary" />
+            <div className="w-12 h-12 bg-linear-to-br from-primary/20 to-secondary/20 border border-primary/20 rounded-xl flex items-center justify-center">
+              <Logo className="w-6 h-6 text-primary" />
             </div>
-            <span className="font-display font-bold text-3xl tracking-tighter text-primary">
+            <span className="font-display font-bold text-3xl tracking-tight text-foreground">
               Clausea{" "}
-              <span className="text-secondary font-serif italic font-normal tracking-normal">
+              <span className="text-secondary font-serif italic font-normal">
                 AI
               </span>
             </span>
           </div>
-          <h1 className="font-display font-bold text-5xl tracking-tighter text-primary mb-4">
-            Tell us about you
+          <h1 className="font-display font-bold text-4xl md:text-5xl tracking-tight text-foreground mb-4">
+            Tell us about{" "}
+            <span className="text-primary font-serif italic">you</span>
           </h1>
-          <p className="text-lg text-primary/60 max-w-md mx-auto">
-            This helps tailor legal analysis to your needs and deliver insights
-            that matter to you.
+          <p className="text-lg text-muted-foreground max-w-md mx-auto">
+            This helps us tailor legal analysis to your needs and deliver
+            insights that matter.
           </p>
-        </div>
+        </motion.div>
 
         {/* Form Card */}
-        <div className="rounded-3xl bg-background/20 backdrop-blur-2xl border border-white/10 shadow-2xl p-8 md:p-12">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
-                  First Name
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
+          <Card
+            variant="glass"
+            className="p-8 md:p-10 rounded-3xl border-border/50"
+          >
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    First Name
+                  </label>
+                  <Input
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="h-12 rounded-xl bg-muted/30 border-border/50 focus:border-primary/50 focus:bg-background transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    Last Name
+                  </label>
+                  <Input
+                    placeholder="Doe"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="h-12 rounded-xl bg-muted/30 border-border/50 focus:border-primary/50 focus:bg-background transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Email
                 </label>
                 <Input
-                  placeholder="John"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="john@example.com"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="h-12 rounded-xl bg-background/40 border-white/10 focus:border-secondary/50"
+                  className={cn(
+                    "h-12 rounded-xl bg-muted/30 border-border/50 focus:border-primary/50 focus:bg-background transition-all",
+                    errors.email && "border-red-500/50 focus:border-red-500",
+                  )}
                 />
+                {errors.email && (
+                  <p className="text-red-500 text-sm">{errors.email}</p>
+                )}
               </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
-                  Last Name
+
+              {/* Role */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  I am a...
                 </label>
-                <Input
-                  placeholder="Doe"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                <Select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="h-12 rounded-xl bg-background/40 border-white/10 focus:border-secondary/50"
+                  className={cn(
+                    "h-12 rounded-xl bg-muted/30 border-border/50 focus:border-primary/50 focus:bg-background transition-all",
+                    errors.role && "border-red-500/50 focus:border-red-500",
+                  )}
+                >
+                  <option value="">Select your role</option>
+                  <option value="individual">
+                    Privacy-conscious individual
+                  </option>
+                  <option value="founder">Founder</option>
+                  <option value="compliance_officer">Compliance officer</option>
+                  <option value="legal_team">Legal team</option>
+                  <option value="other">Other</option>
+                </Select>
+                {errors.role && (
+                  <p className="text-red-500 text-sm">{errors.role}</p>
+                )}
+              </div>
+
+              {/* Use Case */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  I want to use Clausea to...
+                </label>
+                <Select
+                  value={useCase}
+                  onChange={(e) => setUseCase(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className={cn(
+                    "h-12 rounded-xl bg-muted/30 border-border/50 focus:border-primary/50 focus:bg-background transition-all",
+                    errors.useCase && "border-red-500/50 focus:border-red-500",
+                  )}
+                >
+                  <option value="">Select your use case</option>
+                  <option value="analyze_privacy_policies">
+                    Understand privacy policies
+                  </option>
+                  <option value="vendor_risk">
+                    Assess vendor and contract risk
+                  </option>
+                  <option value="monitor_changes">
+                    Monitor policy changes
+                  </option>
+                  <option value="bulk_review">
+                    Bulk review for legal team
+                  </option>
+                </Select>
+                {errors.useCase && (
+                  <p className="text-red-500 text-sm">{errors.useCase}</p>
+                )}
+              </div>
+
+              {/* Goals */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Tell us about your goals
+                </label>
+                <Textarea
+                  placeholder="What are your priorities? How could Clausea help you?"
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="min-h-[120px] rounded-xl bg-muted/30 border-border/50 focus:border-primary/50 focus:bg-background transition-all resize-none"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
-                Email
-              </label>
-              <Input
-                placeholder="john@example.com"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className={cn(
-                  "h-12 rounded-xl bg-background/40 border-white/10 focus:border-secondary/50",
-                  errors.email && "border-red-500/50 focus:border-red-500",
-                )}
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-2">{errors.email}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
-                I am a...
-              </label>
-              <Select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className={cn(
-                  "h-12 rounded-xl bg-background/40 border-white/10 focus:border-secondary/50",
-                  errors.role && "border-red-500/50 focus:border-red-500",
-                )}
+              {/* Submit */}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl h-14 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed mt-4 gap-2"
               >
-                <option value="">Select your role</option>
-                <option value="individual">Privacy-conscious individual</option>
-                <option value="founder">Founder</option>
-                <option value="compliance_officer">Compliance officer</option>
-                <option value="legal_team">Legal team</option>
-                <option value="other">Other</option>
-              </Select>
-              {errors.role && (
-                <p className="text-red-500 text-sm mt-2">{errors.role}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
-                I want to use Clausea to...
-              </label>
-              <Select
-                value={useCase}
-                onChange={(e) => setUseCase(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className={cn(
-                  "h-12 rounded-xl bg-background/40 border-white/10 focus:border-secondary/50",
-                  errors.useCase && "border-red-500/50 focus:border-red-500",
+                {loading ? (
+                  "Saving..."
+                ) : (
+                  <>
+                    Continue to Dashboard
+                    <ArrowRight className="h-5 w-5" />
+                  </>
                 )}
-              >
-                <option value="">Select your use case</option>
-                <option value="analyze_privacy_policies">
-                  Understand privacy policies
-                </option>
-                <option value="vendor_risk">
-                  Assess vendor and contract risk
-                </option>
-                <option value="monitor_changes">Monitor policy changes</option>
-                <option value="bulk_review">Bulk review for legal team</option>
-              </Select>
-              {errors.useCase && (
-                <p className="text-red-500 text-sm mt-2">{errors.useCase}</p>
-              )}
-            </div>
+              </Button>
+            </form>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-primary/60 mb-2">
-                Tell us about your goals and what you hope to achieve...
-              </label>
-              <Textarea
-                placeholder="What are your priorities, how could Clausea help you?"
-                value={goal}
-                onChange={(e) => setGoal(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="min-h-[120px] rounded-xl bg-background/40 border-white/10 focus:border-secondary/50 resize-none"
-              />
+            {/* Trust indicators */}
+            <div className="flex items-center justify-center gap-6 mt-8 pt-6 border-t border-border/50">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Shield className="h-4 w-4 text-secondary" />
+                <span>Secure & Private</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span>AI-Powered</span>
+              </div>
             </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-full h-14 font-bold uppercase tracking-widest bg-secondary text-primary hover:bg-secondary/80 shadow-lg shadow-secondary/10 disabled:opacity-50 disabled:cursor-not-allowed mt-8"
-            >
-              {loading ? "Saving..." : "Continue"}
-            </Button>
-          </form>
-        </div>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );

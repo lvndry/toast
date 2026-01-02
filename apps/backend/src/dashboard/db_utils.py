@@ -11,7 +11,31 @@ from src.models.document import Document
 logger = get_logger(__name__)
 
 MONGO_URI = config.database.mongodb_uri
-DATABASE_NAME = "clausea"
+
+
+def get_database_name() -> str:
+    """Get the database name from config or extract from URI."""
+    # First, try to use the configured database name
+    if config.database.mongodb_database:
+        return config.database.mongodb_database
+
+    # Fallback: try to extract from URI if database name is in the path
+    # Format: mongodb://host:port/database_name
+    if "/" in MONGO_URI:
+        parts = MONGO_URI.split("/")
+        if len(parts) > 1:
+            # Get the last part after the last /
+            db_name = parts[-1].split("?")[0]  # Remove query parameters
+            if db_name:
+                logger.info(f"Extracted database name '{db_name}' from MongoDB URI")
+                return db_name
+
+    # Default fallback
+    # TODO: Change to clausea
+    return "toast"
+
+
+DATABASE_NAME = get_database_name()
 
 
 class DashboardDB:
@@ -29,7 +53,8 @@ class DashboardDB:
             else:
                 self._client = AsyncIOMotorClient(MONGO_URI)
             self._db = self._client[DATABASE_NAME]
-            logger.info("Dashboard connected to MongoDB")
+            logger.info(f"Dashboard connected to MongoDB: {MONGO_URI}")
+            logger.info(f"Using database: {DATABASE_NAME}")
 
     async def disconnect(self) -> None:
         """Close the database connection."""
@@ -66,10 +91,57 @@ async def get_all_companies_isolated() -> list[Company]:
     """Get all companies with an isolated database connection, sorted by name"""
     db = await get_dashboard_db()
     try:
-        companies = await db.db.companies.find().sort("name", 1).to_list(length=None)
-        return [Company(**company) for company in companies]
+        # Get raw documents from MongoDB
+        raw_companies = await db.db.companies.find().sort("name", 1).to_list(length=None)
+        logger.info(f"Retrieved {len(raw_companies)} raw company documents from MongoDB")
+
+        if not raw_companies:
+            logger.warning("No companies found in database")
+            return []
+
+        # Convert MongoDB documents to Company objects
+        # Handle _id field conversion and ensure all required fields are present
+        companies = []
+        for raw_company in raw_companies:
+            try:
+                # Convert MongoDB document to dict, handling _id field
+                company_dict = dict(raw_company)
+
+                # Convert _id to id if present (MongoDB uses _id, our model uses id)
+                if "_id" in company_dict and "id" not in company_dict:
+                    company_dict["id"] = str(company_dict.pop("_id"))
+                elif "_id" in company_dict:
+                    # If both exist, keep id and remove _id
+                    company_dict.pop("_id", None)
+
+                # Ensure id is a string and exists
+                if "id" not in company_dict:
+                    logger.error(f"Company document missing 'id' field: {raw_company}")
+                    continue
+
+                company_dict["id"] = str(company_dict["id"])
+
+                # Create Company object
+                company = Company(**company_dict)
+                companies.append(company)
+            except Exception as e:
+                logger.error(f"Error converting company document to Company object: {e}")
+                logger.error(f"Problematic document: {raw_company}")
+                # Continue processing other companies instead of failing completely
+                continue
+
+        logger.info(f"Successfully converted {len(companies)} companies")
+
+        # Warn if we retrieved documents but couldn't convert any
+        if raw_companies and not companies:
+            logger.warning(
+                f"Retrieved {len(raw_companies)} documents from MongoDB but failed to convert any to Company objects. "
+                "Check the error logs above for details about conversion failures."
+            )
+
+        return companies
     except Exception as e:
-        logger.error(f"Error getting companies: {e}")
+        logger.error(f"Error getting companies: {e}", exc_info=True)
         return []
     finally:
         await db.disconnect()

@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from typing import Any, Literal
 
@@ -51,21 +50,12 @@ class DocumentAnalysis(BaseModel):
 
     @field_validator("summary", mode="before")
     @classmethod
-    def clean_summary(cls, v: Any) -> str:
+    def clean_summary(cls, v: str | None) -> str:
         """Clean summary string, handling potential JSON-encoded responses."""
-        if not isinstance(v, str):
-            return str(v) if v is not None else ""
-
-        v = v.strip()
-        # If summary looks like JSON, try to extract the actual summary
-        if v.startswith("{") and '"summary"' in v:
-            try:
-                parsed = json.loads(v)
-                if isinstance(parsed, dict) and "summary" in parsed:
-                    return str(parsed["summary"])
-            except (json.JSONDecodeError, TypeError):
-                pass
-        return v
+        if v is None:
+            return ""
+        result = v.strip()
+        return str(result)  # Ensure we return str, not Any
 
 
 class MetaSummaryScore(BaseModel):

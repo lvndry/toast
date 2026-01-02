@@ -3,9 +3,31 @@ from collections.abc import AsyncGenerator
 
 import streamlit as st
 
-from src.dashboard.db_utils import get_all_companies_isolated, get_company_documents_isolated
+from src.dashboard.db_utils import (
+    get_all_companies_isolated,
+    get_company_documents_isolated,
+    get_dashboard_db,
+)
 from src.dashboard.utils import run_async
+from src.services.service_factory import create_company_service, create_document_service
 from src.summarizer import generate_company_meta_summary, summarize_all_company_documents
+
+
+async def run_summarization_async_internal(
+    company_slug: str,
+) -> bool:
+    """Run document summarization in an isolated async context"""
+    try:
+        db = await get_dashboard_db()
+        try:
+            document_svc = create_document_service()
+            await summarize_all_company_documents(db.db, company_slug, document_svc)
+            return True
+        finally:
+            await db.disconnect()
+    except Exception as e:
+        st.error(f"Summarization error: {str(e)}")
+        return False
 
 
 def run_summarization_async(
@@ -20,7 +42,7 @@ def run_summarization_async(
             should_close_loop = True
 
         try:
-            loop.run_until_complete(summarize_all_company_documents(company_slug))
+            loop.run_until_complete(run_summarization_async_internal(company_slug))
             return True
         finally:
             if should_close_loop:
@@ -42,9 +64,17 @@ def run_summarization_async(
 
 async def generate_meta_summary_async(company_slug: str) -> AsyncGenerator[str, None]:
     """Generate meta summary for a company"""
-    result = await generate_company_meta_summary(company_slug)
-    summary_content = str(result)  # or format as needed
-    yield summary_content
+    db = await get_dashboard_db()
+    try:
+        company_svc = create_company_service()
+        document_svc = create_document_service()
+        result = await generate_company_meta_summary(
+            db.db, company_slug, company_svc=company_svc, document_svc=document_svc
+        )
+        summary_content = str(result)  # or format as needed
+        yield summary_content
+    finally:
+        await db.disconnect()
 
 
 def show_summarization() -> None:
@@ -269,8 +299,19 @@ def show_summarization() -> None:
                     try:
 
                         async def get_summary() -> str:
-                            result = await generate_company_meta_summary(selected_company.slug)
-                            return str(result)
+                            db = await get_dashboard_db()
+                            try:
+                                company_svc = create_company_service()
+                                document_svc = create_document_service()
+                                result = await generate_company_meta_summary(
+                                    db.db,
+                                    selected_company.slug,
+                                    company_svc=company_svc,
+                                    document_svc=document_svc,
+                                )
+                                return str(result)
+                            finally:
+                                await db.disconnect()
 
                         summary_content = loop.run_until_complete(get_summary())
                         summary_placeholder.markdown(summary_content)

@@ -1,29 +1,20 @@
 "use client";
 
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import {
-  Anchor,
-  CheckCircle2,
-  Github,
-  Linkedin,
-  Mail,
-  Twitter,
-  Waves,
-} from "lucide-react";
+import { CheckCircle2, Github, Linkedin, Mail, Twitter } from "lucide-react";
+import { motion, useInView } from "motion/react";
 import Link from "next/link";
 
 import { useRef } from "react";
 
 import { Button } from "@/components/ui/button";
-import { useGSAP } from "@gsap/react";
+import { Logo } from "@/data/logo";
 
 /**
- * Pricing Component - Ocean-themed
+ * Pricing Component - Warm Theme
  */
 export function Pricing() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const hasAnimated = useRef(false);
+  const isInView = useInView(containerRef, { once: true, amount: 0.2 });
 
   const tiers = [
     {
@@ -69,107 +60,83 @@ export function Pricing() {
     },
   ];
 
-  useGSAP(
-    () => {
-      if (hasAnimated.current) return;
-
-      const cards = containerRef.current?.querySelectorAll(".pricing-tier");
-      if (!cards || cards.length === 0) return;
-
-      gsap.set(cards, { opacity: 0, y: 40 });
-
-      ScrollTrigger.create({
-        trigger: ".pricing-grid",
-        start: "top 80%",
-        onEnter: () => {
-          if (hasAnimated.current) return;
-          hasAnimated.current = true;
-
-          gsap.to(cards, {
-            y: 0,
-            opacity: 1,
-            stagger: 0.15,
-            duration: 0.9,
-            ease: "power3.out",
-          });
-        },
-      });
-    },
-    { scope: containerRef },
-  );
-
   return (
     <section
       ref={containerRef}
       id="pricing"
-      className="py-32 px-4 md:px-8 bg-background relative overflow-hidden"
+      className="py-8 md:py-12 px-4 md:px-8 bg-muted/30 relative overflow-hidden"
     >
       {/* Background ambience */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-6xl mx-auto relative z-10">
         {/* Header */}
-        <div className="text-center mb-20">
-          <span className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.3em] uppercase text-secondary bg-secondary/10 border border-secondary/20 px-5 py-2 rounded-full mb-6">
-            <Waves className="w-4 h-4" />
-            Pricing Tiers
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-10"
+        >
+          <span className="inline-flex items-center gap-2 text-xs font-medium tracking-wider uppercase text-primary bg-primary/10 border border-primary/20 px-4 py-2 rounded-full mb-6">
+            Pricing
           </span>
-          <h2 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold text-primary tracking-tighter">
-            Chart Your{" "}
-            <span className="text-gradient-ocean font-serif italic font-normal tracking-normal">
-              Course.
+          <h2 className="text-3xl md:text-5xl lg:text-6xl font-display font-bold text-foreground tracking-tight">
+            Choose Your{" "}
+            <span className="text-gradient-warm font-serif italic font-normal tracking-normal">
+              Plan.
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg mt-6 max-w-xl mx-auto">
-            From solo explorers to enterprise fleets, find the depth of insight
-            you need.
+          <p className="text-muted-foreground text-lg mt-4 max-w-xl mx-auto">
+            From solo explorers to enterprise teams, find the right plan for
+            your needs.
           </p>
-        </div>
+        </motion.div>
 
         {/* Pricing Grid */}
-        <div className="pricing-grid grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
           {tiers.map((tier, index) => (
-            <div
+            <motion.div
               key={tier.name}
-              className={`pricing-tier relative p-10 lg:p-12 rounded-3xl border transition-all duration-500 ${
+              initial={{ opacity: 0, y: 40 }}
+              animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.6, delay: index * 0.15 }}
+              className={`relative p-8 lg:p-10 rounded-2xl border transition-all duration-500 ${
                 tier.popular
-                  ? "bg-linear-to-br from-secondary/10 to-accent/5 border-secondary/30 scale-100 md:scale-105 z-10 shadow-[0_0_60px_hsla(185,70%,50%,0.1)]"
-                  : "bg-white/2 border-white/10 hover:border-white/20 hover:bg-white/3"
-              } ${index === 1 ? "md:mt-0" : "md:mt-8"}`}
+                  ? "bg-card border-primary/30 shadow-lg scale-100 md:scale-105 z-10"
+                  : "bg-card/50 border-border hover:border-primary/20"
+              } ${index === 1 ? "md:mt-0" : "md:mt-6"}`}
             >
               {tier.popular && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-secondary text-secondary-foreground px-6 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] shadow-[0_0_20px_hsla(185,70%,50%,0.3)]">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-5 py-1 rounded-full text-xs font-medium">
                   Most Popular
                 </div>
               )}
 
-              <h4 className="text-sm font-bold uppercase tracking-[0.2em] mb-4 text-secondary">
+              <h4 className="text-sm font-medium uppercase tracking-wider mb-3 text-primary">
                 {tier.name}
               </h4>
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-5xl font-display font-bold text-primary">
+              <div className="flex items-baseline gap-2 mb-4">
+                <span className="text-4xl font-display font-bold text-foreground">
                   {tier.price !== "Custom" && "$"}
                   {tier.price}
                 </span>
                 {tier.price !== "Custom" && (
-                  <span className="text-base text-muted-foreground font-medium">
-                    /month
-                  </span>
+                  <span className="text-sm text-muted-foreground">/month</span>
                 )}
               </div>
 
-              <p className="text-base leading-relaxed mb-8 text-muted-foreground font-medium pb-8 border-b border-white/5">
+              <p className="text-sm leading-relaxed mb-6 text-muted-foreground pb-6 border-b border-border">
                 {tier.description}
               </p>
 
-              <ul className="space-y-4 mb-10">
+              <ul className="space-y-3 mb-8">
                 {tier.features.map((feature) => (
                   <li
                     key={feature}
-                    className="flex items-start gap-3 text-sm font-medium text-primary/80"
+                    className="flex items-start gap-3 text-sm text-foreground/80"
                   >
-                    <CheckCircle2 className="w-5 h-5 shrink-0 text-secondary" />
+                    <CheckCircle2 className="w-5 h-5 shrink-0 text-primary" />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -177,15 +144,15 @@ export function Pricing() {
 
               <Button
                 variant={tier.popular ? "default" : "outline"}
-                className={`w-full h-14 rounded-full font-bold uppercase tracking-widest transition-all duration-500 ${
+                className={`w-full h-12 rounded-full font-medium transition-all duration-500 ${
                   tier.popular
-                    ? "bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[0_0_30px_hsla(185,70%,50%,0.2)]"
-                    : "border-white/10 hover:bg-white/5 hover:border-secondary/30"
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "border-border hover:bg-primary/5 hover:border-primary/30"
                 }`}
               >
                 {tier.cta}
               </Button>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -194,37 +161,31 @@ export function Pricing() {
 }
 
 /**
- * Footer Component - Ocean-themed
+ * Footer Component - Warm Theme
  */
 export function Footer() {
   return (
-    <footer className="bg-background text-foreground pt-24 pb-12 px-4 md:px-8 border-t border-white/5 overflow-hidden relative">
+    <footer className="bg-background text-foreground pt-20 pb-10 px-4 md:px-8 border-t border-border overflow-hidden relative">
       {/* Subtle wave pattern */}
-      <div className="absolute inset-0 wave-pattern opacity-20 pointer-events-none" />
+      <div className="absolute inset-0 wave-pattern opacity-30 pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 lg:gap-16 mb-20">
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 lg:gap-12 mb-16">
           {/* Brand Column */}
           <div className="col-span-1">
-            <Link href="/" className="flex items-center gap-3 mb-8 group">
-              <div className="w-12 h-12 bg-secondary/10 border border-secondary/20 rounded-xl flex items-center justify-center group-hover:bg-secondary/20 group-hover:rotate-6 transition-all duration-500">
-                <Anchor className="w-6 h-6 text-secondary" />
+            <Link href="/" className="flex items-center gap-3 mb-6 group">
+              <div className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center group-hover:bg-primary/20 group-hover:rotate-3 transition-all duration-500 overflow-hidden">
+                <Logo className="w-6 h-6" />
               </div>
-              <span className="font-display font-bold text-2xl tracking-tight">
-                <span className="text-primary">Clause</span>
-                <span className="text-secondary font-serif italic font-normal">
-                  a
-                </span>
-                <span className="text-accent ml-1 text-lg font-sans font-medium opacity-60">
-                  AI
-                </span>
+              <span className="font-display font-bold text-xl tracking-tight">
+                Clausea
               </span>
             </Link>
-            <p className="text-muted-foreground leading-relaxed mb-8 max-w-xs font-medium">
+            <p className="text-muted-foreground leading-relaxed mb-6 text-sm max-w-xs">
               Navigating the depths of legal complexity. Because clarity
               shouldn&apos;t be a luxury.
             </p>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {[
                 { icon: Twitter, href: "#" },
                 { icon: Github, href: "#" },
@@ -233,69 +194,65 @@ export function Footer() {
                 <a
                   key={i}
                   href={href}
-                  className="w-11 h-11 rounded-full border border-white/10 flex items-center justify-center hover:bg-secondary hover:text-secondary-foreground hover:border-secondary transition-all duration-500"
+                  className="w-9 h-9 rounded-full border border-border flex items-center justify-center hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300"
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-4 h-4" />
                 </a>
               ))}
             </div>
           </div>
 
           {/* Links Columns */}
-          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-12">
-            <div className="space-y-6">
-              <h5 className="font-bold uppercase tracking-[0.3em] text-[10px] text-secondary">
-                Solution
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-10">
+            <div className="space-y-4">
+              <h5 className="font-medium text-xs uppercase tracking-wider text-foreground">
+                Product
               </h5>
-              <ul className="space-y-4">
-                {["Features", "Navigator", "Fleet", "Developer API"].map(
-                  (l) => (
-                    <li key={l}>
-                      <Link
-                        href="#"
-                        className="text-sm font-medium text-muted-foreground hover:text-secondary transition-all duration-300 hover:translate-x-1 inline-block"
-                      >
-                        {l}
-                      </Link>
-                    </li>
-                  ),
-                )}
+              <ul className="space-y-3">
+                {["Features", "Pricing", "API", "Integrations"].map((l) => (
+                  <li key={l}>
+                    <Link
+                      href="#"
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {l}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="space-y-6">
-              <h5 className="font-bold uppercase tracking-[0.3em] text-[10px] text-secondary">
+            <div className="space-y-4">
+              <h5 className="font-medium text-xs uppercase tracking-wider text-foreground">
                 Resources
               </h5>
-              <ul className="space-y-4">
-                {["Documentation", "Security", "Support", "Legal Blog"].map(
-                  (l) => (
-                    <li key={l}>
-                      <Link
-                        href="#"
-                        className="text-sm font-medium text-muted-foreground hover:text-secondary transition-all duration-300 hover:translate-x-1 inline-block"
-                      >
-                        {l}
-                      </Link>
-                    </li>
-                  ),
-                )}
+              <ul className="space-y-3">
+                {["Documentation", "Security", "Support", "Blog"].map((l) => (
+                  <li key={l}>
+                    <Link
+                      href="#"
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {l}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
-            <div className="space-y-6">
-              <h5 className="font-bold uppercase tracking-[0.3em] text-[10px] text-secondary">
-                Compliance
+            <div className="space-y-4">
+              <h5 className="font-medium text-xs uppercase tracking-wider text-foreground">
+                Legal
               </h5>
-              <ul className="space-y-4">
+              <ul className="space-y-3">
                 {[
                   "Privacy Policy",
                   "Terms of Service",
-                  "Data Rights",
+                  "Cookie Policy",
                   "GDPR",
                 ].map((l) => (
                   <li key={l}>
                     <Link
                       href="#"
-                      className="text-sm font-medium text-muted-foreground hover:text-secondary transition-all duration-300 hover:translate-x-1 inline-block"
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
                     >
                       {l}
                     </Link>
@@ -306,51 +263,48 @@ export function Footer() {
           </div>
 
           {/* Newsletter */}
-          <div className="space-y-6">
-            <h5 className="font-bold uppercase tracking-[0.3em] text-[10px] text-secondary">
-              Stay in the Loop
+          <div className="space-y-4">
+            <h5 className="font-medium text-xs uppercase tracking-wider text-foreground">
+              Stay Updated
             </h5>
-            <p className="text-muted-foreground font-medium text-sm">
+            <p className="text-muted-foreground text-sm">
               Get legal AI insights delivered monthly.
             </p>
-            <div className="flex gap-3 p-1.5 bg-white/5 border border-white/10 rounded-full focus-within:border-secondary/50 transition-all duration-500">
+            <div className="flex gap-2 p-1 bg-muted/50 border border-border rounded-full focus-within:border-primary/50 transition-all duration-300">
               <input
                 type="email"
                 placeholder="your@email.com"
-                className="bg-transparent px-5 py-2 text-sm flex-1 outline-none text-primary font-medium placeholder:text-muted-foreground/50"
+                className="bg-transparent px-4 py-2 text-sm flex-1 outline-none text-foreground placeholder:text-muted-foreground/50"
                 aria-label="Email address"
               />
               <Button
                 size="icon"
-                className="rounded-full w-11 h-11 bg-secondary text-secondary-foreground hover:bg-secondary/90 shrink-0"
+                className="rounded-full w-9 h-9 bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
               >
-                <Mail className="w-5 h-5" />
+                <Mail className="w-4 h-4" />
               </Button>
             </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">
             © 2025 Clausea AI. All rights reserved.
           </p>
-          <div className="flex items-center gap-8 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-            <Link href="#" className="hover:text-secondary transition-colors">
+          <div className="flex items-center gap-6 text-xs text-muted-foreground">
+            <Link href="#" className="hover:text-primary transition-colors">
               Status
             </Link>
-            <Link href="#" className="hover:text-secondary transition-colors">
+            <Link href="#" className="hover:text-primary transition-colors">
               Security
             </Link>
-            <Link href="#" className="hover:text-secondary transition-colors">
+            <Link href="#" className="hover:text-primary transition-colors">
               Accessibility
             </Link>
           </div>
         </div>
       </div>
-
-      {/* Bottom glow line */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-linear-to-r from-transparent via-secondary/30 to-transparent" />
     </footer>
   );
 }

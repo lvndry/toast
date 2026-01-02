@@ -79,6 +79,11 @@
   "python.linting.enabled": true,
   "python.linting.ruffEnabled": true,
   "python.formatting.provider": "none",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportUntypedDecorator": "error",
+    "reportUntypedFunctionDecorator": "error",
+    "reportUntypedClassDecorator": "error"
+  },
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.codeActionsOnSave": {

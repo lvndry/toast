@@ -12,8 +12,9 @@ export function Provider(props: { children: React.ReactNode }) {
       <ClerkProvider>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem={true}
+          disableTransitionOnChange
         >
           <LenisProvider>{props.children}</LenisProvider>
         </ThemeProvider>

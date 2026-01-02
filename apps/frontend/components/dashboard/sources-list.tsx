@@ -1,15 +1,21 @@
+"use client";
+
 import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
   FileText,
+  FolderOpen,
+  Link as LinkIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { useState } from "react";
 
 import { MarkdownRenderer } from "@/components/markdown/markdown-renderer";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { getVerdictConfig } from "@/lib/verdict";
 
 interface DocumentSummary {
@@ -43,26 +49,52 @@ export function SourcesList({ documents }: SourcesListProps) {
 
   if (documents.length === 0) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center text-muted-foreground">
-          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No source documents available for this company.</p>
+      <Card variant="elevated">
+        <CardContent className="py-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <FolderOpen className="h-8 w-8 text-muted-foreground/50" />
+          </div>
+          <h3 className="font-semibold text-lg mb-1">No Source Documents</h3>
+          <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+            No source documents are available for analysis yet.
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="border-accent/10 bg-accent/5 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <FileText className="h-5 w-5 text-secondary" />
-          Source Documents ({documents.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {documents.map((doc) => {
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card variant="elevated" className="overflow-hidden">
+        {/* Gradient accent */}
+        <div className="h-1 w-full bg-linear-to-r from-violet-500 via-indigo-500 to-violet-500" />
+
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-linear-to-br from-violet-500/20 to-indigo-500/20 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Source Documents</CardTitle>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Legal documents analyzed for this company
+                </p>
+              </div>
+            </div>
+            <Badge variant="outline" className="gap-1.5">
+              <FileText className="h-3 w-3" />
+              {documents.length} documents
+            </Badge>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          {documents.map((doc, index) => {
             const isExpanded = expandedDocs.has(doc.id);
             const verdictConfig = doc.verdict
               ? getVerdictConfig(doc.verdict)
@@ -73,81 +105,141 @@ export function SourcesList({ documents }: SourcesListProps) {
             return (
               <motion.div
                 key={doc.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`group rounded-xl border bg-card/50 transition-all duration-300 ${
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className={cn(
+                  "group rounded-xl border overflow-hidden transition-all duration-300",
                   isExpanded
-                    ? "border-accent/30 shadow-md"
-                    : "hover:border-accent/20 hover:bg-card/80"
-                }`}
+                    ? "border-violet-500/30 shadow-md bg-linear-to-r from-violet-500/5 to-transparent"
+                    : "border-border/50 hover:border-violet-500/20 bg-card/50 hover:bg-card",
+                )}
               >
+                {/* Document Header */}
                 <div
-                  className="p-4 cursor-pointer"
+                  className={cn(
+                    "p-4 cursor-pointer",
+                    hasSummary && "cursor-pointer",
+                  )}
                   onClick={() => hasSummary && toggleExpanded(doc.id)}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-lg bg-accent/10 text-accent group-hover:bg-accent/20 transition-colors">
-                      <FileText className="h-5 w-5 shrink-0" />
+                    {/* Icon */}
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+                        isExpanded
+                          ? "bg-violet-500/20"
+                          : "bg-muted/50 group-hover:bg-violet-500/10",
+                      )}
+                    >
+                      <FileText
+                        className={cn(
+                          "h-5 w-5 transition-colors",
+                          isExpanded
+                            ? "text-violet-600 dark:text-violet-400"
+                            : "text-muted-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400",
+                        )}
+                      />
                     </div>
+
+                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-sm mb-1 group-hover:text-accent transition-colors">
+                          {/* Title */}
+                          <h4
+                            className={cn(
+                              "font-semibold text-sm mb-1 transition-colors",
+                              isExpanded
+                                ? "text-violet-600 dark:text-violet-400"
+                                : "group-hover:text-violet-600 dark:group-hover:text-violet-400",
+                            )}
+                          >
                             {doc.title || "Untitled Document"}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                          </h4>
+
+                          {/* URL */}
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
+                          >
+                            <LinkIcon className="h-3 w-3" />
                             <span className="truncate max-w-[200px] sm:max-w-md">
                               {doc.url}
                             </span>
-                            <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
-                          </div>
+                            <ExternalLink className="h-3 w-3 opacity-50" />
+                          </a>
+
+                          {/* Badges */}
                           <div className="flex flex-wrap items-center gap-2">
                             {doc.doc_type && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground border border-muted-foreground/10">
+                              <Badge variant="outline" size="sm">
                                 {doc.doc_type.replace(/_/g, " ")}
-                              </span>
+                              </Badge>
                             )}
                             {verdictConfig && (
-                              <span
-                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${verdictConfig.cardBg} ${verdictConfig.cardColor} border border-current/10`}
+                              <Badge
+                                variant={verdictConfig.variant || "outline"}
+                                size="sm"
                               >
                                 {verdictConfig.label}
-                              </span>
+                              </Badge>
                             )}
-                            {doc.risk_score !== null && (
-                              <span className="text-xs font-medium text-muted-foreground px-2 py-0.5 bg-muted/50 rounded-full border border-muted-foreground/10">
-                                Risk Index: {doc.risk_score}/10
-                              </span>
-                            )}
+                            {doc.risk_score !== null &&
+                              doc.risk_score !== undefined && (
+                                <Badge
+                                  variant={
+                                    doc.risk_score >= 7
+                                      ? "danger"
+                                      : doc.risk_score >= 4
+                                        ? "warning"
+                                        : "success"
+                                  }
+                                  size="sm"
+                                >
+                                  Risk: {doc.risk_score}/10
+                                </Badge>
+                              )}
                           </div>
                         </div>
+
+                        {/* Expand button */}
                         {hasSummary && (
-                          <div className="flex flex-col items-end gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleExpanded(doc.id);
-                              }}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                                isExpanded
-                                  ? "bg-accent/10 text-accent"
-                                  : "text-muted-foreground hover:bg-accent/10 hover:text-accent"
-                              }`}
-                            >
-                              {isExpanded ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleExpanded(doc.id);
+                            }}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0",
+                              isExpanded
+                                ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            )}
+                          >
+                            {isExpanded ? (
+                              <>
                                 <ChevronDown className="h-3.5 w-3.5" />
-                              ) : (
+                                Close
+                              </>
+                            ) : (
+                              <>
                                 <ChevronRight className="h-3.5 w-3.5" />
-                              )}
-                              <span>{isExpanded ? "Close" : "Summary"}</span>
-                            </button>
-                          </div>
+                                Details
+                              </>
+                            )}
+                          </button>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Expanded Content */}
                 <AnimatePresence>
                   {isExpanded && hasSummary && (
                     <motion.div
@@ -157,32 +249,34 @@ export function SourcesList({ documents }: SourcesListProps) {
                       transition={{ duration: 0.3, ease: "easeInOut" }}
                       className="overflow-hidden"
                     >
-                      <div className="px-5 pb-5 pt-2 border-t border-accent/10 bg-accent/5 rounded-b-xl">
+                      <div className="px-5 pb-5 pt-2 border-t border-violet-500/10">
                         <div className="space-y-4">
+                          {/* Summary */}
                           {doc.summary && (
                             <div className="text-sm text-foreground/90 leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-2">
                               <MarkdownRenderer>{doc.summary}</MarkdownRenderer>
                             </div>
                           )}
 
+                          {/* Keypoints */}
                           {doc.keypoints && doc.keypoints.length > 0 && (
                             <div className="pt-2">
-                              <h5 className="text-[10px] font-bold text-accent uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <span className="h-px w-4 bg-accent/30" />
-                                Critical Insights
+                              <h5 className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <span className="h-px w-4 bg-violet-500/30" />
+                                Key Insights
                               </h5>
                               <div className="grid gap-2">
                                 {doc.keypoints.map(
-                                  (point: string, index: number) => (
+                                  (point: string, idx: number) => (
                                     <motion.div
+                                      key={idx}
                                       initial={{ x: -10, opacity: 0 }}
                                       animate={{ x: 0, opacity: 1 }}
-                                      transition={{ delay: index * 0.05 }}
-                                      key={index}
-                                      className="flex items-start gap-3 p-2 rounded-lg bg-card/30 border border-accent/5 group/point hover:border-accent/20 transition-colors"
+                                      transition={{ delay: idx * 0.05 }}
+                                      className="flex items-start gap-3 p-3 rounded-lg bg-card/50 border border-border/50 hover:border-violet-500/20 transition-colors"
                                     >
-                                      <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-secondary shrink-0 group-hover/point:scale-125 transition-transform" />
-                                      <span className="text-sm text-foreground/80 leading-snug">
+                                      <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-violet-500 shrink-0" />
+                                      <span className="text-sm text-foreground/80 leading-relaxed">
                                         {point}
                                       </span>
                                     </motion.div>
@@ -199,8 +293,8 @@ export function SourcesList({ documents }: SourcesListProps) {
               </motion.div>
             );
           })}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
