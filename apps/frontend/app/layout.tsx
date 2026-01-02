@@ -19,7 +19,9 @@ const fraunces = Fraunces({
   variable: "--font-fraunces",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://clausea.co";
+const siteUrl = (
+  process.env.NEXT_PUBLIC_APP_URL || "https://clausea.co"
+).replace(/\/$/, "");
 
 export const metadata = {
   metadataBase: new URL(siteUrl),
