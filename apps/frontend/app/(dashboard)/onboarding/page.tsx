@@ -32,6 +32,7 @@ export default function OnboardingPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
+  const [otherRole, setOtherRole] = useState("");
   const [useCase, setUseCase] = useState("");
   const [goal, setGoal] = useState("");
 
@@ -78,6 +79,8 @@ export default function OnboardingPage() {
 
     if (!role) {
       newErrors.role = "Please select your role";
+    } else if (role === "other" && !otherRole.trim()) {
+      newErrors.otherRole = "Please specify your role";
     }
 
     if (!useCase) {
@@ -107,8 +110,10 @@ export default function OnboardingPage() {
     setLoading(true);
 
     try {
+      const finalRole = role === "other" ? otherRole : role;
+
       posthog.capture("onboarding_submitted", {
-        role,
+        role: finalRole,
         use_case: useCase,
         goal,
       });
@@ -118,7 +123,7 @@ export default function OnboardingPage() {
       trackUserJourney.onboardingCompleted({
         user_id: user.id,
         email: user.primaryEmailAddress?.emailAddress,
-        role,
+        role: finalRole,
         use_case: useCase,
         goal,
       });
@@ -169,10 +174,7 @@ export default function OnboardingPage() {
               <Logo className="w-6 h-6 text-primary" />
             </div>
             <span className="font-display font-bold text-3xl tracking-tight text-foreground">
-              Clausea{" "}
-              <span className="text-secondary font-serif italic font-normal">
-                AI
-              </span>
+              Clausea
             </span>
           </div>
           <h1 className="font-display font-bold text-4xl md:text-5xl tracking-tight text-foreground mb-4">
@@ -208,6 +210,7 @@ export default function OnboardingPage() {
                     onChange={(e) => setFirstName(e.target.value)}
                     onKeyDown={handleKeyDown}
                     className="h-12 rounded-xl bg-muted/30 border-border/50 focus:border-primary/50 focus:bg-background transition-all"
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -232,6 +235,7 @@ export default function OnboardingPage() {
                 <Input
                   placeholder="john@example.com"
                   type="email"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -252,7 +256,12 @@ export default function OnboardingPage() {
                 </label>
                 <Select
                   value={role}
-                  onChange={(e) => setRole(e.target.value)}
+                  onChange={(e) => {
+                    setRole(e.target.value);
+                    if (e.target.value !== "other") {
+                      setOtherRole("");
+                    }
+                  }}
                   onKeyDown={handleKeyDown}
                   className={cn(
                     "h-12 rounded-xl bg-muted/30 border-border/50 focus:border-primary/50 focus:bg-background transition-all",
@@ -270,6 +279,26 @@ export default function OnboardingPage() {
                 </Select>
                 {errors.role && (
                   <p className="text-red-500 text-sm">{errors.role}</p>
+                )}
+                {role === "other" && (
+                  <div className="mt-2">
+                    <Input
+                      placeholder="Please specify your role"
+                      value={otherRole}
+                      onChange={(e) => setOtherRole(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className={cn(
+                        "h-12 rounded-xl bg-muted/30 border-border/50 focus:border-primary/50 focus:bg-background transition-all",
+                        errors.otherRole &&
+                          "border-red-500/50 focus:border-red-500",
+                      )}
+                    />
+                    {errors.otherRole && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.otherRole}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 

@@ -2,25 +2,21 @@
 
 import { useEffect } from "react";
 
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { SignUp } from "@clerk/nextjs";
-
-import { useAnalytics } from "../../../../hooks/useAnalytics";
 
 export default function SignUpPage() {
   const { trackPageView, trackUserJourney } = useAnalytics();
 
-  // Track sign-up page view
   useEffect(() => {
     trackPageView("sign_up_page");
   }, [trackPageView]);
 
-  // Track sign-up events
   useEffect(() => {
     function handleSignUp() {
       trackUserJourney.signUp("clerk");
     }
 
-    // Listen for sign-up success
     window.addEventListener("clerk-sign-up-complete", handleSignUp);
 
     return () => {

@@ -498,7 +498,7 @@ export default function CompaniesPage() {
             </div>
             <div className="space-y-1">
               <h3 className="text-xl font-bold font-display">
-                No services found
+                No companies found
               </h3>
               <p className="text-muted-foreground max-w-sm mx-auto text-sm">
                 Try searching for a different company or check back later.
