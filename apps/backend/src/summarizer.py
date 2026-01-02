@@ -198,15 +198,30 @@ def _ensure_required_scores(parsed: DocumentAnalysis) -> DocumentAnalysis:
             )
         else:
             score_obj = parsed.scores[score_name]
-            # If score is None or invalid, set to default
-            parsed.scores[score_name] = DocumentAnalysisScores(
-                score=5,  # Default middle score if not specified
-                justification=(
-                    score_obj.justification
-                    if score_obj.justification
-                    else "Not specified in document"
-                ),
-            )
+            # Only replace if score is None or invalid (not an integer or out of range)
+            score_value = getattr(score_obj, "score", None)
+            if (
+                score_value is None
+                or not isinstance(score_value, int)
+                or not (0 <= score_value <= 10)
+            ):
+                # Invalid score - replace with default
+                parsed.scores[score_name] = DocumentAnalysisScores(
+                    score=5,  # Default middle score if not specified
+                    justification=(
+                        score_obj.justification
+                        if score_obj
+                        and hasattr(score_obj, "justification")
+                        and score_obj.justification
+                        else "Not specified in document"
+                    ),
+                )
+            # Otherwise, keep the valid LLM-provided score (only update justification if missing)
+            elif not score_obj.justification:
+                # Keep the score but ensure justification is present
+                parsed.scores[score_name] = DocumentAnalysisScores(
+                    score=score_value, justification="Not specified in document"
+                )
 
     # Calculate risk_score if not provided
     if not hasattr(parsed, "risk_score"):
