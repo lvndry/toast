@@ -1,7 +1,7 @@
 "use client";
 
 import * as z from "zod";
-import { Mail, MapPin, Phone, Send } from "lucide-react";
+import { Mail, MapPin, Send } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { Header } from "@/components/clausea/Header";
@@ -47,8 +47,8 @@ export default function ContactPage() {
                 <span className="text-secondary italic">Clarity.</span>
               </h1>
               <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
-                Have questions about our enterprise features or security
-                protocols? Our team of legal tech experts is here to assist.
+                Have questions about our enterprise features? Want to share
+                feedback? Our team is here to assist.
               </p>
             </div>
 
@@ -62,20 +62,7 @@ export default function ContactPage() {
                     Email Us
                   </p>
                   <p className="text-lg font-bold text-primary">
-                    hello@clausea.ai
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 group">
-                <div className="w-12 h-12 rounded-2xl bg-secondary/10 text-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Phone className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-primary/40">
-                    Call Support
-                  </p>
-                  <p className="text-lg font-bold text-primary">
-                    +1 (555) 012-3456
+                    contact@clausea.co
                   </p>
                 </div>
               </div>
@@ -88,7 +75,7 @@ export default function ContactPage() {
                     Headquarters
                   </p>
                   <p className="text-lg font-bold text-primary">
-                    San Francisco, CA
+                    Paris, France
                   </p>
                 </div>
               </div>

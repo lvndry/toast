@@ -1,7 +1,6 @@
 import { Cpu, Lock, Shield, Zap } from "lucide-react";
 
 import AsymmetricGrid from "@/components/clausea/AsymmetricGrid";
-import FeatureInteractions from "@/components/clausea/FeatureInteractions";
 import { Header } from "@/components/clausea/Header";
 import { Footer } from "@/components/clausea/PricingAndFooter";
 
@@ -22,11 +21,6 @@ export default function FeaturesPage() {
             engine built specifically for the high-stakes world of legal and
             compliance.
           </p>
-        </section>
-
-        {/* Interactive Demo Section */}
-        <section className="px-4 md:px-8 pb-32">
-          <FeatureInteractions />
         </section>
 
         {/* Deep Dive Grid */}

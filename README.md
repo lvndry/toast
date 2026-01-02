@@ -102,8 +102,8 @@ This project is licensed under the AGPL-3.0 License. See the [LICENSE](LICENSE) 
 
 ## 🆘 Support
 
-<!-- - **Documentation**: [docs.clausea.ai](https://docs.clausea.ai) -->
-<!-- - **API Reference**: [api.clausea.ai](https://api.clausea.ai) -->
+<!-- - **Documentation**: [docs.clausea.co](https://docs.clausea.co) -->
+<!-- - **API Reference**: [api.clausea.co](https://api.clausea.co) -->
 <!-- - **Community**: [Discord](https://discord.gg/clausea) -->
 
 - **Email**: lvndry@proton.me

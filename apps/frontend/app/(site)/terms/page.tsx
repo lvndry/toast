@@ -380,19 +380,19 @@ export default function TermsOfServicePage() {
                 <p className="text-muted-foreground">
                   Email:{" "}
                   <a
-                    href="mailto:legal@clausea.ai"
+                    href="mailto:contact@clausea.co"
                     className="text-primary hover:underline"
                   >
-                    legal@clausea.ai
+                    contact@clausea.co
                   </a>
                 </p>
                 <p className="text-muted-foreground">
                   General inquiries:{" "}
                   <a
-                    href="mailto:hello@clausea.ai"
+                    href="mailto:contact@clausea.co"
                     className="text-primary hover:underline"
                   >
-                    hello@clausea.ai
+                    contact@clausea.co
                   </a>
                 </p>
               </div>

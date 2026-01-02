@@ -28,7 +28,7 @@ LOCALHOST_ADDRESSES = ("127.0.0.1", "localhost", "::1")
 # Service account identity for API key authentication
 SERVICE_ACCOUNT_IDENTITY = {
     "user_id": "service_account",
-    "email": "service@clausea.ai",
+    "email": "service@clausea.co",
     "service": True,
 }
 

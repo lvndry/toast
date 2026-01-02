@@ -230,10 +230,10 @@ export default function PrivacyPolicyPage() {
               <p className="text-muted-foreground leading-relaxed mt-4">
                 To exercise these rights, please contact us at{" "}
                 <a
-                  href="mailto:privacy@clausea.ai"
+                  href="mailto:privacy@clausea.co"
                   className="text-primary hover:underline"
                 >
-                  privacy@clausea.ai
+                  privacy@clausea.co
                 </a>
                 . We will respond to your request within 30 days.
               </p>
@@ -325,19 +325,19 @@ export default function PrivacyPolicyPage() {
                 <p className="text-muted-foreground">
                   Email:{" "}
                   <a
-                    href="mailto:privacy@clausea.ai"
+                    href="mailto:contact@clausea.co"
                     className="text-primary hover:underline"
                   >
-                    privacy@clausea.ai
+                    contact@clausea.co
                   </a>
                 </p>
                 <p className="text-muted-foreground">
                   General inquiries:{" "}
                   <a
-                    href="mailto:hello@clausea.ai"
+                    href="mailto:contact@clausea.co"
                     className="text-primary hover:underline"
                   >
-                    hello@clausea.ai
+                    contact@clausea.co
                   </a>
                 </p>
               </div>
