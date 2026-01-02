@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from typing import Any, Literal
 
@@ -55,6 +56,16 @@ class DocumentAnalysis(BaseModel):
         if v is None:
             return ""
         result = v.strip()
+
+        # Try to parse as JSON and extract summary field if present
+        try:
+            parsed = json.loads(result)
+            if isinstance(parsed, dict) and "summary" in parsed:
+                return str(parsed["summary"])
+        except (json.JSONDecodeError, TypeError):
+            # Not valid JSON or not a dict, continue with original string
+            pass
+
         return str(result)  # Ensure we return str, not Any
 
 

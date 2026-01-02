@@ -75,15 +75,20 @@ class Agent:
             yield "I encountered an error while processing your request."
             return
 
-        message = response.choices[0].message
-        tool_calls = message.tool_calls
+        choice = response.choices[0]
+        if not hasattr(choice, "message"):
+            raise ValueError("Unexpected response format: missing message attribute")
+        message = choice.message  # type: ignore[attr-defined]
+        if not message:
+            raise ValueError("Unexpected response format: message is None")
+        tool_calls = message.tool_calls  # type: ignore[attr-defined]
 
         # Step 2: Handle Tool Calls
         if tool_calls:
             logger.info(f"Agent decided to use tools: {len(tool_calls)} calls")
 
             # Add the assistant's tool call message to history
-            messages.append(message.model_dump())
+            messages.append(message.model_dump())  # type: ignore[attr-defined]
 
             for tool_call in tool_calls:
                 function_name = tool_call.function.name
@@ -131,7 +136,7 @@ class Agent:
                     content = "Unknown tool."
 
                 # Add tool result to history
-                messages.append(
+                messages.append(  # type: ignore[arg-type]
                     {
                         "tool_call_id": tool_call.id,
                         "role": "tool",
@@ -158,8 +163,8 @@ class Agent:
             # than dumping a block of text, even if it costs a bit more latency/tokens.
             # Optimization: If the first response already has content, we could just yield it.
             # But for consistency, let's stream.
-            if message.content:
-                yield message.content
+            if message.content:  # type: ignore[attr-defined]
+                yield message.content  # type: ignore[attr-defined]
             else:
                 # This shouldn't happen if no tools and no content, but just in case
                 async for chunk in self._stream_response(messages):
@@ -174,7 +179,7 @@ class Agent:
                 stream=True,
             )
 
-            async for chunk in response:
+            async for chunk in response:  # type: ignore[union-attr]
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
 

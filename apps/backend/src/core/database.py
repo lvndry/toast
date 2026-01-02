@@ -7,6 +7,7 @@ issues with Streamlit and ensuring clean connection lifecycle.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import certifi
@@ -24,7 +25,7 @@ MONGO_URI = config.database.mongodb_uri
 
 
 @asynccontextmanager
-async def get_db() -> AgnosticDatabase:
+async def get_db() -> AsyncIterator[AgnosticDatabase]:
     """Create a database session in the current event loop.
 
     This context manager ensures:

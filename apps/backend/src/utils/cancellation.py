@@ -13,14 +13,14 @@ class CancellationToken:
     """A cancellation token that can be used to interrupt async operations."""
 
     def __init__(self) -> None:
-        self._cancelled = asyncio.Event()
+        self.cancelled = asyncio.Event()
         self._is_cancelled = False
 
     def cancel(self) -> None:
         """Mark the token as cancelled."""
         if not self._is_cancelled:
             self._is_cancelled = True
-            self._cancelled.set()
+            self.cancelled.set()
             logger.info("Cancellation token set - operations will be interrupted")
 
     def is_cancelled(self) -> bool:
@@ -34,7 +34,7 @@ class CancellationToken:
 
     async def check_cancellation(self) -> None:
         """Check for cancellation and raise if cancelled."""
-        if self._cancelled.is_set():
+        if self.cancelled.is_set():
             raise asyncio.CancelledError("Operation cancelled")
 
 
@@ -102,8 +102,8 @@ async def cancellable_acompletion(
 
     try:
         # Wait for either completion or cancellation
-        done, pending = await asyncio.wait(
-            [task, asyncio.create_task(token._cancelled.wait())],
+        _, pending = await asyncio.wait(
+            [task, asyncio.create_task(token.cancelled.wait())],
             return_when=asyncio.FIRST_COMPLETED,
         )
 

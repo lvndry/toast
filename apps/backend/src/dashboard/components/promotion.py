@@ -1,7 +1,7 @@
 import asyncio
 import time
 from collections.abc import Coroutine
-from typing import Any, cast
+from typing import Any
 
 import streamlit as st
 
@@ -22,9 +22,7 @@ def run_async(coro: Coroutine[Any, Any, Any]) -> Any:
 
 async def get_promotion_summary_async(api_url: str) -> tuple[dict[str, Any], int]:
     """Async function to get promotion summary"""
-    result: tuple[dict[str, Any], int] = await make_api_request(
-        f"{api_url}/promotion/summary"
-    )
+    result: tuple[dict[str, Any], int] = await make_api_request(f"{api_url}/promotion/summary")
     return result
 
 
@@ -361,8 +359,7 @@ def display_promotion_results(data: dict[str, Any]) -> None:
                 and collection_name != "dry_run"
                 and collection_name != "timestamp"
             ):
-                # Cast to Any to allow runtime type checking (dict values can be any type)
-                result = cast(Any, result_value)
+                result = result_value
 
                 # Check if result is a dictionary before processing
                 # Type checker may flag this, but runtime values can be any type

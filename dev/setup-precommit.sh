@@ -154,7 +154,7 @@ main() {
     echo "  ✅ Python code formatting (black)"
     echo "  ✅ Python import sorting (isort)"
     echo "  ✅ Python linting (flake8)"
-    echo "  ✅ Python type checking (mypy)"
+    echo "  ✅ Python type checking (ty)"
     echo "  ✅ Python security checks (bandit)"
     echo "  ✅ JavaScript/TypeScript linting (eslint)"
     echo "  ✅ Frontend code formatting (prettier)"

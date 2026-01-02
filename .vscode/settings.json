@@ -30,6 +30,7 @@
     "**/venv": true,
     "**/env": true
   },
+
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,

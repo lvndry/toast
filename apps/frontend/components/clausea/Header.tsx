@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/data/logo";
@@ -18,6 +18,7 @@ export function Header() {
   const pathname = usePathname();
   const { isSignedIn, isLoaded } = useAuth();
   const headerRef = useRef<HTMLElement>(null);
+  const prevPathnameRef = useRef(pathname);
 
   // Handle scroll state
   useEffect(() => {
@@ -28,14 +29,15 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu on route change - using ref to track previous path
-  const prevPathname = useRef(pathname);
-  if (prevPathname.current !== pathname) {
-    prevPathname.current = pathname;
-    if (isOpen) {
-      setIsOpen(false);
+  // Close mobile menu on route change
+  useEffect(() => {
+    if (prevPathnameRef.current !== pathname && isOpen) {
+      startTransition(() => {
+        setIsOpen(false);
+      });
     }
-  }
+    prevPathnameRef.current = pathname;
+  }, [pathname, isOpen]);
 
   const navLinks = [
     { name: "Features", href: "/features" },

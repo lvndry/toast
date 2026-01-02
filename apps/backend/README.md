@@ -196,7 +196,7 @@ uv run pytest tests/test_embedding_service.py
 uv run ruff check .
 
 # Run type checking
-uv run mypy src/
+uv run ty check
 ```
 
 ## 🔧 Development

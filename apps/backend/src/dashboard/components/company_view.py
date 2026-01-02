@@ -109,7 +109,7 @@ def show_edit_form(company: Company) -> None:
                     slug=slug,
                     domains=domains_list,
                     categories=categories_list,
-                    crawl_base_urls=crawl_base_urls_list,
+                    crawl_base_urls=crawl_base_urls_list if crawl_base_urls_list else [],
                     visible_to_tiers=visible_tiers,
                 )
 

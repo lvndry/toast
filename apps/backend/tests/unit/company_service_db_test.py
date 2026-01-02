@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from src.models.company import Company
-from src.models.document import Document, DocumentAnalysis
+from src.models.document import Document, DocumentAnalysis, DocumentAnalysisScores
+from src.models.user import UserTier
 from src.repositories.company_repository import CompanyRepository
 from src.repositories.document_repository import DocumentRepository
 from src.services.company_service import CompanyService
@@ -51,7 +52,7 @@ async def test_get_company_by_slug(
         categories=["tech"],
         crawl_base_urls=["https://test.com"],
         logo=None,
-        visible_to_tiers=["free", "business", "enterprise"],
+        visible_to_tiers=[UserTier.FREE, UserTier.BUSINESS, UserTier.ENTERPRISE],
     )
     mock_company_repo.find_by_slug.return_value = mock_company
 
@@ -128,7 +129,7 @@ async def test_get_company_analysis(
         domains=["test.com"],
         categories=["tech"],
         crawl_base_urls=["https://test.com"],
-        visible_to_tiers=["free"],
+        visible_to_tiers=[UserTier.FREE],
     )
     mock_company_repo.find_by_slug.return_value = mock_company
 
@@ -144,12 +145,12 @@ async def test_get_company_analysis(
         analysis=DocumentAnalysis(
             summary='{"summary": "CLEANED SUMMARY", "points": []}',  # Should be cleaned by validator
             scores={
-                "transparency": {"score": 8, "justification": "Good"},
-                "data_collection_scope": {"score": 5, "justification": "Medium"},
-                "user_control": {"score": 7, "justification": "Okay"},
-                "third_party_sharing": {"score": 3, "justification": "Bad"},
-                "data_retention_score": {"score": 5, "justification": "Unknown"},
-                "security_score": {"score": 9, "justification": "Strong"},
+                "transparency": DocumentAnalysisScores(score=8, justification="Good"),
+                "data_collection_scope": DocumentAnalysisScores(score=5, justification="Medium"),
+                "user_control": DocumentAnalysisScores(score=7, justification="Okay"),
+                "third_party_sharing": DocumentAnalysisScores(score=3, justification="Bad"),
+                "data_retention_score": DocumentAnalysisScores(score=5, justification="Unknown"),
+                "security_score": DocumentAnalysisScores(score=9, justification="Strong"),
             },
             risk_score=5,
             verdict="moderate",
@@ -181,7 +182,7 @@ async def test_get_company_documents(
         domains=["test.com"],
         categories=["tech"],
         crawl_base_urls=["https://test.com"],
-        visible_to_tiers=["free"],
+        visible_to_tiers=[UserTier.FREE],
     )
     mock_company_repo.find_by_slug.return_value = mock_company
 
@@ -197,12 +198,12 @@ async def test_get_company_documents(
         analysis=DocumentAnalysis(
             summary='{"summary": "JSON SUMMARY", "other": "data"}',
             scores={
-                "transparency": {"score": 8, "justification": "Good"},
-                "data_collection_scope": {"score": 5, "justification": "Medium"},
-                "user_control": {"score": 7, "justification": "Okay"},
-                "third_party_sharing": {"score": 3, "justification": "Bad"},
-                "data_retention_score": {"score": 5, "justification": "Unknown"},
-                "security_score": {"score": 9, "justification": "Strong"},
+                "transparency": DocumentAnalysisScores(score=8, justification="Good"),
+                "data_collection_scope": DocumentAnalysisScores(score=5, justification="Medium"),
+                "user_control": DocumentAnalysisScores(score=7, justification="Okay"),
+                "third_party_sharing": DocumentAnalysisScores(score=3, justification="Bad"),
+                "data_retention_score": DocumentAnalysisScores(score=5, justification="Unknown"),
+                "security_score": DocumentAnalysisScores(score=9, justification="Strong"),
             },
             risk_score=5,
             verdict="moderate",
