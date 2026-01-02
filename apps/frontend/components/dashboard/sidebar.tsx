@@ -30,9 +30,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Logo Section */}
       <div className="p-6 border-b border-border">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative w-9 h-9 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-            <Logo className="w-5 h-5 text-primary" />
-          </div>
+          <Logo className="w-10 h-10" />
           <div className="flex flex-col">
             <span className="font-display font-bold text-lg tracking-tight text-foreground">
               Clausea
