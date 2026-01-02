@@ -28,11 +28,10 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <div className={cn("h-full flex flex-col", className)}>
       {/* Logo Section */}
-      <div className="p-6">
+      <div className="p-6 border-b border-border">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative w-10 h-10 bg-linear-to-br from-primary/20 to-primary/5 border border-primary/20 rounded-xl flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-500 overflow-hidden shadow-sm">
+          <div className="relative w-9 h-9 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/15 transition-colors">
             <Logo className="w-5 h-5 text-primary" />
-            <div className="absolute inset-0 bg-linear-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           </div>
           <div className="flex flex-col">
             <span className="font-display font-bold text-lg tracking-tight text-foreground">
@@ -46,13 +45,13 @@ export function Sidebar({ className }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-4">
-        <div className="space-y-1.5">
+      <nav className="flex-1 py-4 px-3">
+        <div className="space-y-1">
           {routes.map((route) => (
             <Link key={route.href} href={route.href}>
               <div
                 className={cn(
-                  "group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300",
+                  "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
                   route.active
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
@@ -60,12 +59,12 @@ export function Sidebar({ className }: SidebarProps) {
               >
                 {/* Active indicator */}
                 {route.active && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
                 )}
 
                 <div
                   className={cn(
-                    "flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-300",
+                    "flex items-center justify-center w-8 h-8 rounded-md transition-colors",
                     route.active
                       ? "bg-primary/15"
                       : "bg-transparent group-hover:bg-muted",
@@ -87,18 +86,18 @@ export function Sidebar({ className }: SidebarProps) {
       </nav>
 
       {/* Bottom Section */}
-      <div className="p-4 border-t border-border/50">
-        <div className="rounded-xl bg-linear-to-br from-primary/5 via-transparent to-secondary/5 border border-border/50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
-              <Sparkles className="w-4 h-4 text-secondary" />
+      <div className="p-4 border-t border-border">
+        <div className="rounded-lg bg-muted/50 border border-border p-3">
+          <div className="flex items-start gap-2.5">
+            <div className="w-7 h-7 rounded-md bg-secondary/10 flex items-center justify-center shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-secondary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-foreground">
+              <p className="font-medium text-xs text-foreground">
                 AI-Powered Analysis
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                Legal docs simplified with human accuracy
+              <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+                Legal docs simplified
               </p>
             </div>
           </div>
@@ -115,12 +114,12 @@ export function MobileSidebar() {
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden h-10 w-10 rounded-xl hover:bg-muted"
+          className="md:hidden h-9 w-9 rounded-lg hover:bg-muted"
         >
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="p-0 w-72 glass-sidebar border-r-0">
+      <SheetContent side="left" className="p-0 w-72 border-r-0 bg-card">
         <Sidebar />
       </SheetContent>
     </Sheet>

@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  ArrowRight,
   ArrowUpDown,
   ChevronDown,
   Search,
   ShieldAlert,
   Sparkles,
-  Upload,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
@@ -18,12 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -33,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { getVerdictConfig } from "@/lib/verdict";
-import type { Company, Conversation } from "@/types";
+import type { Company } from "@/types";
 import { useUser } from "@clerk/nextjs";
 import { useAnalytics } from "@hooks/useAnalytics";
 
@@ -120,54 +112,47 @@ function CompanyCard({
     return () => summaryObserver.disconnect();
   }, [company.slug, verdict, isLoadingSummary, fetchMetaSummary]);
 
-  const getRiskGradient = (score: number) => {
-    if (score >= 7)
-      return "from-red-500/20 via-red-500/10 to-transparent border-red-500/30";
-    if (score >= 4)
-      return "from-amber-500/20 via-amber-500/10 to-transparent border-amber-500/30";
-    return "from-green-500/20 via-green-500/10 to-transparent border-green-500/30";
+  // Vary card styles - some with borders, some minimal
+  const cardVariants = [
+    "border border-border bg-card",
+    "border-2 border-border/60 bg-card",
+    "border border-border/40 bg-muted/30",
+  ];
+  const cardStyle = cardVariants[index % cardVariants.length];
+
+  // Risk color - solid, not gradient
+  const getRiskColor = (score?: number) => {
+    if (!score) return "bg-muted";
+    if (score >= 7) return "bg-red-500";
+    if (score >= 4) return "bg-amber-500";
+    return "bg-green-500";
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.05 }}
+      transition={{ duration: 0.3, delay: index * 0.03 }}
     >
       <Card
         ref={cardRef}
-        variant="elevated"
+        variant="default"
         className={cn(
-          "group cursor-pointer overflow-hidden",
-          "hover:border-primary/30 hover-glow",
+          "group cursor-pointer transition-all duration-200",
+          cardStyle,
+          "hover:border-primary/50 hover:shadow-md",
         )}
         onClick={onClick}
       >
-        {/* Gradient accent at top */}
-        <div
-          className={cn(
-            "h-1 w-full bg-linear-to-r transition-all duration-500",
-            riskScore !== undefined
-              ? riskScore >= 7
-                ? "from-red-500 via-red-400 to-red-500"
-                : riskScore >= 4
-                  ? "from-amber-500 via-amber-400 to-amber-500"
-                  : "from-green-500 via-green-400 to-green-500"
-              : "from-muted via-muted to-muted",
-          )}
-        />
-
-        <CardContent className="p-6">
-          <div className="flex flex-col gap-5">
+        <CardContent className="p-5">
+          <div className="flex flex-col gap-4">
             {/* Header: Logo + Verdict */}
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-3">
               <div className="relative">
                 {isLoadingLogo ? (
-                  <div className="w-14 h-14 rounded-xl bg-muted animate-pulse flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-primary/30 animate-bounce" />
-                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-muted animate-pulse" />
                 ) : logo ? (
-                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-background border border-border/50 flex items-center justify-center p-2.5 shadow-sm group-hover:scale-105 group-hover:shadow-md transition-all duration-500">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-background border border-border flex items-center justify-center p-2">
                     <img
                       src={logo}
                       alt={`${company.name} logo`}
@@ -176,7 +161,7 @@ function CompanyCard({
                     />
                   </div>
                 ) : (
-                  <div className="w-14 h-14 rounded-xl bg-linear-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary flex items-center justify-center font-display font-bold text-xl shadow-sm group-hover:scale-105 group-hover:shadow-md transition-all duration-500">
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-display font-bold text-lg">
                     {company.name.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -186,11 +171,7 @@ function CompanyCard({
                 <Badge
                   variant="outline"
                   size="sm"
-                  className={cn(
-                    "gap-1 font-bold uppercase tracking-wider rounded-lg",
-                    verdictConfig.cardBg,
-                    verdictConfig.cardColor,
-                  )}
+                  className="gap-1 font-medium uppercase tracking-wide rounded-md"
                 >
                   <verdictConfig.cardIcon className="h-3 w-3" />
                   {verdictConfig.label}
@@ -199,35 +180,34 @@ function CompanyCard({
             </div>
 
             {/* Company Info */}
-            <div className="space-y-1.5">
-              <h3 className="font-display font-bold text-xl text-foreground group-hover:text-primary transition-colors duration-300 flex items-center gap-2">
+            <div className="space-y-1">
+              <h3 className="font-display font-bold text-lg text-foreground group-hover:text-primary transition-colors">
                 {company.name}
-                <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
               </h3>
               {company.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                <p className="text-sm text-muted-foreground line-clamp-2 leading-snug">
                   {company.description}
                 </p>
               )}
             </div>
 
-            {/* Risk Score */}
-            <div className="pt-4 border-t border-border/50 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-muted-foreground uppercase tracking-wider text-[10px]">
-                  Privacy Risk
+            {/* Risk Score - Simple bar */}
+            <div className="pt-3 border-t border-border/50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Risk
                 </span>
-                <span className="font-bold text-foreground text-sm">
+                <span className="text-sm font-bold text-foreground">
                   {isLoadingSummary ? (
-                    <Skeleton className="w-10 h-4" />
+                    <Skeleton className="w-8 h-4" />
                   ) : riskScore !== undefined ? (
                     <span
                       className={cn(
                         riskScore >= 7
-                          ? "text-red-500"
+                          ? "text-red-600"
                           : riskScore >= 4
-                            ? "text-amber-500"
-                            : "text-green-500",
+                            ? "text-amber-600"
+                            : "text-green-600",
                       )}
                     >
                       {Math.round(riskScore)}/10
@@ -238,27 +218,21 @@ function CompanyCard({
                 </span>
               </div>
 
-              {/* Progress bar */}
-              <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+              {/* Simple progress bar */}
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 {isLoadingSummary ? (
-                  <div className="h-full w-1/3 bg-muted-foreground/20 animate-pulse rounded-full" />
+                  <div className="h-full w-1/3 bg-muted-foreground/20 animate-pulse" />
                 ) : riskScore !== undefined ? (
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${(riskScore / 10) * 100}%` }}
-                    transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
                     className={cn(
                       "h-full rounded-full",
-                      riskScore >= 7
-                        ? "bg-linear-to-r from-red-500 to-red-400"
-                        : riskScore >= 4
-                          ? "bg-linear-to-r from-amber-500 to-amber-400"
-                          : "bg-linear-to-r from-green-500 to-green-400",
+                      getRiskColor(riskScore),
                     )}
                   />
-                ) : (
-                  <div className="h-full w-0 rounded-full" />
-                )}
+                ) : null}
               </div>
             </div>
           </div>
@@ -286,19 +260,11 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [uploadLoading, setUploadLoading] = useState(false);
 
-  // Upload form state
-  const [companyName, setCompanyName] = useState("");
-  const [companyDescription, setCompanyDescription] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-  // Track page view
   useEffect(() => {
     trackPageView("companies");
   }, [trackPageView]);
 
-  // Track search
   useEffect(() => {
     if (searchTerm.trim()) {
       const filteredCount = companies.filter(
@@ -313,7 +279,6 @@ export default function CompaniesPage() {
     }
   }, [searchTerm, companies, trackUserJourney]);
 
-  // Fetch companies
   useEffect(() => {
     async function fetchCompanies() {
       try {
@@ -392,79 +357,6 @@ export default function CompaniesPage() {
     return 0;
   });
 
-  async function handleUpload() {
-    if (!selectedFile || !companyName.trim()) return;
-
-    setUploadLoading(true);
-    try {
-      trackUserJourney.documentUploadStarted(
-        selectedFile.type,
-        selectedFile.size,
-      );
-
-      const conversationResponse = await fetch("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user?.id || "anonymous",
-          company_name: companyName,
-          company_description: companyDescription,
-        }),
-      });
-
-      if (!conversationResponse.ok)
-        throw new Error("Failed to create conversation");
-      const conversation: Conversation = await conversationResponse.json();
-
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("company_name", companyName);
-      if (companyDescription)
-        formData.append("company_description", companyDescription);
-
-      const uploadResponse = await fetch(
-        `/api/conversations/${conversation.id}/upload`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        const errorMessage = errorData.detail || "Failed to upload document";
-        trackUserJourney.documentUploadFailed(selectedFile.type, errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      trackUserJourney.documentUploadCompleted(
-        selectedFile.type,
-        selectedFile.size,
-        companyName,
-      );
-      router.push(`/c/${conversation.id}`);
-
-      setCompanyName("");
-      setCompanyDescription("");
-      setSelectedFile(null);
-    } catch (error) {
-      console.error("Upload error:", error);
-      if (selectedFile) {
-        trackUserJourney.documentUploadFailed(
-          selectedFile.type,
-          error instanceof Error ? error.message : "Unknown error",
-        );
-      }
-    } finally {
-      setUploadLoading(false);
-    }
-  }
-
-  function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (file) setSelectedFile(file);
-  }
-
   function handleCompanyClick(company: Company) {
     trackUserJourney.companyViewed(company.slug, company.name);
     router.push(`/companies/${company.slug}`);
@@ -472,20 +364,15 @@ export default function CompaniesPage() {
 
   if (loading) {
     return (
-      <div className="space-y-10">
-        {/* Header skeleton */}
+      <div className="space-y-8">
         <div className="space-y-3">
-          <Skeleton className="h-12 w-72" />
+          <Skeleton className="h-10 w-64" />
           <Skeleton className="h-5 w-96" />
         </div>
-
-        {/* Search skeleton */}
-        <Skeleton className="h-14 w-full rounded-2xl" />
-
-        {/* Grid skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Skeleton className="h-12 w-full rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-[240px] rounded-2xl" />
+            <Skeleton key={i} className="h-[200px] rounded-xl" />
           ))}
         </div>
       </div>
@@ -498,20 +385,20 @@ export default function CompaniesPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center space-y-6 max-w-md mx-auto p-8"
+          className="text-center space-y-4 max-w-md mx-auto p-6"
         >
-          <div className="w-20 h-20 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
-            <ShieldAlert className="h-10 w-10 text-destructive" />
+          <div className="w-16 h-16 rounded-xl bg-destructive/10 flex items-center justify-center mx-auto">
+            <ShieldAlert className="h-8 w-8 text-destructive" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold font-display text-foreground">
+            <h2 className="text-xl font-bold font-display text-foreground">
               Error Loading Companies
             </h2>
             <p className="text-muted-foreground">{error}</p>
           </div>
           <Button
             onClick={() => window.location.reload()}
-            className="rounded-xl"
+            className="rounded-lg"
           >
             Try Again
           </Button>
@@ -521,59 +408,42 @@ export default function CompaniesPage() {
   }
 
   return (
-    <div className="flex flex-col space-y-10">
-      {/* Hero Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="space-y-4"
-      >
+    <div className="flex flex-col space-y-8">
+      {/* Header - More personality */}
+      <div className="space-y-3">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-linear-to-br from-primary/20 to-secondary/20 border border-primary/20 flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-primary" />
+          <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground tracking-tight">
-              Service{" "}
-              <span className="text-primary font-serif italic">
-                Intelligence
-              </span>
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">
+              Service Intelligence
             </h1>
           </div>
         </div>
-        <p className="text-lg text-muted-foreground max-w-2xl">
-          AI-powered privacy analysis for the services you use daily. Understand
-          what you're agreeing to.
+        <p className="text-muted-foreground text-base max-w-2xl">
+          Understand what you're agreeing to. AI-powered privacy analysis for
+          the services you use daily.
         </p>
-      </motion.div>
+      </div>
 
-      {/* Search & Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-        className="glass-panel rounded-2xl p-2 flex flex-col md:flex-row gap-2"
-      >
+      {/* Search - Simple, solid */}
+      <div className="rounded-xl border border-border bg-card p-2 flex flex-col md:flex-row gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/50" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
           <Input
-            placeholder="Search companies like Spotify, TikTok, or Linear..."
+            placeholder="Search companies..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-12 h-12 border-none bg-transparent focus-visible:ring-0 text-base placeholder:text-muted-foreground/50 rounded-xl"
+            className="pl-10 h-10 border-none bg-transparent focus-visible:ring-0 text-sm"
           />
         </div>
 
-        <div className="flex items-center gap-2 px-2 md:px-0">
-          <div className="hidden md:block w-px h-8 bg-border/50" />
+        <div className="flex items-center gap-2 px-2">
+          <div className="hidden md:block w-px h-6 bg-border" />
 
-          <Badge variant="secondary" size="lg" className="gap-2 rounded-xl">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary" />
-            </span>
-            {filteredCompanies.length} companies
+          <Badge variant="secondary" size="sm" className="gap-1.5 rounded-md">
+            {filteredCompanies.length}
           </Badge>
 
           <DropdownMenu>
@@ -581,9 +451,9 @@ export default function CompaniesPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-10 rounded-xl px-4 hover:bg-muted/50"
+                className="h-9 rounded-lg px-3 text-sm"
               >
-                <ArrowUpDown className="mr-2 h-4 w-4" />
+                <ArrowUpDown className="mr-2 h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Sort:</span>
                 <span className="ml-1 capitalize text-primary font-medium">
                   {sortBy}
@@ -591,53 +461,52 @@ export default function CompaniesPage() {
                 <ChevronDown className="ml-2 h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 p-2 rounded-xl">
+            <DropdownMenuContent align="end" className="w-48 p-1 rounded-lg">
               <DropdownMenuItem
                 onClick={() => setSortBy("name")}
-                className="rounded-lg cursor-pointer"
+                className="rounded-md cursor-pointer"
               >
                 Name (A-Z)
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setSortBy("risk")}
-                className="rounded-lg cursor-pointer"
+                className="rounded-md cursor-pointer"
               >
-                Risk Level (High-Low)
+                Risk Level
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setSortBy("recent")}
-                className="rounded-lg cursor-pointer"
+                className="rounded-md cursor-pointer"
               >
                 Recently Updated
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Grid */}
+      {/* Grid - Varied spacing */}
       <AnimatePresence mode="popLayout">
         {filteredCompanies.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center py-24 text-center space-y-6"
+            className="flex flex-col items-center justify-center py-20 text-center space-y-4"
           >
-            <div className="w-24 h-24 rounded-2xl bg-muted/30 flex items-center justify-center">
-              <Search className="h-12 w-12 text-muted-foreground/30" />
+            <div className="w-20 h-20 rounded-xl bg-muted/50 flex items-center justify-center">
+              <Search className="h-10 w-10 text-muted-foreground/30" />
             </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-bold font-display">
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold font-display">
                 No services found
               </h3>
-              <p className="text-muted-foreground max-w-sm mx-auto">
-                Try searching for a different company or check back later for
-                new analyses.
+              <p className="text-muted-foreground max-w-sm mx-auto text-sm">
+                Try searching for a different company or check back later.
               </p>
             </div>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {sortedCompanies.map((company, index) => {
               const verdict = companySummaries[company.slug]?.verdict;
               const riskScore = companySummaries[company.slug]?.risk_score;
@@ -659,116 +528,6 @@ export default function CompaniesPage() {
           </div>
         )}
       </AnimatePresence>
-
-      {/* Upload Dialog */}
-      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent className="sm:max-w-2xl glass-panel p-0 overflow-hidden gap-0 rounded-3xl shadow-2xl border-0">
-          <div className="h-1.5 w-full bg-linear-to-r from-primary via-secondary to-primary" />
-          <div className="p-8 md:p-10 space-y-8">
-            <DialogHeader>
-              <DialogTitle className="text-3xl font-display font-bold tracking-tight">
-                Analyze a{" "}
-                <span className="text-primary font-serif italic font-normal">
-                  Service
-                </span>
-              </DialogTitle>
-              <p className="text-muted-foreground">
-                Upload terms of service or privacy policies to generate a
-                simplified summary.
-              </p>
-            </DialogHeader>
-
-            <div className="space-y-6">
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Entity Name
-                  </label>
-                  <Input
-                    placeholder="e.g. OpenAI"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="h-12 bg-muted/30 border-border/50 focus:bg-background transition-colors rounded-xl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Industry
-                  </label>
-                  <Input
-                    placeholder="e.g. AI / Tech"
-                    className="h-12 bg-muted/30 border-border/50 focus:bg-background transition-colors rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Document
-                </label>
-                <div
-                  className={cn(
-                    "border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300",
-                    selectedFile
-                      ? "border-primary/50 bg-primary/5"
-                      : "border-border/50 hover:border-primary/30 hover:bg-muted/30",
-                  )}
-                  onClick={() =>
-                    document.getElementById("file-upload")?.click()
-                  }
-                >
-                  <div className="flex flex-col items-center gap-4">
-                    <div
-                      className={cn(
-                        "w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300",
-                        selectedFile
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      <Upload className="h-7 w-7" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="font-medium text-foreground">
-                        {selectedFile
-                          ? selectedFile.name
-                          : "Click to upload or drag and drop"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        PDF, DOCX, or TXT (Max 10MB)
-                      </p>
-                    </div>
-                  </div>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    accept=".pdf,.doc,.docx,.txt"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                variant="ghost"
-                onClick={() => setIsUploadOpen(false)}
-                className="rounded-xl"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUpload}
-                disabled={uploadLoading || !selectedFile || !companyName.trim()}
-                className="rounded-xl px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
-              >
-                {uploadLoading ? "Processing..." : "Analyze Document"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
