@@ -18,7 +18,6 @@ dependencies = [
     "markdown>=3.8",
     "markdownify>=1.1.0",
     "motor[zstd]>=3.7.0",
-    "mypy>=1.15.0",
     "nanoid>=2.0.0",
     "nltk>=3.9.1",
     "pdfplumber>=0.11.7",
