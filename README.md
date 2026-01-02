@@ -1,11 +1,12 @@
-# Clausea 🌊
+<div align="center">
+  <img src="apps/frontend/public/static/favicons/logo.png" alt="Clausea Logo" width="200"/>
+</div>
+
+# Clausea
 
 **The definitive legal document intelligence platform** - Transform complex legal documents into clear, actionable insights with AI-powered analysis.
 
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Contributing](https://img.shields.io/badge/Contributing-Welcome-brightgreen.svg)](CONTRIBUTING.md)
-
-[Try now](clausea.vercel.app)
+<a href="https://clausea.co" style="display: inline-block; padding: 6px 14px; background: #0070f3; color: white; text-decoration: none; border-radius: 4px; font-weight: 500;">Try now</a>
 
 ## 🎯 Mission
 

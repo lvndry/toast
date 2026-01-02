@@ -20,9 +20,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata = {
-  title: "Clausea AI - Documents weren't written for you... until now",
+  title: "Clausea AI - Legal documents were not written for you... until now",
   description:
-    "Illuminate legal complexities with AI precision. Summarize, analyze, and perform RAG on dense legal documents instantly.",
+    "Navigate legal complexities with AI precision. Summarize, analyze and ask questions to dense legal documents instantly.",
 };
 
 export default function Layout(props: { children: React.ReactNode }) {
