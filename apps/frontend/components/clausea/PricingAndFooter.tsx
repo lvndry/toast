@@ -1,8 +1,10 @@
 "use client";
 
-import { CheckCircle2, Github, Linkedin, Mail, Twitter } from "lucide-react";
+import { CheckCircle2, Mail } from "lucide-react";
 import { motion, useInView } from "motion/react";
 import Link from "next/link";
+import { FaGithub } from "react-icons/fa";
+import { FaTwitter } from "react-icons/fa6";
 
 import { useRef } from "react";
 
@@ -187,9 +189,8 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-3">
               {[
-                { icon: Twitter, href: "#" },
-                { icon: Github, href: "#" },
-                { icon: Linkedin, href: "#" },
+                { icon: FaTwitter, href: "https://x.com/clausea_ai" },
+                { icon: FaGithub, href: "https://github.com/lvndry/clausea" },
               ].map(({ icon: Icon, href }, i) => (
                 <a
                   key={i}
@@ -226,7 +227,7 @@ export function Footer() {
                 Resources
               </h5>
               <ul className="space-y-3">
-                {["Documentation", "Security", "Support", "Blog"].map((l) => (
+                {["Security", "Support", "Blog"].map((l) => (
                   <li key={l}>
                     <Link
                       href="#"
@@ -243,21 +244,38 @@ export function Footer() {
                 Legal
               </h5>
               <ul className="space-y-3">
-                {[
-                  "Privacy Policy",
-                  "Terms of Service",
-                  "Cookie Policy",
-                  "GDPR",
-                ].map((l) => (
-                  <li key={l}>
-                    <Link
-                      href="#"
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      {l}
-                    </Link>
-                  </li>
-                ))}
+                <li>
+                  <Link
+                    href="/privacy"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/terms"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Cookie Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    GDPR
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
@@ -298,9 +316,6 @@ export function Footer() {
             </Link>
             <Link href="#" className="hover:text-primary transition-colors">
               Security
-            </Link>
-            <Link href="#" className="hover:text-primary transition-colors">
-              Accessibility
             </Link>
           </div>
         </div>
