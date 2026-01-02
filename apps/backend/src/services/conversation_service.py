@@ -219,7 +219,17 @@ class ConversationService:
                 ],
                 temperature=0.5,
             )
-            title = resp.choices[0].message.content.strip()
+            # Extract content from response (non-streaming responses have message attribute)
+            choice = resp.choices[0]
+            if not hasattr(choice, "message"):
+                raise ValueError("Unexpected response format: missing message attribute")
+            message = choice.message  # type: ignore[attr-defined]
+            if not message:
+                raise ValueError("Unexpected response format: message is None")
+            content = message.content  # type: ignore[attr-defined]
+            if not content:
+                raise ValueError("Empty response from LLM")
+            title = content.strip()
             # Post-process length and cleanliness
             if len(title) > 60:
                 title = title[:60].rstrip()

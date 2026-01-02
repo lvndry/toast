@@ -199,24 +199,21 @@ def _ensure_required_scores(parsed: DocumentAnalysis) -> DocumentAnalysis:
         else:
             score_obj = parsed.scores[score_name]
             # If score is None or invalid, set to default
-            if not isinstance(score_obj, DocumentAnalysisScores):
-                parsed.scores[score_name] = DocumentAnalysisScores(
-                    score=5, justification="Not specified in document"
-                )
-            elif score_obj.score is None:
-                parsed.scores[score_name] = DocumentAnalysisScores(
-                    score=5,  # Default middle score if not specified
-                    justification=(
-                        score_obj.justification if score_obj.justification else "Not specified in document"
-                    ),
-                )
+            parsed.scores[score_name] = DocumentAnalysisScores(
+                score=5,  # Default middle score if not specified
+                justification=(
+                    score_obj.justification
+                    if score_obj.justification
+                    else "Not specified in document"
+                ),
+            )
 
     # Calculate risk_score if not provided
-    if not hasattr(parsed, "risk_score") or parsed.risk_score is None:
+    if not hasattr(parsed, "risk_score"):
         parsed.risk_score = _calculate_risk_score(parsed.scores)
 
     # Calculate verdict if not provided or doesn't match risk_score
-    if not hasattr(parsed, "verdict") or parsed.verdict is None:
+    if not hasattr(parsed, "verdict"):
         parsed.verdict = _calculate_verdict(parsed.risk_score)
     else:
         # Verify verdict matches risk_score (recalculate if mismatch)
@@ -285,10 +282,10 @@ def _get_model_priority(document: Document) -> list[SupportedModel]:
     if should_use_reasoning_model(document):
         # For complex documents, prefer reasoning models (provider-agnostic)
         # The fallback chain will select the best available reasoning model
-        return ["gpt-5-mini", "grok-4-1-fast-reasoning", "gemini-2.5-flash"]  # type: ignore[list-item]
+        return ["gpt-5-mini", "grok-4-1-fast-reasoning", "gemini-2.5-flash"]
     else:
         # For simpler documents, use cost-effective models
-        return ["gpt-5-mini", "grok-4-1-fast-non-reasoning", "gemini-2.5-flash"]  # type: ignore[list-item]
+        return ["gpt-5-mini", "grok-4-1-fast-non-reasoning", "gemini-2.5-flash"]
 
 
 async def summarize_document(
@@ -414,8 +411,8 @@ Document content:
                 )
 
                 # Wait for either completion or cancellation
-                cancellation_task = asyncio.create_task(token._cancelled.wait())
-                done, pending = await asyncio.wait(
+                cancellation_task = asyncio.create_task(token.cancelled.wait())
+                _, pending = await asyncio.wait(
                     [llm_task, cancellation_task],
                     return_when=asyncio.FIRST_COMPLETED,
                 )
@@ -440,7 +437,17 @@ Document content:
                 # Get the response
                 response = await llm_task
 
-            summary_data = response.choices[0].message.content
+            # Extract content from response (non-streaming responses have message attribute)
+            choice = response.choices[0]
+            if not hasattr(choice, "message"):
+                raise ValueError("Unexpected response format: missing message attribute")
+            message = choice.message  # type: ignore[attr-defined]
+            if not message:
+                raise ValueError("Unexpected response format: message is None")
+            content = message.content  # type: ignore[attr-defined]
+            if not content:
+                raise ValueError("Empty response from LLM")
+            summary_data = content
             if not summary_data:
                 raise ValueError("Empty response from LLM")
 
@@ -759,7 +766,7 @@ Create a unified summary that provides complete value in under 5 minutes of read
             )
 
             # Wait for either completion or cancellation
-            cancellation_task = asyncio.create_task(token._cancelled.wait())
+            cancellation_task = asyncio.create_task(token.cancelled.wait())
             done, pending = await asyncio.wait(
                 [llm_task, cancellation_task],
                 return_when=asyncio.FIRST_COMPLETED,
@@ -785,12 +792,22 @@ Create a unified summary that provides complete value in under 5 minutes of read
             # Get the response
             response = await llm_task
 
-        logger.debug(response.choices[0].message.content)
+        # Extract content from response (non-streaming responses have message attribute)
+        choice = response.choices[0]
+        # Non-streaming responses always have message attribute
+        if not hasattr(choice, "message"):
+            raise ValueError("Unexpected response format: missing message attribute")
+        message = choice.message  # type: ignore[attr-defined]
+        if not message:
+            raise ValueError("Unexpected response format: message is None")
+        content = message.content  # type: ignore[attr-defined]
+        if not content:
+            raise ValueError("Empty response from LLM")
+
+        logger.debug(content)
 
         # Parse the meta-summary
-        meta_summary = MetaSummary.model_validate_json(
-            response.choices[0].message.content, strict=False
-        )
+        meta_summary = MetaSummary.model_validate_json(content, strict=False)
 
         # Save to database with document signature
         await comp_svc.save_meta_summary(
@@ -896,7 +913,18 @@ Existing Analysis:
 
         import json
 
-        data = json.loads(response.choices[0].message.content)
+        # Extract content from response (non-streaming responses have message attribute)
+        choice = response.choices[0]
+        if not hasattr(choice, "message"):
+            raise ValueError("Unexpected response format: missing message attribute")
+        message = choice.message  # type: ignore[attr-defined]
+        if not message:
+            raise ValueError("Unexpected response format: message is None")
+        content = message.content  # type: ignore[attr-defined]
+        if not content:
+            raise ValueError("Empty response from LLM")
+
+        data = json.loads(content)
 
         # Safely construct DocumentRiskBreakdown with defaults if needed
         risk_breakdown_data = data.get("document_risk_breakdown", {})
@@ -1085,7 +1113,18 @@ Perform cross-document analysis, compliance assessment, and business impact anal
 
         import json
 
-        agg_data = json.loads(response.choices[0].message.content)
+        # Extract content from response (non-streaming responses have message attribute)
+        choice = response.choices[0]
+        if not hasattr(choice, "message"):
+            raise ValueError("Unexpected response format: missing message attribute")
+        message = choice.message  # type: ignore[attr-defined]
+        if not message:
+            raise ValueError("Unexpected response format: message is None")
+        content = message.content  # type: ignore[attr-defined]
+        if not content:
+            raise ValueError("Empty response from LLM")
+
+        agg_data = json.loads(content)
 
         # Construct final object
         cross_document_analysis = CrossDocumentAnalysis(

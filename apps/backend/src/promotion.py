@@ -81,7 +81,7 @@ class PromotionManager:
     async def get_collection_stats(self, collection_name: str) -> dict[str, Any]:
         """Get statistics for a collection in both databases."""
         try:
-            if not self.local_db or not self.production_db:
+            if self.local_db is None or self.production_db is None:
                 raise ValueError("Database connections not established")
 
             local_count = await self.local_db[collection_name].count_documents({})
@@ -103,7 +103,7 @@ class PromotionManager:
     async def promote_companies(self, dry_run: bool = True) -> dict[str, Any]:
         """Promote companies from local to production."""
         try:
-            if not self.local_db or not self.production_db:
+            if self.local_db is None or self.production_db is None:
                 raise ValueError("Database connections not established")
 
             companies = await self.local_db.companies.find().to_list(length=None)
@@ -150,7 +150,7 @@ class PromotionManager:
     async def promote_documents(self, dry_run: bool = True) -> dict[str, Any]:
         """Promote documents from local to production."""
         try:
-            if not self.local_db or not self.production_db:
+            if self.local_db is None or self.production_db is None:
                 raise ValueError("Database connections not established")
 
             documents = await self.local_db.documents.find().to_list(length=None)
@@ -197,7 +197,7 @@ class PromotionManager:
     async def promote_meta_summaries(self, dry_run: bool = True) -> dict[str, Any]:
         """Promote meta summaries from local to production."""
         try:
-            if not self.local_db or not self.production_db:
+            if self.local_db is None or self.production_db is None:
                 raise ValueError("Database connections not established")
 
             meta_summaries = await self.local_db.meta_summaries.find().to_list(length=None)
@@ -244,7 +244,7 @@ class PromotionManager:
     async def promote_users_to_tier_system(self, dry_run: bool = True) -> dict[str, Any]:
         """Promote existing users to include tier and monthly_usage fields."""
         try:
-            if not self.local_db:
+            if self.local_db is None:
                 raise ValueError("Database connections not established")
 
             logger.info("Starting user tier promotion...")

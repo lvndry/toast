@@ -95,7 +95,17 @@ async def check_compliance(regulation: str, company_slug: str) -> str:
 
     try:
         response = await acompletion_with_fallback(messages=messages)
-        return str(response.choices[0].message.content)
+        # Extract content from response (non-streaming responses have message attribute)
+        choice = response.choices[0]
+        if not hasattr(choice, "message"):
+            raise ValueError("Unexpected response format: missing message attribute")
+        message = choice.message  # type: ignore[attr-defined]
+        if not message:
+            raise ValueError("Unexpected response format: message is None")
+        content = message.content  # type: ignore[attr-defined]
+        if not content:
+            raise ValueError("Empty response from LLM")
+        return str(content)
     except Exception as e:
         logger.error(f"Error checking compliance: {e}")
         return f"Error checking compliance: {str(e)}"

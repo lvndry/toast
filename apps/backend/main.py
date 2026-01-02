@@ -18,17 +18,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
-app = FastAPI(title="Clausea API", lifespan=lifespan, version="1.0.0")
+app = FastAPI(title="Clausea API", lifespan=lifespan, version="1.0.0")  # type: ignore
 
 
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # type: ignore
     allow_origins=config.cors.origins,
     allow_methods=config.cors.methods,
     allow_headers=config.cors.headers,
     allow_credentials=config.cors.credentials,
 )
-app.add_middleware(AuthMiddleware)
+app.add_middleware(AuthMiddleware)  # type: ignore
 
 
 @app.get("/health")

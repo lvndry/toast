@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from src.core.database import get_db
 from src.core.logging import get_logger
-from src.models.conversation import Conversation
+from src.models.conversation import Conversation, Message
 from src.services.service_factory import create_conversation_service
 
 logger = get_logger(__name__)
@@ -106,12 +106,12 @@ async def get_user_conversations_route(
 @router.post("/{conversation_id}/messages")
 async def send_message(
     request: SendMessageRequest, db: AgnosticDatabase = Depends(get_db)
-) -> dict[str, str]:
+) -> dict[str, Message]:
     """Send a message in a conversation."""
     try:
         try:
             service = create_conversation_service()
-            result: dict[str, Any] = await service.send_message(
+            result: dict[str, Message] = await service.send_message(
                 db, request.conversation_id, request.message
             )
             return result

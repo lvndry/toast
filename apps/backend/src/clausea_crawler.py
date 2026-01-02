@@ -1053,9 +1053,9 @@ class ClauseaCrawler:
                 if self.proxy:
                     context_args["proxy"] = {"server": self.proxy}
 
-                self.browser_context = await self.browser_instance.new_context(**context_args)
+                self.browser_context = await self.browser_instance.new_context(**context_args)  # type: ignore[arg-type]
 
-            return self.browser_instance, self.browser_context
+            return self.browser_instance, self.browser_context  # type: ignore[return-value]
 
     async def _cleanup_browser(self) -> None:
         """Clean up Playwright resources."""

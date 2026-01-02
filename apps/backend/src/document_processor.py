@@ -231,7 +231,18 @@ Use caution: If the content appears incomplete, vague, or primarily promotional,
                 response_format={"type": "json_object"},
             )
 
-            result: dict[str, Any] = json.loads(response.choices[0].message.content)
+            # Extract content from response (non-streaming responses have message attribute)
+            choice = response.choices[0]
+            if not hasattr(choice, "message"):
+                raise ValueError("Unexpected response format: missing message attribute")
+            message = choice.message  # type: ignore[attr-defined]
+            if not message:
+                raise ValueError("Unexpected response format: message is None")
+            content = message.content  # type: ignore[attr-defined]
+            if not content:
+                raise ValueError("Empty response from LLM")
+
+            result: dict[str, Any] = json.loads(content)
             logger.debug(f"Document classification result: {result}")
             return result
 

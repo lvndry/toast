@@ -226,7 +226,18 @@ Example output:
                     response_format={"type": "json_object"},
                 )
 
-            result = json.loads(response.choices[0].message.content)
+            # Extract content from response (non-streaming responses have message attribute)
+            choice = response.choices[0]
+            if not hasattr(choice, "message"):
+                raise ValueError("Unexpected response format: missing message attribute")
+            message = choice.message  # type: ignore[attr-defined]
+            if not message:
+                raise ValueError("Unexpected response format: message is None")
+            content = message.content  # type: ignore[attr-defined]
+            if not content:
+                raise ValueError("Empty response from LLM")
+
+            result = json.loads(content)
             logger.debug(f"LLM locale detection result: {result}")
             return result  # type: ignore
 
@@ -293,7 +304,18 @@ Note: Cookie banners, navigation elements, or links to legal documents don't cou
                     response_format={"type": "json_object"},
                 )
 
-            result = json.loads(response.choices[0].message.content)
+            # Extract content from response (non-streaming responses have message attribute)
+            choice = response.choices[0]
+            if not hasattr(choice, "message"):
+                raise ValueError("Unexpected response format: missing message attribute")
+            message = choice.message  # type: ignore[attr-defined]
+            if not message:
+                raise ValueError("Unexpected response format: message is None")
+            content = message.content  # type: ignore[attr-defined]
+            if not content:
+                raise ValueError("Empty response from LLM")
+
+            result = json.loads(content)
             logger.debug(f"Document classification result: {result}")
             return result  # type: ignore
 
@@ -357,8 +379,18 @@ Return JSON:
                     response_format={"type": "json_object"},
                 )
 
-            result = json.loads(response.choices[0].message.content)
+            # Extract content from response (non-streaming responses have message attribute)
+            choice = response.choices[0]
+            if not hasattr(choice, "message"):
+                raise ValueError("Unexpected response format: missing message attribute")
+            message = choice.message  # type: ignore[attr-defined]
+            if not message:
+                raise ValueError("Unexpected response format: message is None")
+            content = message.content  # type: ignore[attr-defined]
+            if not content:
+                raise ValueError("Empty response from LLM")
 
+            result: dict[str, Any] = json.loads(content)
             # Convert to Document region format
             regions = self._map_regions_to_document_format(
                 result.get("is_global", True), result.get("specific_regions", [])
@@ -584,7 +616,18 @@ IMPORTANT: Return null for effective_date if you cannot find a clear effective d
                     response_format={"type": "json_object"},
                 )
 
-            result = json.loads(response.choices[0].message.content)
+            # Extract content from response (non-streaming responses have message attribute)
+            choice = response.choices[0]
+            if not hasattr(choice, "message"):
+                raise ValueError("Unexpected response format: missing message attribute")
+            message = choice.message  # type: ignore[attr-defined]
+            if not message:
+                raise ValueError("Unexpected response format: message is None")
+            content = message.content  # type: ignore[attr-defined]
+            if not content:
+                raise ValueError("Empty response from LLM")
+
+            result = json.loads(content)
             effective_date = result.get("effective_date")
 
             if effective_date:
