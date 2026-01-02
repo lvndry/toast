@@ -226,7 +226,6 @@ Example output:
                     response_format={"type": "json_object"},
                 )
 
-            # Extract content from response (non-streaming responses have message attribute)
             choice = response.choices[0]
             if not hasattr(choice, "message"):
                 raise ValueError("Unexpected response format: missing message attribute")
@@ -304,7 +303,6 @@ Note: Cookie banners, navigation elements, or links to legal documents don't cou
                     response_format={"type": "json_object"},
                 )
 
-            # Extract content from response (non-streaming responses have message attribute)
             choice = response.choices[0]
             if not hasattr(choice, "message"):
                 raise ValueError("Unexpected response format: missing message attribute")
@@ -379,7 +377,6 @@ Return JSON:
                     response_format={"type": "json_object"},
                 )
 
-            # Extract content from response (non-streaming responses have message attribute)
             choice = response.choices[0]
             if not hasattr(choice, "message"):
                 raise ValueError("Unexpected response format: missing message attribute")
@@ -391,7 +388,7 @@ Return JSON:
                 raise ValueError("Empty response from LLM")
 
             result: dict[str, Any] = json.loads(content)
-            # Convert to Document region format
+
             regions = self._map_regions_to_document_format(
                 result.get("is_global", True), result.get("specific_regions", [])
             )
@@ -616,7 +613,6 @@ IMPORTANT: Return null for effective_date if you cannot find a clear effective d
                     response_format={"type": "json_object"},
                 )
 
-            # Extract content from response (non-streaming responses have message attribute)
             choice = response.choices[0]
             if not hasattr(choice, "message"):
                 raise ValueError("Unexpected response format: missing message attribute")

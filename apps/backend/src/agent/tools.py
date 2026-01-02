@@ -95,7 +95,6 @@ async def check_compliance(regulation: str, company_slug: str) -> str:
 
     try:
         response = await acompletion_with_fallback(messages=messages)
-        # Extract content from response (non-streaming responses have message attribute)
         choice = response.choices[0]
         if not hasattr(choice, "message"):
             raise ValueError("Unexpected response format: missing message attribute")

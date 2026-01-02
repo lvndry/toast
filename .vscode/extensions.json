@@ -7,6 +7,7 @@
     "ms-python.python",
     "charliermarsh.ruff",
     "bradlc.vscode-tailwindcss",
-    "mike-co.import-sorter"
+    "mike-co.import-sorter",
+    "astral-sh.ty"
   ]
 }

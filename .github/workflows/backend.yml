@@ -57,7 +57,7 @@ jobs:
 
       - name: Run type checking with mypy
         run: |
-          uv run mypy src/
+          uv run ty check
 
       - name: Run security checks with bandit
         run: |

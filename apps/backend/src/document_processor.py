@@ -231,7 +231,6 @@ Use caution: If the content appears incomplete, vague, or primarily promotional,
                 response_format={"type": "json_object"},
             )
 
-            # Extract content from response (non-streaming responses have message attribute)
             choice = response.choices[0]
             if not hasattr(choice, "message"):
                 raise ValueError("Unexpected response format: missing message attribute")

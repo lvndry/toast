@@ -437,7 +437,6 @@ Document content:
                 # Get the response
                 response = await llm_task
 
-            # Extract content from response (non-streaming responses have message attribute)
             choice = response.choices[0]
             if not hasattr(choice, "message"):
                 raise ValueError("Unexpected response format: missing message attribute")
@@ -792,7 +791,6 @@ Create a unified summary that provides complete value in under 5 minutes of read
             # Get the response
             response = await llm_task
 
-        # Extract content from response (non-streaming responses have message attribute)
         choice = response.choices[0]
         # Non-streaming responses always have message attribute
         if not hasattr(choice, "message"):
@@ -913,7 +911,6 @@ Existing Analysis:
 
         import json
 
-        # Extract content from response (non-streaming responses have message attribute)
         choice = response.choices[0]
         if not hasattr(choice, "message"):
             raise ValueError("Unexpected response format: missing message attribute")
@@ -1113,7 +1110,6 @@ Perform cross-document analysis, compliance assessment, and business impact anal
 
         import json
 
-        # Extract content from response (non-streaming responses have message attribute)
         choice = response.choices[0]
         if not hasattr(choice, "message"):
             raise ValueError("Unexpected response format: missing message attribute")

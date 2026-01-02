@@ -75,7 +75,6 @@ class Agent:
             yield "I encountered an error while processing your request."
             return
 
-        # Extract content from response (non-streaming responses have message attribute)
         choice = response.choices[0]
         if not hasattr(choice, "message"):
             raise ValueError("Unexpected response format: missing message attribute")
@@ -180,7 +179,6 @@ class Agent:
                 stream=True,
             )
 
-            # When stream=True, response is an async iterable
             async for chunk in response:  # type: ignore[union-attr]
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content

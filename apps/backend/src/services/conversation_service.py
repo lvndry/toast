@@ -219,7 +219,6 @@ class ConversationService:
                 ],
                 temperature=0.5,
             )
-            # Extract content from response (non-streaming responses have message attribute)
             choice = resp.choices[0]
             if not hasattr(choice, "message"):
                 raise ValueError("Unexpected response format: missing message attribute")
