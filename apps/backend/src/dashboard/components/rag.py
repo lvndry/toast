@@ -1,6 +1,6 @@
 import streamlit as st
 
-from src.dashboard.db_utils import get_all_companies_isolated
+from src.dashboard.db_utils import get_all_products_isolated
 from src.dashboard.utils import run_async
 from src.rag import get_answer
 
@@ -8,24 +8,24 @@ from src.rag import get_answer
 def show_rag() -> None:
     st.title("RAG Question Answering")
 
-    # Get list of companies from the database
-    companies = run_async(get_all_companies_isolated())
+    # Get list of products from the database
+    products = run_async(get_all_products_isolated())
 
-    if companies is None:
-        st.error("Error fetching companies")
+    if products is None:
+        st.error("Error fetching products")
         return
 
-    # Company selection
-    selected_company = st.selectbox("Select a company", [company.slug for company in companies])
+    # Product selection
+    selected_product = st.selectbox("Select a product", [product.slug for product in products])
 
     # Question input
-    question = st.text_area("Enter your question about the company:", height=100)
+    question = st.text_area("Enter your question about the product:", height=100)
 
     if st.button("Get Answer"):
         if question:
             with st.spinner("Generating answer..."):
                 try:
-                    answer = run_async(get_answer(question, selected_company))
+                    answer = run_async(get_answer(question, selected_product))
                     st.write("Answer:")
                     st.write(answer)
                 except Exception as e:

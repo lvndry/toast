@@ -2,29 +2,29 @@ import shortuuid
 import streamlit as st
 from streamlit_tags import st_tags
 
-from src.dashboard.db_utils import create_company_isolated, get_company_by_slug_isolated
+from src.dashboard.db_utils import create_product_isolated, get_product_by_slug_isolated
 from src.dashboard.utils import run_async_with_retry
-from src.models.company import Company
+from src.models.product import Product
 
 
 def show_company_creation() -> None:
-    st.title("Create New Company")
+    st.title("Create New Product")
 
-    # Show success message if company was just created
-    if "company_created" in st.session_state and st.session_state.company_created:
-        st.success(f"✅ Company '{st.session_state.company_created_name}' created successfully!")
-        st.info(f"**Company ID:** `{st.session_state.company_created_id}`")
-        st.info(f"**Company Slug:** `{st.session_state.company_created_slug}`")
+    # Show success message if product was just created
+    if "product_created" in st.session_state and st.session_state.product_created:
+        st.success(f"✅ Product '{st.session_state.product_created_name}' created successfully!")
+        st.info(f"**Product ID:** `{st.session_state.product_created_id}`")
+        st.info(f"**Product Slug:** `{st.session_state.product_created_slug}`")
         # Clear the success state after showing
-        del st.session_state.company_created
-        del st.session_state.company_created_name
-        del st.session_state.company_created_id
-        del st.session_state.company_created_slug
+        del st.session_state.product_created
+        del st.session_state.product_created_name
+        del st.session_state.product_created_id
+        del st.session_state.product_created_slug
 
-    with st.form("company_form"):
-        name = st.text_input("Company Name", placeholder="Enter company name...")
+    with st.form("product_form"):
+        name = st.text_input("Product Name", placeholder="Enter product name...")
         slug = st.text_input(
-            "Company Slug", placeholder="Enter slug (optional, will auto-generate)"
+            "Product Slug", placeholder="Enter slug (optional, will auto-generate)"
         )
         domains = st_tags(
             label="Domains",
@@ -60,11 +60,11 @@ def show_company_creation() -> None:
             key="crawl_urls_input",
         )
 
-        submitted = st.form_submit_button("Create Company", type="primary")
+        submitted = st.form_submit_button("Create Product", type="primary")
 
         if submitted:
             if not name.strip():
-                st.error("Company name is required!")
+                st.error("Product name is required!")
                 return
 
             try:
@@ -76,14 +76,14 @@ def show_company_creation() -> None:
                 )
 
                 # Check if slug already exists
-                with st.spinner("Checking if company already exists..."):
-                    existing_company = run_async_with_retry(
-                        get_company_by_slug_isolated(final_slug)
+                with st.spinner("Checking if product already exists..."):
+                    existing_product = run_async_with_retry(
+                        get_product_by_slug_isolated(final_slug)
                     )
 
-                if existing_company is not None:
+                if existing_product is not None:
                     st.error(
-                        f"Company with slug '{final_slug}' already exists. Please choose a different slug."
+                        f"Product with slug '{final_slug}' already exists. Please choose a different slug."
                     )
                     return
 
@@ -95,7 +95,7 @@ def show_company_creation() -> None:
                     url.strip() for url in (crawl_base_urls or []) if url.strip()
                 ]
 
-                company = Company(
+                product = Product(
                     id=shortuuid.uuid(),
                     name=name.strip(),
                     slug=final_slug,
@@ -104,24 +104,24 @@ def show_company_creation() -> None:
                     crawl_base_urls=crawl_base_urls_list,
                 )
 
-                # Save company to database with retry
-                with st.spinner("Creating company..."):
-                    success = run_async_with_retry(create_company_isolated(company))
+                # Save product to database with retry
+                with st.spinner("Creating product..."):
+                    success = run_async_with_retry(create_product_isolated(product))
 
                 if success:
                     # Store success state in session to show after rerun
-                    st.session_state.company_created = True
-                    st.session_state.company_created_name = name.strip()
-                    st.session_state.company_created_id = company.id
-                    st.session_state.company_created_slug = company.slug
+                    st.session_state.product_created = True
+                    st.session_state.product_created_name = name.strip()
+                    st.session_state.product_created_id = product.id
+                    st.session_state.product_created_slug = product.slug
 
                     # Clear the form by rerunning
                     st.rerun()
                 else:
-                    st.error("Failed to create company. Please try again.")
+                    st.error("Failed to create product. Please try again.")
 
             except Exception as e:
-                st.error(f"Error creating company: {str(e)}")
+                st.error(f"Error creating product: {str(e)}")
                 st.info("💡 **Troubleshooting tips:**")
                 st.write("• Check that your MongoDB connection is working")
                 st.write("• Verify your environment variables are set correctly")

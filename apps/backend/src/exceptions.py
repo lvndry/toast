@@ -5,14 +5,14 @@ class NotFoundError(Exception):
     """Base class for not-found errors across services."""
 
 
-class CompanyNotFoundError(NotFoundError):
-    """Raised when a company cannot be found by id or slug."""
+class ProductNotFoundError(NotFoundError):
+    """Raised when a product cannot be found by id or slug."""
 
-    def __init__(self, *, company_id: str | None = None, slug: str | None = None):
-        if company_id is not None:
-            message = f"Company with id {company_id} not found"
+    def __init__(self, *, product_id: str | None = None, slug: str | None = None):
+        if product_id is not None:
+            message = f"Product with id {product_id} not found"
         elif slug is not None:
-            message = f"Company with slug {slug} not found"
+            message = f"Product with slug {slug} not found"
         else:
-            message = "Company not found"
+            message = "Product not found"
         super().__init__(message)

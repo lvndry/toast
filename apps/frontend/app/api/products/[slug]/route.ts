@@ -9,15 +9,14 @@ export async function GET(
 ) {
   const { slug } = await params;
   try {
-    const documents = await httpJson(
-      `${apiEndpoints.companies()}/${slug}/documents`,
-      { method: "GET" },
-    );
-    return NextResponse.json(documents);
+    const product = await httpJson(`${apiEndpoints.products()}/${slug}`, {
+      method: "GET",
+    });
+    return NextResponse.json(product);
   } catch (error) {
-    console.error("Error fetching company documents:", error);
+    console.error("Error fetching product:", error);
     return NextResponse.json(
-      { error: `Failed to fetch company documents: ${error}` },
+      { error: `Failed to fetch product: ${error}` },
       { status: 500 },
     );
   }

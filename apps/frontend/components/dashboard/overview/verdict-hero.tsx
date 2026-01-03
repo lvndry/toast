@@ -11,7 +11,8 @@ import {
 import { cn } from "@/lib/utils";
 
 interface VerdictHeroProps {
-  companyName: string;
+  productName: string;
+  companyName?: string | null;
   verdict:
     | "very_user_friendly"
     | "user_friendly"
@@ -62,6 +63,7 @@ const verdictConfig = {
 };
 
 export function VerdictHero({
+  productName,
   companyName,
   verdict,
   riskScore,

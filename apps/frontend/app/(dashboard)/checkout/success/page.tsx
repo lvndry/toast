@@ -44,7 +44,7 @@ export default function CheckoutSuccessPage() {
 
         <div className="space-y-4">
           <Link
-            href="/companies"
+            href="/products"
             className="block rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-3 font-semibold text-white transition-colors hover:from-purple-700 hover:to-pink-700"
           >
             Browse Companies

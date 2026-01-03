@@ -3,9 +3,10 @@ from pydantic import BaseModel, Field
 from src.models.user import UserTier
 
 
-class Company(BaseModel):
+class Product(BaseModel):
     id: str
     name: str
+    company_name: str | None = None
     description: str | None = None
     slug: str
     domains: list[str] = Field(default_factory=list)

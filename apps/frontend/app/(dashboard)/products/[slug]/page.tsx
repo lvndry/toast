@@ -31,9 +31,10 @@ interface ThirdPartyRecipient {
   risk_level: "low" | "medium" | "high";
 }
 
-interface CompanyOverview {
-  company_name: string;
-  company_slug: string;
+interface ProductOverview {
+  product_name: string;
+  product_slug: string;
+  company_name?: string | null;
   last_updated: string;
   verdict:
     | "very_user_friendly"
@@ -77,7 +78,7 @@ function DeepAnalysisTab({ slug }: { slug: string }) {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/companies/${slug}/deep-analysis`);
+        const res = await fetch(`/api/products/${slug}/deep-analysis`);
         if (res.ok) {
           const json = await res.json();
           setDeepAnalysis(json);
@@ -254,7 +255,7 @@ function DeepAnalysisTab({ slug }: { slug: string }) {
 export default function CompanyPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const [data, setData] = useState<CompanyOverview | null>(null);
+  const [data, setData] = useState<ProductOverview | null>(null);
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [documentsLoading, setDocumentsLoading] = useState(false);
@@ -282,7 +283,7 @@ export default function CompanyPage() {
     async function fetchDocuments() {
       setDocumentsLoading(true);
       try {
-        const res = await fetch(`/api/companies/${slug}/documents`);
+        const res = await fetch(`/api/products/${slug}/documents`);
         if (res.ok) {
           const json = await res.json();
           setDocuments(json);
@@ -322,9 +323,9 @@ export default function CompanyPage() {
       <ErrorDisplay
         variant="not-found"
         title="Company Not Found"
-        message="The company you're looking for doesn't exist or has been removed."
-        actionLabel="Browse Companies"
-        actionHref="/companies"
+        message="The product you're looking for doesn't exist or has been removed."
+        actionLabel="Browse Products"
+        actionHref="/products"
       />
     );
   }
@@ -347,7 +348,7 @@ export default function CompanyPage() {
         className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"
       >
         <div className="flex items-start gap-4">
-          <Link href="/companies">
+          <Link href="/products">
             <Button
               variant="ghost"
               size="icon"
@@ -358,7 +359,7 @@ export default function CompanyPage() {
           </Link>
           <div>
             <h1 className="text-3xl md:text-4xl font-bold font-display tracking-tight text-foreground">
-              {data.company_name}
+              {data.product_name}
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <Badge variant="outline" className="gap-1.5">
@@ -402,6 +403,7 @@ export default function CompanyPage() {
         <TabsContent value="overview" className="space-y-6 mt-0">
           {/* Verdict Hero */}
           <VerdictHero
+            productName={data.product_name}
             companyName={data.company_name}
             verdict={data.verdict}
             riskScore={data.risk_score}

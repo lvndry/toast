@@ -7,25 +7,25 @@ components.
 
 from __future__ import annotations
 
-from src.repositories.company_repository import CompanyRepository
 from src.repositories.conversation_repository import ConversationRepository
 from src.repositories.document_repository import DocumentRepository
+from src.repositories.product_repository import ProductRepository
 from src.repositories.user_repository import UserRepository
-from src.services.company_service import CompanyService
 from src.services.conversation_service import ConversationService
 from src.services.document_service import DocumentService
+from src.services.product_service import ProductService
 from src.services.user_service import UserService
 
 
-def create_company_service() -> CompanyService:
-    """Create a CompanyService with repository dependencies.
+def create_product_service() -> ProductService:
+    """Create a ProductService with repository dependencies.
 
     Returns:
-        Configured CompanyService instance
+        Configured ProductService instance
     """
-    company_repo = CompanyRepository()
+    product_repo = ProductRepository()
     document_repo = DocumentRepository()
-    return CompanyService(company_repo, document_repo)
+    return ProductService(product_repo, document_repo)
 
 
 def create_document_service() -> DocumentService:
@@ -35,26 +35,26 @@ def create_document_service() -> DocumentService:
         Configured DocumentService instance
     """
     document_repo = DocumentRepository()
-    company_repo = CompanyRepository()
-    return DocumentService(document_repo, company_repo)
+    product_repo = ProductRepository()
+    return DocumentService(document_repo, product_repo)
 
 
-def create_services() -> tuple[CompanyService, DocumentService]:
-    """Create both CompanyService and DocumentService with shared repositories.
+def create_services() -> tuple[ProductService, DocumentService]:
+    """Create both ProductService and DocumentService with shared repositories.
 
     This is more efficient than creating them separately because they share
     the same repository instances.
 
     Returns:
-        Tuple of (CompanyService, DocumentService)
+        Tuple of (ProductService, DocumentService)
     """
-    company_repo = CompanyRepository()
+    product_repo = ProductRepository()
     document_repo = DocumentRepository()
 
-    company_service = CompanyService(company_repo, document_repo)
-    document_service = DocumentService(document_repo, company_repo)
+    product_service = ProductService(product_repo, document_repo)
+    document_service = DocumentService(document_repo, product_repo)
 
-    return company_service, document_service
+    return product_service, document_service
 
 
 def create_user_service() -> UserService:

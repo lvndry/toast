@@ -15,9 +15,10 @@ class Message(BaseModel):
 class Conversation(BaseModel):
     id: str = Field(default_factory=shortuuid.uuid)
     user_id: str
-    company_name: str
-    company_slug: str
-    company_description: str | None = None
+    product_name: str
+    product_slug: str
+    company_name: str | None = None
+    product_description: str | None = None
 
     # Optional metadata for UX/filters
     title: str | None = None

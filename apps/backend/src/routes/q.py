@@ -10,7 +10,7 @@ router = APIRouter(prefix="/q")
 
 class AskRequest(BaseModel):
     query: str
-    company_slug: str
+    product_slug: str
     namespace: str | None = None
 
 
@@ -19,6 +19,6 @@ async def ask(
     request: AskRequest, user: User | None = Depends(get_optional_user)
 ) -> dict[str, str]:
     namespace = request.namespace
-    answer = await qa_ask(request.query, request.company_slug, namespace=namespace)
+    answer = await qa_ask(request.query, request.product_slug, namespace=namespace)
 
     return {"answer": answer}

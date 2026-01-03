@@ -49,16 +49,16 @@ export const trackUserJourney = {
     posthog.capture("user_signed_out");
   },
 
-  // Company interactions
-  companyViewed(companySlug: string, companyName: string) {
-    posthog.capture("company_viewed", {
-      company_slug: companySlug,
-      company_name: companyName,
+  // Product interactions
+  productViewed(productSlug: string, productName: string) {
+    posthog.capture("product_viewed", {
+      product_slug: productSlug,
+      product_name: productName,
     });
   },
 
-  companySearched(searchTerm: string, resultsCount: number) {
-    posthog.capture("company_searched", {
+  productSearched(searchTerm: string, resultsCount: number) {
+    posthog.capture("product_searched", {
       search_term: searchTerm,
       results_count: resultsCount,
     });
@@ -75,12 +75,12 @@ export const trackUserJourney = {
   documentUploadCompleted(
     fileType: string,
     fileSize: number,
-    companyName: string,
+    productName: string,
   ) {
     posthog.capture("document_upload_completed", {
       file_type: fileType,
       file_size: fileSize,
-      company_name: companyName,
+      product_name: productName,
     });
   },
 
@@ -94,12 +94,12 @@ export const trackUserJourney = {
   // Conversation tracking
   conversationStarted(
     conversationId: string,
-    companyName: string,
+    productName: string,
     isNewConversation: boolean,
   ) {
     posthog.capture("conversation_started", {
       conversation_id: conversationId,
-      company_name: companyName,
+      product_name: productName,
       is_new_conversation: isNewConversation,
     });
   },
@@ -109,12 +109,12 @@ export const trackUserJourney = {
     question: string,
     questionLength: number,
     conversationId?: string,
-    companySlug?: string,
+    productSlug?: string,
   ) {
     posthog.capture("question_asked", {
       question_length: questionLength,
       conversation_id: conversationId,
-      company_slug: companySlug,
+      product_slug: productSlug,
       // Don't capture the full question for privacy, but track patterns
       question_category: categorizeQuestion(question),
       has_legal_terms: containsLegalTerms(question),

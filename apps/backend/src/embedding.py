@@ -60,8 +60,8 @@ def _compute_chunk_offsets(full_text: str, chunks: list[str]) -> list[tuple[int,
     return offsets
 
 
-async def embed_company_documents(
-    company_id: str,
+async def embed_product_documents(
+    product_id: str,
     document_service: Any,
     db: Any,
     namespace: str | None = None,
@@ -70,13 +70,13 @@ async def embed_company_documents(
     Process documents by splitting their markdown content and creating embeddings for each chunk.
 
     Args:
-        company_id: The id of the company
+        product_id: The id of the product
         document_service: DocumentService instance
         db: Database instance
         namespace: The namespace to use for the embeddings
     """
-    documents = await document_service.get_company_documents(db, company_id)
-    logger.info(f"Embedding {len(documents)} documents for company {company_id}")
+    documents = await document_service.get_product_documents(db, product_id)
+    logger.info(f"Embedding {len(documents)} documents for product {product_id}")
 
     index = pc.Index(INDEX_NAME)
     splitter = RecursiveCharacterTextSplitter(

@@ -29,17 +29,19 @@ class ConversationService:
         self,
         db: AgnosticDatabase,
         user_id: str,
-        company_name: str,
-        company_slug: str,
-        company_description: str | None = None,
+        product_name: str,
+        product_slug: str,
+        company_name: str | None = None,
+        product_description: str | None = None,
         title: str | None = None,
     ) -> Conversation:
         """Create a new conversation."""
         conversation = Conversation(
             user_id=user_id,
+            product_name=product_name,
+            product_slug=product_slug,
             company_name=company_name,
-            company_slug=company_slug,
-            company_description=company_description,
+            product_description=product_description,
             title=title,
         )
         return await self._conversation_repo.create(db, conversation)
@@ -80,8 +82,9 @@ class ConversationService:
             "archived",
             "pinned",
             "tags",
+            "product_name",
             "company_name",
-            "company_description",
+            "product_description",
         }
         update_data = {k: v for k, v in data.items() if k in allowed_fields}
         if not update_data:
@@ -136,7 +139,7 @@ class ConversationService:
         user_message = Message(role="user", content=message_text)
         await self.add_message_to_conversation(db, conversation_id, user_message)
 
-        ai_response = await get_answer(message_text, conversation.company_slug)
+        ai_response = await get_answer(message_text, conversation.product_slug)
         ai_message = Message(role="assistant", content=ai_response)
         await self.add_message_to_conversation(db, conversation_id, ai_message)
 
@@ -146,6 +149,7 @@ class ConversationService:
                 not conversation.title or conversation.title.lower() == "new conversation"
             ):
                 new_title = await self._generate_conversation_title(
+                    product_name=conversation.product_name,
                     company_name=conversation.company_name,
                     user_prompt=message_text,
                     ai_answer=ai_response,
@@ -173,7 +177,7 @@ class ConversationService:
 
         # Stream AI response
         full_response = []
-        async for chunk in get_answer_stream(message_text, conversation.company_slug):
+        async for chunk in get_answer_stream(message_text, conversation.product_slug):
             full_response.append(chunk)
             yield chunk
 
@@ -187,6 +191,7 @@ class ConversationService:
                 not conversation.title or conversation.title.lower() == "new conversation"
             ):
                 new_title = await self._generate_conversation_title(
+                    product_name=conversation.product_name,
                     company_name=conversation.company_name,
                     user_prompt=message_text,
                     ai_answer=ai_response_text,
@@ -197,15 +202,17 @@ class ConversationService:
             logger.warning(f"Title generation failed for conversation {conversation_id}: {e}")
 
     async def _generate_conversation_title(
-        self, company_name: str, user_prompt: str, ai_answer: str
+        self, product_name: str, company_name: str | None, user_prompt: str, ai_answer: str
     ) -> str:
         """Generate a short, descriptive conversation title using a lightweight model."""
         system_prompt = (
             "You create concise, descriptive conversation titles (4-7 words). "
-            "Avoid quotes, punctuation at the end, and company names unless essential."
+            "Avoid quotes, punctuation at the end, and product/company names unless essential."
         )
+        company_info = f"Company: {company_name}\n" if company_name else ""
         user_content = (
-            f"Company: {company_name}\n"
+            f"Product: {product_name}\n"
+            f"{company_info}"
             f"User question: {user_prompt}\n"
             f"Assistant answer (truncated): {ai_answer[:500]}\n\n"
             "Title:"
@@ -246,8 +253,9 @@ class ConversationService:
         file_content: bytes,
         filename: str,
         content_type: str,
+        product_name: str | None = None,
         company_name: str | None = None,
-        company_description: str | None = None,
+        product_description: str | None = None,
     ) -> DocumentProcessingResult:
         """Upload a document to a conversation."""
         conversation = await self.get_conversation_by_id(db, conversation_id)
@@ -259,7 +267,7 @@ class ConversationService:
             file_content=file_content,
             filename=filename,
             content_type=content_type,
-            company_id=conversation.company_slug,
+            product_id=conversation.product_slug,
         )
 
         if not result.success:
@@ -270,14 +278,15 @@ class ConversationService:
 
         await self.add_document_to_conversation(db, conversation_id, result.document.id)
         try:
-            await embed_document(result.document, namespace=conversation.company_slug)
+            await embed_document(result.document, namespace=conversation.product_slug)
         except Exception as e:
             logger.warning(f"Embedding uploaded document failed: {e}")
 
-        if company_name or company_description:
+        if product_name or company_name or product_description:
+            conversation.product_name = product_name or conversation.product_name
             conversation.company_name = company_name or conversation.company_name
-            conversation.company_description = (
-                company_description or conversation.company_description
+            conversation.product_description = (
+                product_description or conversation.product_description
             )
             await self.update_conversation(db, conversation)
 

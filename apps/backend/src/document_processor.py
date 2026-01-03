@@ -71,7 +71,7 @@ class DocumentProcessor:
         ]
 
     async def process_document(
-        self, file_content: bytes, filename: str, content_type: str, company_id: str
+        self, file_content: bytes, filename: str, content_type: str, product_id: str
     ) -> DocumentProcessingResult:
         """
         Process an uploaded document through the complete pipeline.
@@ -80,7 +80,7 @@ class DocumentProcessor:
             file_content: Raw file content
             filename: Original filename
             content_type: MIME type of the file
-            company_id: ID of the company/conversation
+            product_id: ID of the product/conversation
 
         Returns:
             DocumentProcessingResult with processing results
@@ -110,7 +110,7 @@ class DocumentProcessor:
             document = Document(
                 url=f"uploaded://{filename}",
                 title=filename,
-                company_id=company_id,
+                product_id=product_id,
                 doc_type=classification.get("classification", "other"),
                 markdown=text_content,
                 text=text_content,

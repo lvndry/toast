@@ -5,19 +5,19 @@ import { httpJson } from "@lib/http";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string; }>; },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
   try {
-    const company = await httpJson(
-      `${apiEndpoints.companies()}/${slug}`,
+    const deepAnalysis = await httpJson(
+      `${apiEndpoints.products()}/${slug}/deep-analysis`,
       { method: "GET" },
     );
-    return NextResponse.json(company);
+    return NextResponse.json(deepAnalysis);
   } catch (error) {
-    console.error("Error fetching company:", error);
+    console.error("Error fetching product deep analysis:", error);
     return NextResponse.json(
-      { error: `Failed to fetch company: ${error}` },
+      { error: `Failed to fetch product deep analysis: ${error}` },
       { status: 500 },
     );
   }

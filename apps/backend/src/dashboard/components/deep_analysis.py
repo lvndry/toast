@@ -4,11 +4,11 @@ import streamlit as st
 
 from src.core.database import get_db
 from src.core.logging import get_logger
-from src.dashboard.db_utils import get_all_companies_isolated
+from src.dashboard.db_utils import get_all_products_isolated
 from src.dashboard.utils import run_async
-from src.models.document import CompanyDeepAnalysis
+from src.models.document import ProductDeepAnalysis
 from src.services.service_factory import create_services
-from src.summarizer import generate_company_deep_analysis
+from src.summarizer import generate_product_deep_analysis
 
 logger = get_logger(__name__)
 
@@ -16,49 +16,49 @@ logger = get_logger(__name__)
 def show_deep_analysis() -> None:
     st.title("🔬 Deep Analysis & Overview")
 
-    # Get all companies
-    companies = run_async(get_all_companies_isolated())
+    # Get all products
+    products = run_async(get_all_products_isolated())
 
-    if companies is None:
-        st.error("Failed to load companies from database")
+    if products is None:
+        st.error("Failed to load products from database")
         return
 
-    if not companies:
-        st.warning("No companies found. Please create a company first.")
+    if not products:
+        st.warning("No products found. Please create a product first.")
         return
 
-    # Create company dropdown options
-    company_options = {f"{company.name} ({company.slug})": company for company in companies}
+    # Create product dropdown options
+    product_options = {f"{product.name} ({product.slug})": product for product in products}
 
-    # Check if a company was preselected (from session state)
-    preselected_company = st.session_state.get("selected_company_for_deep_analysis", None)
+    # Check if a product was preselected (from session state)
+    preselected_product = st.session_state.get("selected_product_for_deep_analysis", None)
     default_index = 0
 
-    if preselected_company:
-        # Find the index of the preselected company
-        for i, company in enumerate(companies):
-            if company.id == preselected_company:
+    if preselected_product:
+        # Find the index of the preselected product
+        for i, product in enumerate(products):
+            if product.id == preselected_product:
                 default_index = i
                 break
 
-    selected_company_key = st.selectbox(
-        "Select Company for Deep Analysis",
-        options=list(company_options.keys()),
+    selected_product_key = st.selectbox(
+        "Select Product for Deep Analysis",
+        options=list(product_options.keys()),
         index=default_index,
-        help="Choose which company's documents you want to analyze deeply",
+        help="Choose which product's documents you want to analyze deeply",
     )
 
-    selected_company = company_options[selected_company_key]
+    selected_product = product_options[selected_product_key]
 
-    # Show company details
+    # Show product details
     st.write("---")
-    st.subheader(f"Company: {selected_company.name}")
+    st.subheader(f"Product: {selected_product.name}")
 
     # Check for existing deep analysis
-    async def check_existing_analysis() -> CompanyDeepAnalysis | None:
+    async def check_existing_analysis() -> ProductDeepAnalysis | None:
         async with get_db() as db:
-            company_svc, _ = create_services()
-            return await company_svc.get_company_deep_analysis(db, selected_company.slug)
+            product_svc, _ = create_services()
+            return await product_svc.get_product_deep_analysis(db, selected_product.slug)
 
     existing_analysis = run_async(check_existing_analysis())
 
@@ -118,15 +118,15 @@ def show_deep_analysis() -> None:
                     st.info(f"**MEDIUM:** {risk}")
 
         if st.button("🔄 Regenerate Analysis"):
-            _generate_analysis(selected_company.slug)
+            _generate_analysis(selected_product.slug)
 
     else:
-        st.info("No deep analysis found for this company.")
+        st.info("No deep analysis found for this product.")
         if st.button("🚀 Generate Deep Analysis"):
-            _generate_analysis(selected_company.slug)
+            _generate_analysis(selected_product.slug)
 
 
-async def generate_deep_analysis_wrapper(company_slug: str) -> bool:
+async def generate_deep_analysis_wrapper(product_slug: str) -> bool:
     """Generate deep analysis using repository pattern with context manager.
 
     This creates a fresh database session in the current event loop,
@@ -135,14 +135,14 @@ async def generate_deep_analysis_wrapper(company_slug: str) -> bool:
     try:
         async with get_db() as db:
             # Create services with fresh repositories
-            company_svc, doc_svc = create_services()
+            product_svc, doc_svc = create_services()
 
             # Generate analysis
-            await generate_company_deep_analysis(
+            await generate_product_deep_analysis(
                 db,
-                company_slug,
+                product_slug,
                 force_regenerate=True,
-                company_svc=company_svc,
+                product_svc=product_svc,
                 document_svc=doc_svc,
             )
             return True
@@ -151,10 +151,10 @@ async def generate_deep_analysis_wrapper(company_slug: str) -> bool:
         return False
 
 
-def _generate_analysis(company_slug: str) -> None:
-    with st.spinner(f"Generating deep analysis for {company_slug}... This may take a few minutes."):
+def _generate_analysis(product_slug: str) -> None:
+    with st.spinner(f"Generating deep analysis for {product_slug}... This may take a few minutes."):
         # Deep analysis can take 5-15 minutes, so use a longer timeout (20 minutes)
-        result = run_async(generate_deep_analysis_wrapper(company_slug), timeout=1200)
+        result = run_async(generate_deep_analysis_wrapper(product_slug), timeout=1200)
 
         if result:
             st.success("✅ Deep analysis generated successfully!")

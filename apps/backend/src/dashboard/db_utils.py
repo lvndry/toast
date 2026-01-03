@@ -5,8 +5,8 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from src.core.config import config
 from src.core.logging import get_logger
-from src.models.company import Company
 from src.models.document import Document
+from src.models.product import Product
 
 logger = get_logger(__name__)
 
@@ -86,150 +86,148 @@ async def get_dashboard_db() -> DashboardDB:
     return db
 
 
-# Company functions
-async def get_all_companies_isolated() -> list[Company]:
-    """Get all companies with an isolated database connection, sorted by name"""
+# Product functions
+async def get_all_products_isolated() -> list[Product]:
+    """Get all products with an isolated database connection, sorted by name"""
     db = await get_dashboard_db()
     try:
         # Get raw documents from MongoDB
-        raw_companies = await db.db.companies.find().sort("name", 1).to_list(length=None)
-        logger.info(f"Retrieved {len(raw_companies)} raw company documents from MongoDB")
+        raw_products = await db.db.products.find().sort("name", 1).to_list(length=None)
+        logger.info(f"Retrieved {len(raw_products)} raw product documents from MongoDB")
 
-        if not raw_companies:
-            logger.warning("No companies found in database")
+        if not raw_products:
+            logger.warning("No products found in database")
             return []
 
-        # Convert MongoDB documents to Company objects
+        # Convert MongoDB documents to Product objects
         # Handle _id field conversion and ensure all required fields are present
-        companies = []
-        for raw_company in raw_companies:
+        products = []
+        for raw_product in raw_products:
             try:
                 # Convert MongoDB document to dict, handling _id field
-                company_dict = dict(raw_company)
+                product_dict = dict(raw_product)
 
                 # Convert _id to id if present (MongoDB uses _id, our model uses id)
-                if "_id" in company_dict and "id" not in company_dict:
-                    company_dict["id"] = str(company_dict.pop("_id"))
-                elif "_id" in company_dict:
+                if "_id" in product_dict and "id" not in product_dict:
+                    product_dict["id"] = str(product_dict.pop("_id"))
+                elif "_id" in product_dict:
                     # If both exist, keep id and remove _id
-                    company_dict.pop("_id", None)
+                    product_dict.pop("_id", None)
 
                 # Ensure id is a string and exists
-                if "id" not in company_dict:
-                    logger.error(f"Company document missing 'id' field: {raw_company}")
+                if "id" not in product_dict:
+                    logger.error(f"Product document missing 'id' field: {raw_product}")
                     continue
 
-                company_dict["id"] = str(company_dict["id"])
+                product_dict["id"] = str(product_dict["id"])
 
-                # Create Company object
-                company = Company(**company_dict)
-                companies.append(company)
+                # Create Product object
+                product = Product(**product_dict)
+                products.append(product)
             except Exception as e:
-                logger.error(f"Error converting company document to Company object: {e}")
-                logger.error(f"Problematic document: {raw_company}")
-                # Continue processing other companies instead of failing completely
+                logger.error(f"Error converting product document to Product object: {e}")
+                logger.error(f"Problematic document: {raw_product}")
+                # Continue processing other products instead of failing completely
                 continue
 
-        logger.info(f"Successfully converted {len(companies)} companies")
+        logger.info(f"Successfully converted {len(products)} products")
 
         # Warn if we retrieved documents but couldn't convert any
-        if raw_companies and not companies:
+        if raw_products and not products:
             logger.warning(
-                f"Retrieved {len(raw_companies)} documents from MongoDB but failed to convert any to Company objects. "
+                f"Retrieved {len(raw_products)} documents from MongoDB but failed to convert any to Product objects. "
                 "Check the error logs above for details about conversion failures."
             )
 
-        return companies
+        return products
     except Exception as e:
-        logger.error(f"Error getting companies: {e}", exc_info=True)
+        logger.error(f"Error getting products: {e}", exc_info=True)
         return []
     finally:
         await db.disconnect()
 
 
-async def get_company_by_slug_isolated(slug: str) -> Company | None:
-    """Get a company by slug with an isolated database connection"""
+async def get_product_by_slug_isolated(slug: str) -> Product | None:
+    """Get a product by slug with an isolated database connection"""
     db = await get_dashboard_db()
     try:
-        company = await db.db.companies.find_one({"slug": slug})
-        if company:
-            return Company(**company)
+        product = await db.db.products.find_one({"slug": slug})
+        if product:
+            return Product(**product)
         return None
     except Exception as e:
-        logger.error(f"Error getting company by slug {slug}: {e}")
+        logger.error(f"Error getting product by slug {slug}: {e}")
         return None
     finally:
         await db.disconnect()
 
 
-async def create_company_isolated(company: Company) -> bool:
-    """Create a new company with an isolated database connection"""
+async def create_product_isolated(product: Product) -> bool:
+    """Create a new product with an isolated database connection"""
     db = await get_dashboard_db()
     try:
-        company_dict = company.model_dump()
-        await db.db.companies.insert_one(company_dict)
-        logger.info(f"Created company {company.name} with ID {company.id}")
+        product_dict = product.model_dump()
+        await db.db.products.insert_one(product_dict)
+        logger.info(f"Created product {product.name} with ID {product.id}")
         return True
     except Exception as e:
-        logger.error(f"Error creating company {company.name}: {e}")
+        logger.error(f"Error creating product {product.name}: {e}")
         return False
     finally:
         await db.disconnect()
 
 
-async def update_company_isolated(company: Company) -> bool:
-    """Update an existing company with an isolated database connection"""
+async def update_product_isolated(product: Product) -> bool:
+    """Update an existing product with an isolated database connection"""
     db = await get_dashboard_db()
     try:
-        result = await db.db.companies.update_one(
-            {"id": company.id}, {"$set": company.model_dump()}
-        )
+        result = await db.db.products.update_one({"id": product.id}, {"$set": product.model_dump()})
         success = result.modified_count > 0
         if success:
-            logger.info(f"Updated company {company.id}")
+            logger.info(f"Updated product {product.id}")
         return bool(success)
     except Exception as e:
-        logger.error(f"Error updating company {company.id}: {e}")
+        logger.error(f"Error updating product {product.id}: {e}")
         return False
     finally:
         await db.disconnect()
 
 
-async def delete_company_isolated(company_id: str) -> bool:
-    """Delete a company with an isolated database connection"""
+async def delete_product_isolated(product_id: str) -> bool:
+    """Delete a product with an isolated database connection"""
     db = await get_dashboard_db()
     try:
-        result = await db.db.companies.delete_one({"id": company_id})
+        result = await db.db.products.delete_one({"id": product_id})
         success = result.deleted_count > 0
         if success:
-            logger.info(f"Deleted company {company_id}")
+            logger.info(f"Deleted product {product_id}")
         return bool(success)
     except Exception as e:
-        logger.error(f"Error deleting company {company_id}: {e}")
+        logger.error(f"Error deleting product {product_id}: {e}")
         return False
     finally:
         await db.disconnect()
 
 
 # Document functions
-async def get_company_documents_isolated(company_slug: str) -> list[Document]:
-    """Get all documents for a company with an isolated database connection"""
+async def get_product_documents_isolated(product_slug: str) -> list[Document]:
+    """Get all documents for a product with an isolated database connection"""
     db = await get_dashboard_db()
     try:
-        # First find the company by slug to get its ID
-        company = await db.db.companies.find_one({"slug": company_slug})
-        if not company:
-            logger.warning(f"Company with slug {company_slug} not found")
+        # First find the product by slug to get its ID
+        product = await db.db.products.find_one({"slug": product_slug})
+        if not product:
+            logger.warning(f"Product with slug {product_slug} not found")
             return []
 
-        # Get company_id (handle both _id and id fields)
-        company_id = company.get("id") or str(company.get("_id", ""))
-        if not company_id:
-            logger.error(f"Company {company_slug} has no ID")
+        # Get product_id (handle both _id and id fields)
+        product_id = product.get("id") or str(product.get("_id", ""))
+        if not product_id:
+            logger.error(f"Product {product_slug} has no ID")
             return []
 
-        # Query documents by company_id
-        documents = await db.db.documents.find({"company_id": company_id}).to_list(length=None)
+        # Query documents by product_id
+        documents = await db.db.documents.find({"product_id": product_id}).to_list(length=None)
         # Convert MongoDB documents to Document objects
         result = []
         for doc in documents:
@@ -246,17 +244,17 @@ async def get_company_documents_isolated(company_slug: str) -> list[Document]:
                 continue
         return result
     except Exception as e:
-        logger.error(f"Error getting documents for company {company_slug}: {e}")
+        logger.error(f"Error getting documents for product {product_slug}: {e}")
         return []
     finally:
         await db.disconnect()
 
 
-async def get_company_documents_by_id_isolated(company_id: str) -> list[Document]:
-    """Get all documents for a company by company_id with an isolated database connection"""
+async def get_product_documents_by_id_isolated(product_id: str) -> list[Document]:
+    """Get all documents for a product by product_id with an isolated database connection"""
     db = await get_dashboard_db()
     try:
-        documents = await db.db.documents.find({"company_id": company_id}).to_list(length=None)
+        documents = await db.db.documents.find({"product_id": product_id}).to_list(length=None)
         # Convert MongoDB documents to Document objects
         result = []
         for doc in documents:
@@ -273,7 +271,7 @@ async def get_company_documents_by_id_isolated(company_id: str) -> list[Document
                 continue
         return result
     except Exception as e:
-        logger.error(f"Error getting documents for company_id {company_id}: {e}")
+        logger.error(f"Error getting documents for product_id {product_id}: {e}")
         return []
     finally:
         await db.disconnect()
@@ -292,26 +290,26 @@ async def get_all_documents_isolated() -> list[Document]:
         await db.disconnect()
 
 
-async def get_document_counts_by_company() -> dict[str, int]:
-    """Get document counts for all companies with an isolated database connection.
+async def get_document_counts_by_product() -> dict[str, int]:
+    """Get document counts for all products with an isolated database connection.
 
     Returns:
-        Dictionary mapping company_id to document count
+        Dictionary mapping product_id to document count
     """
     db = await get_dashboard_db()
     try:
-        # Use aggregation to count documents per company_id
+        # Use aggregation to count documents per product_id
         pipeline = [
-            {"$group": {"_id": "$company_id", "count": {"$sum": 1}}},
+            {"$group": {"_id": "$product_id", "count": {"$sum": 1}}},
         ]
         results = await db.db.documents.aggregate(pipeline).to_list(length=None)
 
-        # Convert to dictionary: company_id -> count
+        # Convert to dictionary: product_id -> count
         counts = {result["_id"]: result["count"] for result in results if result.get("_id")}
-        logger.info(f"Retrieved document counts for {len(counts)} companies")
+        logger.info(f"Retrieved document counts for {len(counts)} products")
         return counts
     except Exception as e:
-        logger.error(f"Error getting document counts by company: {e}")
+        logger.error(f"Error getting document counts by product: {e}")
         return {}
     finally:
         await db.disconnect()

@@ -4,24 +4,24 @@ from collections.abc import AsyncGenerator
 import streamlit as st
 
 from src.dashboard.db_utils import (
-    get_all_companies_isolated,
-    get_company_documents_isolated,
+    get_all_products_isolated,
     get_dashboard_db,
+    get_product_documents_isolated,
 )
 from src.dashboard.utils import run_async
-from src.services.service_factory import create_company_service, create_document_service
-from src.summarizer import generate_company_meta_summary, summarize_all_company_documents
+from src.services.service_factory import create_document_service, create_product_service
+from src.summarizer import generate_product_meta_summary, summarize_all_product_documents
 
 
 async def run_summarization_async_internal(
-    company_slug: str,
+    product_slug: str,
 ) -> bool:
     """Run document summarization in an isolated async context"""
     try:
         db = await get_dashboard_db()
         try:
             document_svc = create_document_service()
-            await summarize_all_company_documents(db.db, company_slug, document_svc)
+            await summarize_all_product_documents(db.db, product_slug, document_svc)
             return True
         finally:
             await db.disconnect()
@@ -31,7 +31,7 @@ async def run_summarization_async_internal(
 
 
 def run_summarization_async(
-    company_slug: str, loop: asyncio.AbstractEventLoop | None = None
+    product_slug: str, loop: asyncio.AbstractEventLoop | None = None
 ) -> bool:
     """Run document summarization in an isolated async context"""
     try:
@@ -42,7 +42,7 @@ def run_summarization_async(
             should_close_loop = True
 
         try:
-            loop.run_until_complete(run_summarization_async_internal(company_slug))
+            loop.run_until_complete(run_summarization_async_internal(product_slug))
             return True
         finally:
             if should_close_loop:
@@ -62,14 +62,14 @@ def run_summarization_async(
         return False
 
 
-async def generate_meta_summary_async(company_slug: str) -> AsyncGenerator[str, None]:
-    """Generate meta summary for a company"""
+async def generate_meta_summary_async(product_slug: str) -> AsyncGenerator[str, None]:
+    """Generate meta summary for a product"""
     db = await get_dashboard_db()
     try:
-        company_svc = create_company_service()
+        product_svc = create_product_service()
         document_svc = create_document_service()
-        result = await generate_company_meta_summary(
-            db.db, company_slug, company_svc=company_svc, document_svc=document_svc
+        result = await generate_product_meta_summary(
+            db.db, product_slug, product_svc=product_svc, document_svc=document_svc
         )
         summary_content = str(result)  # or format as needed
         yield summary_content
@@ -80,45 +80,45 @@ async def generate_meta_summary_async(company_slug: str) -> AsyncGenerator[str, 
 def show_summarization() -> None:
     st.title("📋 Document Summarization")
 
-    # Get all companies
-    companies = run_async(get_all_companies_isolated())
+    # Get all products
+    products = run_async(get_all_products_isolated())
 
-    if companies is None:
-        st.error("Failed to load companies from database")
+    if products is None:
+        st.error("Failed to load products from database")
         return
 
-    if not companies:
-        st.warning("No companies found. Please create a company first.")
+    if not products:
+        st.warning("No products found. Please create a product first.")
         return
 
     # Add Summarize All section
     st.write("---")
-    st.subheader("🌐 Summarize All Companies")
+    st.subheader("🌐 Summarize All Products")
 
     st.info("""
     **This will:**
-    • Analyze documents for all companies
+    • Analyze documents for all products
     • Generate privacy-focused summaries for each document
     • Extract key points and transparency scores
-    • This process may take several minutes depending on the number of companies and documents
+    • This process may take several minutes depending on the number of products and documents
     """)
 
-    if st.button("🚀 Summarize All Companies", type="primary", key="summarize_all_btn"):
-        with st.spinner("Analyzing documents for all companies... This may take several minutes."):
+    if st.button("🚀 Summarize All Products", type="primary", key="summarize_all_btn"):
+        with st.spinner("Analyzing documents for all products... This may take several minutes."):
             progress_placeholder = st.empty()
             progress_placeholder.info("🔍 Processing documents...")
 
-            # Create a single loop for all companies
+            # Create a single loop for all products
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
                 all_success = True
-                for company in companies:
-                    progress_placeholder.info(f"Processing {company.name}...")
-                    success = run_summarization_async(company.slug, loop)
+                for product in products:
+                    progress_placeholder.info(f"Processing {product.name}...")
+                    success = run_summarization_async(product.slug, loop)
                     if not success:
                         all_success = False
-                        st.error(f"Failed to process documents for {company.name}")
+                        st.error(f"Failed to process documents for {product.name}")
             finally:
                 # Clean up the loop after all companies are processed
                 pending_tasks = asyncio.all_tasks(loop)
@@ -131,69 +131,69 @@ def show_summarization() -> None:
             progress_placeholder.empty()
 
             if all_success:
-                st.success("✅ Document analysis completed successfully for all companies!")
+                st.success("✅ Document analysis completed successfully for all products!")
                 st.info("""
                 **What happened:**
                 • All documents were analyzed for privacy practices
                 • Summaries were generated with transparency and data usage scores
                 • Key points were extracted for each document
                 • Analysis data was stored in the database
-                • You can now generate meta-summaries for individual companies
+                • You can now generate meta-summaries for individual products
                 """)
                 st.rerun()
             else:
                 st.error(
-                    "Document analysis failed for some companies. Please check the logs and try again."
+                    "Document analysis failed for some products. Please check the logs and try again."
                 )
 
-    # Create company dropdown options
-    company_options = {f"{company.name} ({company.slug})": company for company in companies}
+    # Create product dropdown options
+    product_options = {f"{product.name} ({product.slug})": product for product in products}
 
-    # Check if a company was preselected (from session state)
-    preselected_company = st.session_state.get("selected_company_for_summarization", None)
+    # Check if a product was preselected (from session state)
+    preselected_product = st.session_state.get("selected_product_for_summarization", None)
     default_index = 0
 
-    if preselected_company:
-        # Find the index of the preselected company
-        for i, company in enumerate(companies):
-            if company.id == preselected_company:
+    if preselected_product:
+        # Find the index of the preselected product
+        for i, product in enumerate(products):
+            if product.id == preselected_product:
                 default_index = i
                 break
 
-    selected_company_key = st.selectbox(
-        "Select Company for Summarization",
-        options=list(company_options.keys()),
+    selected_product_key = st.selectbox(
+        "Select Product for Summarization",
+        options=list(product_options.keys()),
         index=default_index,
-        help="Choose which company's documents you want to summarize",
+        help="Choose which product's documents you want to summarize",
     )
 
-    selected_company = company_options[selected_company_key]
+    selected_product = product_options[selected_product_key]
 
-    # Show company details
+    # Show product details
     st.write("---")
-    st.subheader(f"Company Details: {selected_company.name}")
+    st.subheader(f"Product Details: {selected_product.name}")
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.write("**Domains:**")
-        for domain in selected_company.domains:
+        for domain in selected_product.domains:
             st.write(f"• {domain}")
 
     with col2:
         st.write("**Categories:**")
-        if selected_company.categories:
-            for category in selected_company.categories:
+        if selected_product.categories:
+            for category in selected_product.categories:
                 st.write(f"• {category}")
         else:
             st.write("• No categories")
 
-    # Get documents for this company
+    # Get documents for this product
     st.write("---")
-    documents = run_async(get_company_documents_isolated(selected_company.slug))
+    documents = run_async(get_product_documents_isolated(selected_product.slug))
 
     if not documents:
-        st.warning(f"No documents found for {selected_company.name}. Please crawl documents first.")
+        st.warning(f"No documents found for {selected_product.name}. Please crawl documents first.")
         return
 
     # Show document summary
@@ -229,7 +229,7 @@ def show_summarization() -> None:
 
     st.info(f"""
     **This will:**
-    • Analyze each document for {selected_company.name}
+    • Analyze each document for {selected_product.name}
     • Generate privacy-focused summaries for each document
     • Extract key points and transparency scores
     • Identify data usage patterns and user rights
@@ -241,18 +241,18 @@ def show_summarization() -> None:
     with col2:
         if st.button("🚀 Summarize Documents", type="primary", key="summarize_documents_btn"):
             # Clear any previous session state
-            if "selected_company_for_summarization" in st.session_state:
-                del st.session_state["selected_company_for_summarization"]
+            if "selected_product_for_summarization" in st.session_state:
+                del st.session_state["selected_product_for_summarization"]
 
             # Start document analysis
             with st.spinner(
-                f"Analyzing documents for {selected_company.name}... This may take several minutes."
+                f"Analyzing documents for {selected_product.name}... This may take several minutes."
             ):
                 progress_placeholder = st.empty()
                 progress_placeholder.info("🔍 Processing documents...")
 
                 # Run the summarization process
-                success = run_summarization_async(selected_company.slug)
+                success = run_summarization_async(selected_product.slug)
 
                 progress_placeholder.empty()
 
@@ -282,12 +282,12 @@ def show_summarization() -> None:
         **Meta Summary will:**
         • Synthesize insights from all {analyzed_count} analyzed documents
         • Identify patterns and contradictions across documents
-        • Provide an overall privacy assessment for {selected_company.name}
+        • Provide an overall privacy assessment for {selected_product.name}
         • Highlight the most important privacy considerations for users
         """)
 
         if st.button("📋 Generate Meta Summary", type="primary", key="generate_meta_summary_btn"):
-            with st.spinner(f"Generating comprehensive summary for {selected_company.name}..."):
+            with st.spinner(f"Generating comprehensive summary for {selected_product.name}..."):
                 try:
                     # Create a placeholder for streaming content
                     summary_placeholder = st.empty()
@@ -301,12 +301,12 @@ def show_summarization() -> None:
                         async def get_summary() -> str:
                             db = await get_dashboard_db()
                             try:
-                                company_svc = create_company_service()
+                                product_svc = create_product_service()
                                 document_svc = create_document_service()
-                                result = await generate_company_meta_summary(
+                                result = await generate_product_meta_summary(
                                     db.db,
-                                    selected_company.slug,
-                                    company_svc=company_svc,
+                                    selected_product.slug,
+                                    product_svc=product_svc,
                                     document_svc=document_svc,
                                 )
                                 return str(result)
@@ -323,11 +323,11 @@ def show_summarization() -> None:
                 except Exception as e:
                     st.error(f"Failed to generate meta summary: {str(e)}")
 
-    # Back to companies button
+    # Back to products button
     st.write("---")
-    if st.button("← Back to Companies", key="back_to_companies_from_summarization"):
+    if st.button("← Back to Products", key="back_to_products_from_summarization"):
         # Clear summarization session state and navigate back
-        if "selected_company_for_summarization" in st.session_state:
-            del st.session_state["selected_company_for_summarization"]
-        st.session_state["current_page"] = "view_companies"
+        if "selected_product_for_summarization" in st.session_state:
+            del st.session_state["selected_product_for_summarization"]
+        st.session_state["current_page"] = "view_products"
         st.rerun()

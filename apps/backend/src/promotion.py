@@ -209,7 +209,7 @@ class PromotionManager:
                 try:
                     # Check if meta summary already exists in production
                     existing = await self.production_db.meta_summaries.find_one(
-                        {"company_id": meta_summary_data["company_id"]}
+                        {"product_id": meta_summary_data["product_id"]}
                     )
 
                     if existing:
@@ -222,7 +222,7 @@ class PromotionManager:
 
                 except Exception as e:
                     errors.append(
-                        f"Error promoting meta summary for company {meta_summary_data.get('company_id', 'unknown')}: {str(e)}"
+                        f"Error promoting meta summary for product {meta_summary_data.get('product_id', 'unknown')}: {str(e)}"
                     )
 
             return {

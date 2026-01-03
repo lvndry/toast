@@ -96,8 +96,8 @@ class LLMUsageTrackingMixin:
         context: str,
         reason: str | None = None,
         operation_type: str | None = None,
-        company_slug: str | None = None,
-        company_id: str | None = None,
+        product_slug: str | None = None,
+        product_id: str | None = None,
         document_url: str | None = None,
         document_title: str | None = None,
         document_id: str | None = None,
@@ -109,8 +109,8 @@ class LLMUsageTrackingMixin:
             context: Context identifier (e.g., URL, request ID, operation name)
             reason: Optional reason suffix for the log message
             operation_type: Type of operation (e.g., "summarization", "crawl", "classify_document")
-            company_slug: Company slug identifier
-            company_id: Company ID identifier
+            product_slug: Product slug identifier
+            product_id: Product ID identifier
             document_url: URL of the document being processed
             document_title: Title of the document
             document_id: ID of the document
@@ -122,8 +122,8 @@ class LLMUsageTrackingMixin:
             context=context,
             reason=reason,
             operation_type=operation_type,
-            company_slug=company_slug,
-            company_id=company_id,
+            product_slug=product_slug,
+            product_id=product_id,
             document_url=document_url,
             document_title=document_title,
             document_id=document_id,

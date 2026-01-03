@@ -11,7 +11,7 @@ export async function GET(
   try {
     // Use the overview endpoint which returns verdict and risk_score
     const overview = await httpJson(
-      `${apiEndpoints.companies()}/${slug}/overview`,
+      `${apiEndpoints.products()}/${slug}/overview`,
       { method: "GET" },
     );
     return NextResponse.json(overview);

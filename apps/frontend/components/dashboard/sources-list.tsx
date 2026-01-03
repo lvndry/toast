@@ -74,7 +74,7 @@ export function SourcesList({ documents }: SourcesListProps) {
             <div>
               <CardTitle className="text-lg">Source Documents</CardTitle>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Legal documents analyzed for this company
+                Legal documents analyzed for this product
               </p>
             </div>
           </div>

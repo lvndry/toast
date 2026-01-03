@@ -13,10 +13,10 @@ export const apiEndpoints = {
   documents: () => getBackendUrl("/documents"),
   analysis: () => getBackendUrl("/analysis"),
   conversations: () => getBackendUrl("/conversations"),
-  companies: () => getBackendUrl("/companies"),
+  products: () => getBackendUrl("/products"),
   q: () => getBackendUrl("/q"),
   users: () => getBackendUrl("/users"),
-  metaSummary: (slug: string) => getBackendUrl(`/companies/${slug}/overview`),
+  metaSummary: (slug: string) => getBackendUrl(`/products/${slug}/overview`),
 } as const;
 
 // Application configuration
@@ -41,8 +41,8 @@ export const config = {
     signInUrl: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || "/sign-in",
     signUpUrl: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || "/sign-up",
     afterSignInUrl:
-      process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || "/companies",
+      process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || "/products",
     afterSignUpUrl:
-      process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || "/companies",
+      process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || "/products",
   },
 } as const;

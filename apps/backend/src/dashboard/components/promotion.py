@@ -4,7 +4,7 @@ from typing import Any
 
 import streamlit as st
 
-from src.dashboard.db_utils import get_all_companies_isolated, update_company_isolated
+from src.dashboard.db_utils import get_all_products_isolated, update_product_isolated
 from src.dashboard.utils import make_api_request, run_async, run_async_with_retry
 from src.models.user import UserTier
 
@@ -293,14 +293,12 @@ def display_promotion_results(data: dict[str, Any]) -> None:
                 col1, col2, col3 = st.columns(3)
 
                 with col1:
-                    companies = collections.get("companies", {})
-                    if isinstance(companies, dict):
-                        st.metric("Companies (Local)", companies.get("local_count", 0))
-                        st.metric("Companies (Production)", companies.get("production_count", 0))
+                    products = collections.get("products", {})
+                    if isinstance(products, dict):
+                        st.metric("Products (Local)", products.get("local_count", 0))
+                        st.metric("Products (Production)", products.get("production_count", 0))
                     else:
-                        st.metric(
-                            "Companies", companies if isinstance(companies, int | float) else 0
-                        )
+                        st.metric("Products", products if isinstance(products, int | float) else 0)
 
                 with col2:
                     documents = collections.get("documents", {})
@@ -447,20 +445,20 @@ def display_promotion_results(data: dict[str, Any]) -> None:
     st.header("Tier Visibility Management")
     st.markdown("Manage which user tiers can access specific companies")
 
-    # Get current companies
+    # Get current products
     try:
-        with st.spinner("Loading companies..."):
-            companies = run_async_with_retry(get_all_companies_isolated())
+        with st.spinner("Loading products..."):
+            products = run_async_with_retry(get_all_products_isolated())
 
-        if companies is None:
-            st.error("Failed to load companies from database.")
+        if products is None:
+            st.error("Failed to load products from database.")
             return
 
-        if not companies:
-            st.info("No companies found. Create some companies first!")
+        if not products:
+            st.info("No products found. Create some products first!")
             return
 
-        st.success(f"✅ Loaded {len(companies)} companies")
+        st.success(f"✅ Loaded {len(products)} products")
 
         # Bulk tier visibility operations
         st.subheader("Bulk Tier Visibility Operations")
@@ -468,58 +466,58 @@ def display_promotion_results(data: dict[str, Any]) -> None:
         col1, col2 = st.columns(2)
 
         with col1:
-            st.write("**Make All Companies Accessible to All Tiers**")
+            st.write("**Make All Products Accessible to All Tiers**")
             if st.button("🔄 Reset All to Free", type="secondary"):
                 try:
-                    with st.spinner("Updating all companies..."):
+                    with st.spinner("Updating all products..."):
                         updated_count = 0
-                        for company in companies:
-                            company.visible_to_tiers = [
+                        for product in products:
+                            product.visible_to_tiers = [
                                 UserTier.FREE,
                                 UserTier.BUSINESS,
                                 UserTier.ENTERPRISE,
                             ]
-                            success = run_async_with_retry(update_company_isolated(company))
+                            success = run_async_with_retry(update_product_isolated(product))
                             if success:
                                 updated_count += 1
 
-                        if updated_count == len(companies):
+                        if updated_count == len(products):
                             st.success(
-                                f"✅ All {updated_count} companies are now accessible to all tiers!"
+                                f"✅ All {updated_count} products are now accessible to all tiers!"
                             )
                         else:
-                            st.warning(f"⚠️ Updated {updated_count}/{len(companies)} companies")
+                            st.warning(f"⚠️ Updated {updated_count}/{len(products)} products")
                 except Exception as e:
-                    st.error(f"Error updating companies: {str(e)}")
+                    st.error(f"Error updating products: {str(e)}")
 
         with col2:
-            st.write("**Add Tier Visibility Fields to Missing Companies**")
+            st.write("**Add Tier Visibility Fields to Missing Products**")
             if st.button("🔧 Fix Missing Tier Fields", type="secondary"):
                 try:
                     with st.spinner("Checking for missing tier fields..."):
                         missing_tier_fields = [
-                            c
-                            for c in companies
-                            if not hasattr(c, "visible_to_tiers") or not c.visible_to_tiers
+                            p
+                            for p in products
+                            if not hasattr(p, "visible_to_tiers") or not p.visible_to_tiers
                         ]
 
                         if not missing_tier_fields:
-                            st.info("✅ All companies already have tier visibility fields!")
+                            st.info("✅ All products already have tier visibility fields!")
                         else:
                             st.info(
-                                f"Found {len(missing_tier_fields)} companies without tier fields"
+                                f"Found {len(missing_tier_fields)} products without tier fields"
                             )
 
-                            for company in missing_tier_fields:
-                                company.visible_to_tiers = [
+                            for product in missing_tier_fields:
+                                product.visible_to_tiers = [
                                     UserTier.FREE,
                                     UserTier.BUSINESS,
                                     UserTier.ENTERPRISE,
                                 ]
-                                run_async_with_retry(update_company_isolated(company))
+                                run_async_with_retry(update_product_isolated(product))
 
                             st.success(
-                                f"✅ Added tier fields to {len(missing_tier_fields)} companies!"
+                                f"✅ Added tier fields to {len(missing_tier_fields)} products!"
                             )
                 except Exception as e:
                     st.error(f"Error fixing tier fields: {str(e)}")
@@ -527,17 +525,17 @@ def display_promotion_results(data: dict[str, Any]) -> None:
         # Strategic tier assignments
         st.subheader("Strategic Tier Assignments")
 
-        # Define company categories for strategic gating
+        # Define product categories for strategic gating
         st.write("**Premium Content Strategy**")
-        st.info("Make high-value companies premium-only to drive conversions")
+        st.info("Make high-value products premium-only to drive conversions")
 
         col1, col2, col3 = st.columns(3)
 
         with col1:
             if st.button("🔒 Make Social Media Premium", type="primary"):
                 try:
-                    with st.spinner("Making social media companies premium..."):
-                        social_companies = [
+                    with st.spinner("Making social media products premium..."):
+                        social_products = [
                             "facebook",
                             "tiktok",
                             "instagram",
@@ -547,78 +545,78 @@ def display_promotion_results(data: dict[str, Any]) -> None:
                         ]
                         updated_count = 0
 
-                        for company in companies:
-                            if company.slug in social_companies:
-                                company.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
-                                success = run_async_with_retry(update_company_isolated(company))
+                        for product in products:
+                            if product.slug in social_products:
+                                product.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
+                                success = run_async_with_retry(update_product_isolated(product))
                                 if success:
                                     updated_count += 1
 
-                        st.success(f"✅ Made {updated_count} social media companies premium-only!")
+                        st.success(f"✅ Made {updated_count} social media products premium-only!")
                 except Exception as e:
-                    st.error(f"Error updating social media companies: {str(e)}")
+                    st.error(f"Error updating social media products: {str(e)}")
 
         with col2:
             if st.button("🔒 Make Data Brokers Premium", type="primary"):
                 try:
-                    with st.spinner("Making data broker companies premium..."):
+                    with st.spinner("Making data broker products premium..."):
                         data_brokers = ["palantir", "snowflake", "databricks", "splunk"]
                         updated_count = 0
 
-                        for company in companies:
-                            if company.slug in data_brokers:
-                                company.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
-                                success = run_async_with_retry(update_company_isolated(company))
+                        for product in products:
+                            if product.slug in data_brokers:
+                                product.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
+                                success = run_async_with_retry(update_product_isolated(product))
                                 if success:
                                     updated_count += 1
 
-                        st.success(f"✅ Made {updated_count} data broker companies premium-only!")
+                        st.success(f"✅ Made {updated_count} data broker products premium-only!")
                 except Exception as e:
-                    st.error(f"Error updating data broker companies: {str(e)}")
+                    st.error(f"Error updating data broker products: {str(e)}")
 
         with col3:
             if st.button("🔒 Make Financial Services Premium", type="primary"):
                 try:
-                    with st.spinner("Making financial services companies premium..."):
-                        financial_companies = ["stripe", "paypal", "square", "robinhood"]
+                    with st.spinner("Making financial services products premium..."):
+                        financial_products = ["stripe", "paypal", "square", "robinhood"]
                         updated_count = 0
 
-                        for company in companies:
-                            if company.slug in financial_companies:
-                                company.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
-                                success = run_async_with_retry(update_company_isolated(company))
+                        for product in products:
+                            if product.slug in financial_products:
+                                product.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
+                                success = run_async_with_retry(update_product_isolated(product))
                                 if success:
                                     updated_count += 1
 
                         st.success(
-                            f"✅ Made {updated_count} financial services companies premium-only!"
+                            f"✅ Made {updated_count} financial services products premium-only!"
                         )
                 except Exception as e:
-                    st.error(f"Error updating financial services companies: {str(e)}")
+                    st.error(f"Error updating financial services products: {str(e)}")
 
         # Custom tier assignment
         st.subheader("Custom Tier Assignment")
 
-        # Company selector
-        company_options = {f"{c.name} ({c.slug})": c.slug for c in companies}
-        selected_company = st.selectbox(
-            "Select Company",
-            options=list(company_options.keys()),
-            help="Choose a company to modify its tier visibility",
+        # Product selector
+        product_options = {f"{p.name} ({p.slug})": p.slug for p in products}
+        selected_product = st.selectbox(
+            "Select Product",
+            options=list(product_options.keys()),
+            help="Choose a product to modify its tier visibility",
         )
 
-        if selected_company:
-            company_slug = company_options[selected_company]
-            company = next((c for c in companies if c.slug == company_slug), None)
+        if selected_product:
+            product_slug = product_options[selected_product]
+            product = next((p for p in products if p.slug == product_slug), None)
 
-            if company:
+            if product:
                 current_tiers = (
-                    company.visible_to_tiers
-                    if hasattr(company, "visible_to_tiers")
+                    product.visible_to_tiers
+                    if hasattr(product, "visible_to_tiers")
                     else [UserTier.FREE, UserTier.BUSINESS, UserTier.ENTERPRISE]
                 )
 
-                st.write(f"**Current tier visibility for {company.name}:**")
+                st.write(f"**Current tier visibility for {product.name}:**")
                 tier_labels = []
                 for tier in current_tiers:
                     if tier == UserTier.FREE:
@@ -658,16 +656,16 @@ def display_promotion_results(data: dict[str, Any]) -> None:
                             if enterprise_tier:
                                 new_tiers.append(UserTier.ENTERPRISE)
 
-                            company.visible_to_tiers = new_tiers
-                            success = run_async_with_retry(update_company_isolated(company))
+                            product.visible_to_tiers = new_tiers
+                            success = run_async_with_retry(update_product_isolated(product))
 
                             if success:
-                                st.success(f"✅ Updated {company.name} tier visibility!")
+                                st.success(f"✅ Updated {product.name} tier visibility!")
                                 st.rerun()
                             else:
-                                st.error("Failed to update company tier visibility")
+                                st.error("Failed to update product tier visibility")
                         except Exception as e:
-                            st.error(f"Error updating company: {str(e)}")
+                            st.error(f"Error updating product: {str(e)}")
 
         # Tier visibility statistics
         st.subheader("Current Tier Visibility Statistics")
@@ -677,9 +675,9 @@ def display_promotion_results(data: dict[str, Any]) -> None:
         with col1:
             free_accessible = len(
                 [
-                    c
-                    for c in companies
-                    if hasattr(c, "visible_to_tiers") and UserTier.FREE in c.visible_to_tiers
+                    p
+                    for p in products
+                    if hasattr(p, "visible_to_tiers") and UserTier.FREE in p.visible_to_tiers
                 ]
             )
             st.metric("Free Tier Accessible", free_accessible)
@@ -687,9 +685,9 @@ def display_promotion_results(data: dict[str, Any]) -> None:
         with col2:
             business_accessible = len(
                 [
-                    c
-                    for c in companies
-                    if hasattr(c, "visible_to_tiers") and UserTier.BUSINESS in c.visible_to_tiers
+                    p
+                    for p in products
+                    if hasattr(p, "visible_to_tiers") and UserTier.BUSINESS in p.visible_to_tiers
                 ]
             )
             st.metric("Business Tier Accessible", business_accessible)
@@ -697,9 +695,9 @@ def display_promotion_results(data: dict[str, Any]) -> None:
         with col3:
             enterprise_accessible = len(
                 [
-                    c
-                    for c in companies
-                    if hasattr(c, "visible_to_tiers") and UserTier.ENTERPRISE in c.visible_to_tiers
+                    p
+                    for p in products
+                    if hasattr(p, "visible_to_tiers") and UserTier.ENTERPRISE in p.visible_to_tiers
                 ]
             )
             st.metric("Enterprise Tier Accessible", enterprise_accessible)
@@ -707,13 +705,13 @@ def display_promotion_results(data: dict[str, Any]) -> None:
         with col4:
             premium_only = len(
                 [
-                    c
-                    for c in companies
-                    if hasattr(c, "visible_to_tiers") and UserTier.FREE not in c.visible_to_tiers
+                    p
+                    for p in products
+                    if hasattr(p, "visible_to_tiers") and UserTier.FREE not in p.visible_to_tiers
                 ]
             )
-            st.metric("Premium Only", premium_only, delta=f"{premium_only}/{len(companies)}")
+            st.metric("Premium Only", premium_only, delta=f"{premium_only}/{len(products)}")
 
     except Exception as e:
-        st.error(f"Error loading companies: {str(e)}")
+        st.error(f"Error loading products: {str(e)}")
         st.write("Please check your database connection and try again.")

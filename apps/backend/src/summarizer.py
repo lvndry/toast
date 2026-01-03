@@ -14,7 +14,6 @@ from src.llm import SupportedModel, acompletion_with_fallback
 from src.models.document import (
     BusinessImpact,
     BusinessImpactAssessment,
-    CompanyDeepAnalysis,
     CrossDocumentAnalysis,
     Document,
     DocumentAnalysis,
@@ -24,6 +23,7 @@ from src.models.document import (
     EnhancedComplianceBreakdown,
     IndividualImpact,
     MetaSummary,
+    ProductDeepAnalysis,
     RiskPrioritization,
 )
 from src.prompts.summarizer_prompts import (
@@ -32,8 +32,8 @@ from src.prompts.summarizer_prompts import (
     META_SUMMARY_SYSTEM_PROMPT,
     SINGLE_DOC_DEEP_ANALYSIS_PROMPT,
 )
-from src.services.company_service import CompanyService
 from src.services.document_service import DocumentService
+from src.services.product_service import ProductService
 from src.utils.cancellation import CancellationToken
 from src.utils.llm_usage import UsageTracker, log_usage_summary, usage_tracking
 
@@ -41,13 +41,13 @@ load_dotenv()
 logger = get_logger(__name__)
 
 
-async def summarize_all_company_documents(
+async def summarize_all_product_documents(
     db: AgnosticDatabase,
-    company_slug: str,
+    product_slug: str,
     document_svc: DocumentService,
     cancellation_token: CancellationToken | None = None,
 ) -> list[Document]:
-    """Summarize all documents for a company with cancellation support."""
+    """Summarize all documents for a product with cancellation support."""
     # For HTTP requests, create a fresh token if none provided
     # The global token is for signal-based cancellation (Ctrl+C) and may be in a cancelled state
     if cancellation_token is None:
@@ -55,9 +55,9 @@ async def summarize_all_company_documents(
     else:
         token = cancellation_token
 
-    documents: list[Document] = await document_svc.get_company_documents_by_slug(db, company_slug)
+    documents: list[Document] = await document_svc.get_product_documents_by_slug(db, product_slug)
     total_docs: int = len(documents)
-    logger.info(f"Summarizing {total_docs} documents for {company_slug}")
+    logger.info(f"Summarizing {total_docs} documents for {product_slug}")
 
     for index, doc in enumerate(documents, 1):
         # Check for cancellation before processing each document
@@ -76,7 +76,7 @@ async def summarize_all_company_documents(
             logger.info(f"Summarization cancelled at document {index}/{total_docs}")
             raise
 
-    logger.info(f"✓ Successfully summarized all {total_docs} documents for {company_slug}")
+    logger.info(f"✓ Successfully summarized all {total_docs} documents for {product_slug}")
     return documents
 
 
@@ -90,11 +90,11 @@ def _compute_document_signature(documents: list[Document]) -> str:
     """
     Compute a signature from all document content hashes.
 
-    This signature is used to detect when any document in a company has changed,
+    This signature is used to detect when any document in a product has changed,
     which should invalidate the cached meta-summary.
 
     Args:
-        documents: List of documents for a company
+        documents: List of documents for a product
 
     Returns:
         SHA256 hash of sorted document content hashes
@@ -519,7 +519,7 @@ Document content:
                     context=f"document_{document.id}",
                     reason="success",
                     operation_type="summarization",
-                    company_id=document.company_id,
+                    product_id=document.product_id,
                     document_id=document.id,
                     document_url=document.url,
                     document_title=document.title,
@@ -560,7 +560,7 @@ Document content:
                     context=f"document_{document.id}",
                     reason="parsing_fallback",
                     operation_type="summarization",
-                    company_id=document.company_id,
+                    product_id=document.product_id,
                     document_id=document.id,
                     document_url=document.url,
                     document_title=document.title,
@@ -603,7 +603,6 @@ Document content:
         context=f"document_{document.id}",
         reason="failed",
         operation_type="summarization",
-        company_id=document.company_id,
         document_id=document.id,
         document_url=document.url,
         document_title=document.title,
@@ -615,24 +614,24 @@ Document content:
     return None
 
 
-async def generate_company_meta_summary(
+async def generate_product_meta_summary(
     db: AgnosticDatabase,
-    company_slug: str,
+    product_slug: str,
     force_regenerate: bool = False,
-    company_svc: CompanyService | None = None,
+    product_svc: ProductService | None = None,
     document_svc: DocumentService | None = None,
     cancellation_token: CancellationToken | None = None,
 ) -> MetaSummary:
     """
-    Generate a meta-summary of all analyzed documents for a company.
+    Generate a meta-summary of all analyzed documents for a product.
 
     Uses caching to avoid regenerating meta-summaries when documents haven't changed.
     Cache is invalidated when document signature (hash of all document hashes) changes.
 
     Args:
-        company_slug: The company slug to generate meta-summary for
+        product_slug: The product slug to generate meta-summary for
         force_regenerate: If True, bypass cache and regenerate meta-summary
-        company_svc: Optional CompanyService instance (for dependency injection)
+        product_svc: Optional ProductService instance (for dependency injection)
         document_svc: Optional DocumentService instance (for dependency injection)
         cancellation_token: Optional cancellation token for interrupting the operation
 
@@ -648,28 +647,28 @@ async def generate_company_meta_summary(
         token = CancellationToken()
     else:
         token = cancellation_token
-    if not company_svc or not document_svc:
-        raise ValueError("company_svc and document_svc are required")
-    comp_svc = company_svc
+    if not product_svc or not document_svc:
+        raise ValueError("product_svc and document_svc are required")
+    prod_svc = product_svc
     doc_svc = document_svc
 
-    documents = await doc_svc.get_company_documents_by_slug(db, company_slug)
-    logger.info(f"Generating meta-summary for {company_slug} with {len(documents)} documents")
+    documents = await doc_svc.get_product_documents_by_slug(db, product_slug)
+    logger.info(f"Generating meta-summary for {product_slug} with {len(documents)} documents")
 
     # Compute current document signature
     current_signature = _compute_document_signature(documents)
-    logger.debug(f"Document signature for {company_slug}: {current_signature[:16]}...")
+    logger.debug(f"Document signature for {product_slug}: {current_signature[:16]}...")
 
     # Check cache unless force_regenerate is True
     if not force_regenerate:
-        cached_meta_summary_data = await comp_svc.get_meta_summary(db, company_slug)
+        cached_meta_summary_data = await prod_svc.get_meta_summary(db, product_slug)
         if cached_meta_summary_data:
             cached_signature = cached_meta_summary_data.get("document_signature")
             cached_summary = cached_meta_summary_data.get("meta_summary")
 
             if cached_signature == current_signature and cached_summary:
                 logger.info(
-                    f"Using cached meta-summary for {company_slug} "
+                    f"Using cached meta-summary for {product_slug} "
                     f"(signature match: {current_signature[:16]}...)"
                 )
                 try:
@@ -677,21 +676,21 @@ async def generate_company_meta_summary(
                     return meta_summary
                 except Exception as e:
                     logger.warning(
-                        f"Failed to parse cached meta-summary for {company_slug}: {e}. "
+                        f"Failed to parse cached meta-summary for {product_slug}: {e}. "
                         "Regenerating..."
                     )
             else:
                 if cached_signature != current_signature:
                     logger.info(
-                        f"Cache invalidated for {company_slug}: "
+                        f"Cache invalidated for {product_slug}: "
                         f"signature changed ({cached_signature[:16] if cached_signature else 'none'}... "
                         f"-> {current_signature[:16]}...)"
                     )
                 else:
-                    logger.debug(f"No cached meta-summary found for {company_slug}")
+                    logger.debug(f"No cached meta-summary found for {product_slug}")
 
     # Cache miss or invalid - generate new meta-summary
-    logger.info(f"Generating new meta-summary for {company_slug}")
+    logger.info(f"Generating new meta-summary for {product_slug}")
 
     summaries = []
     for doc in documents:
@@ -707,7 +706,7 @@ async def generate_company_meta_summary(
             try:
                 analysis = await summarize_document(doc, cancellation_token=token)
             except asyncio.CancelledError:
-                logger.info(f"Meta-summary generation cancelled for {company_slug}")
+                logger.info(f"Meta-summary generation cancelled for {product_slug}")
                 raise
             if analysis:
                 # Store the analysis in the database
@@ -823,28 +822,28 @@ Create a unified summary that provides complete value in under 5 minutes of read
         meta_summary = MetaSummary.model_validate_json(content, strict=False)
 
         # Save to database with document signature
-        await comp_svc.save_meta_summary(
+        await prod_svc.save_meta_summary(
             db,
-            company_slug=company_slug,
+            product_slug=product_slug,
             meta_summary=meta_summary,
             document_signature=current_signature,
         )
-        logger.info(f"✓ Saved meta-summary for {company_slug}")
+        logger.info(f"✓ Saved meta-summary for {product_slug}")
 
         # Log LLM usage for meta-summary generation (success case)
         usage_summary, records = usage_tracker.consume_summary()
         log_usage_summary(
             usage_summary,
             records,
-            context=f"company_{company_slug}",
+            context=f"product_{product_slug}",
             reason="success",
             operation_type="meta_summary",
-            company_slug=company_slug,
+            product_slug=product_slug,
         )
 
         return meta_summary
     except asyncio.CancelledError:
-        logger.info(f"Meta-summary generation cancelled for {company_slug}")
+        logger.info(f"Meta-summary generation cancelled for {product_slug}")
         raise
     except Exception as e:
         # Log LLM usage even on failure
@@ -852,21 +851,21 @@ Create a unified summary that provides complete value in under 5 minutes of read
         log_usage_summary(
             usage_summary,
             records,
-            context=f"company_{company_slug}",
+            context=f"product_{product_slug}",
             reason="failed",
             operation_type="meta_summary",
-            company_slug=company_slug,
+            product_slug=product_slug,
         )
 
         # Log the full error with context
         logger.error(
-            f"Error generating meta-summary for {company_slug}: {str(e)}",
+            f"Error generating meta-summary for {product_slug}: {str(e)}",
             exc_info=True,
         )
 
         # Re-raise the exception so callers can handle it appropriately
         # This provides transparency about what actually failed
-        raise RuntimeError(f"Failed to generate meta-summary for {company_slug}: {str(e)}") from e
+        raise RuntimeError(f"Failed to generate meta-summary for {product_slug}: {str(e)}") from e
 
 
 async def _generate_single_document_deep_analysis(
@@ -985,72 +984,72 @@ Existing Analysis:
         return None
 
 
-async def generate_company_deep_analysis(
+async def generate_product_deep_analysis(
     db: AgnosticDatabase,
-    company_slug: str,
+    product_slug: str,
     force_regenerate: bool = False,
-    company_svc: CompanyService | None = None,
+    product_svc: ProductService | None = None,
     document_svc: DocumentService | None = None,
-) -> CompanyDeepAnalysis:
+) -> ProductDeepAnalysis:
     """
-    Generate deep analysis (Level 3) for a company.
+    Generate deep analysis (Level 3) for a product.
 
     Uses an iterative approach:
     1. Generate deep analysis for each document individually
     2. Aggregate results for cross-document analysis and compliance
     """
-    if not company_svc or not document_svc:
-        raise ValueError("company_svc and document_svc are required")
-    comp_svc = company_svc
+    if not product_svc or not document_svc:
+        raise ValueError("product_svc and document_svc are required")
+    prod_svc = product_svc
     doc_svc = document_svc
 
     # First ensure we have Level 2 analysis
-    analysis = await comp_svc.get_company_analysis(db, company_slug)
+    analysis = await prod_svc.get_product_analysis(db, product_slug)
     if not analysis:
         # Generate meta-summary first (which creates Level 2)
-        logger.info(f"Level 2 analysis not found for {company_slug}, generating...")
-        await generate_company_meta_summary(
-            db, company_slug=company_slug, company_svc=comp_svc, document_svc=doc_svc
+        logger.info(f"Level 2 analysis not found for {product_slug}, generating...")
+        await generate_product_meta_summary(
+            db, product_slug=product_slug, product_svc=prod_svc, document_svc=doc_svc
         )
-        analysis = await comp_svc.get_company_analysis(db, company_slug)
+        analysis = await prod_svc.get_product_analysis(db, product_slug)
         if not analysis:
-            raise ValueError(f"Failed to generate Level 2 analysis for {company_slug}")
+            raise ValueError(f"Failed to generate Level 2 analysis for {product_slug}")
 
     # Get all documents with full text
-    documents = await doc_svc.get_company_documents_by_slug(db, company_slug)
+    documents = await doc_svc.get_product_documents_by_slug(db, product_slug)
     if not documents:
-        raise ValueError(f"No documents found for {company_slug}")
+        raise ValueError(f"No documents found for {product_slug}")
 
-    logger.info(f"Generating deep analysis for {company_slug} with {len(documents)} documents")
+    logger.info(f"Generating deep analysis for {product_slug} with {len(documents)} documents")
 
     # Compute document signature for caching
     current_signature = _compute_document_signature(documents)
 
     # Check cache unless force_regenerate
     if not force_regenerate:
-        cached_deep_analysis = await comp_svc.get_deep_analysis(db, company_slug)
+        cached_deep_analysis = await prod_svc.get_deep_analysis(db, product_slug)
         if cached_deep_analysis:
             cached_signature = cached_deep_analysis.get("document_signature")
             cached_data = cached_deep_analysis.get("deep_analysis")
 
             if cached_signature == current_signature and cached_data:
                 logger.info(
-                    f"Using cached deep analysis for {company_slug} "
+                    f"Using cached deep analysis for {product_slug} "
                     f"(signature match: {current_signature[:16]}...)"
                 )
                 try:
-                    deep_analysis: CompanyDeepAnalysis = CompanyDeepAnalysis.model_validate(
+                    deep_analysis: ProductDeepAnalysis = ProductDeepAnalysis.model_validate(
                         cached_data
                     )
                     return deep_analysis
                 except Exception as e:
                     logger.warning(
-                        f"Failed to parse cached deep analysis for {company_slug}: {e}. "
+                        f"Failed to parse cached deep analysis for {product_slug}: {e}. "
                         "Regenerating..."
                     )
 
     # Cache miss or invalid - generate new deep analysis
-    logger.info(f"Generating new deep analysis for {company_slug}")
+    logger.info(f"Generating new deep analysis for {product_slug}")
 
     usage_tracker = UsageTracker()
 
@@ -1074,7 +1073,7 @@ async def generate_company_deep_analysis(
 
     if not document_analyses:
         raise ValueError(
-            f"Failed to generate deep analysis for any documents for {company_slug}. "
+            f"Failed to generate deep analysis for any documents for {product_slug}. "
             "This may occur if documents are missing analysis (Level 2) or text content."
         )
 
@@ -1094,7 +1093,7 @@ Critical Clauses: {len(da.critical_clauses)} found
 """)
 
     aggregate_prompt = f"""
-Company: {company_slug}
+Product: {product_slug}
 Documents Analyzed: {len(document_analyses)}
 
 Document Summaries:
@@ -1191,7 +1190,7 @@ Perform cross-document analysis, compliance assessment, and business impact anal
             low=risk_prior_data.get("low", []),
         )
 
-        deep_analysis = CompanyDeepAnalysis(
+        deep_analysis = ProductDeepAnalysis(
             analysis=analysis,
             document_analyses=document_analyses,
             cross_document_analysis=cross_document_analysis,
@@ -1201,23 +1200,23 @@ Perform cross-document analysis, compliance assessment, and business impact anal
         )
 
         # Save the result to database
-        await comp_svc.save_deep_analysis(
+        await prod_svc.save_deep_analysis(
             db,
-            company_slug=company_slug,
+            product_slug=product_slug,
             deep_analysis=deep_analysis,
             document_signature=current_signature,
         )
-        logger.info(f"✓ Saved deep analysis for {company_slug}")
+        logger.info(f"✓ Saved deep analysis for {product_slug}")
 
         # Log usage
         usage_summary, records = usage_tracker.consume_summary()
         log_usage_summary(
             usage_summary,
             records,
-            context=f"company_{company_slug}",
+            context=f"product_{product_slug}",
             reason="success",
             operation_type="deep_analysis",
-            company_slug=company_slug,
+            product_slug=product_slug,
         )
 
         return deep_analysis
@@ -1230,10 +1229,10 @@ Perform cross-document analysis, compliance assessment, and business impact anal
         log_usage_summary(
             usage_summary,
             records,
-            context=f"company_{company_slug}",
+            context=f"product_{product_slug}",
             reason="failed",
             operation_type="deep_analysis",
-            company_slug=company_slug,
+            product_slug=product_slug,
         )
 
         raise
@@ -1244,14 +1243,14 @@ async def main() -> None:
     from src.services.service_factory import create_services
 
     async with get_db() as db:
-        company_svc, doc_svc = create_services()
+        product_svc, doc_svc = create_services()
 
-        await summarize_all_company_documents(db, "notion", doc_svc)
+        await summarize_all_product_documents(db, "notion", doc_svc)
 
         print("Generating company meta-summary:")
         print("=" * 50)
-        meta_summary = await generate_company_meta_summary(
-            db, "notion", company_svc=company_svc, document_svc=doc_svc
+        meta_summary = await generate_product_meta_summary(
+            db, "notion", product_svc=product_svc, document_svc=doc_svc
         )
         logger.info(meta_summary)
         print("\n" + "=" * 50)

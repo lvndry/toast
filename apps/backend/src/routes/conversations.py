@@ -17,9 +17,10 @@ router = APIRouter(prefix="/conversations")
 
 class CreateConversationRequest(BaseModel):
     user_id: str
-    company_name: str
-    company_slug: str
-    company_description: str | None = None
+    product_name: str
+    product_slug: str
+    company_name: str | None = None
+    product_description: str | None = None
     title: str | None = None
 
 
@@ -33,8 +34,9 @@ class PatchConversationRequest(BaseModel):
     archived: bool | None = None
     pinned: bool | None = None
     tags: list[str] | None = None
+    product_name: str | None = None
     company_name: str | None = None
-    company_description: str | None = None
+    product_description: str | None = None
 
 
 @router.post("")
@@ -47,9 +49,10 @@ async def create_new_conversation(
         created_conversation = await service.create_conversation(
             db,
             user_id=request.user_id,
+            product_name=request.product_name,
+            product_slug=request.product_slug,
             company_name=request.company_name,
-            company_slug=request.company_slug,
-            company_description=request.company_description,
+            product_description=request.product_description,
             title=request.title,
         )
         return created_conversation
@@ -79,7 +82,7 @@ async def get_conversation(
 @router.get("/user/{user_id}")
 async def get_user_conversations_route(
     user_id: str,
-    company_slug: str | None = None,
+    product_slug: str | None = None,
     archived: bool | None = None,
     pinned: bool | None = None,
     db: AgnosticDatabase = Depends(get_db),
@@ -87,8 +90,8 @@ async def get_user_conversations_route(
     """Get all conversations for a user."""
     try:
         query: dict[str, Any] = {"user_id": user_id}
-        if company_slug is not None:
-            query["company_slug"] = company_slug
+        if product_slug is not None:
+            query["product_slug"] = product_slug
         if archived is not None:
             query["archived"] = archived
         if pinned is not None:
@@ -166,8 +169,9 @@ async def patch_conversation(
 async def upload_document(
     conversation_id: str,
     file: UploadFile = File(...),
-    company_name: str = Form(...),
-    company_description: str = Form(None),
+    product_name: str = Form(...),
+    company_name: str = Form(None),
+    product_description: str = Form(None),
     db: AgnosticDatabase = Depends(get_db),
 ) -> dict[str, Any]:
     """Upload a document to a conversation."""
@@ -182,8 +186,9 @@ async def upload_document(
                 file_content=content,
                 filename=file.filename or "",
                 content_type=file.content_type or "application/octet-stream",
+                product_name=product_name,
                 company_name=company_name,
-                company_description=company_description,
+                product_description=product_description,
             )
             if not result.success:
                 if not result.is_legal_document:
