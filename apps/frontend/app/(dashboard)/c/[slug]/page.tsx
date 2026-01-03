@@ -27,7 +27,8 @@ interface Message {
 interface Conversation {
   id: string;
   title: string;
-  company_name: string;
+  product_name: string;
+  company_name?: string | null;
   messages: Message[];
 }
 
@@ -48,7 +49,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!isConversationId) {
-      router.replace(`/companies/${slug}`);
+      router.replace(`/products/${slug}`);
       return;
     }
 
@@ -165,7 +166,7 @@ export default function ChatPage() {
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-4 pb-6 border-b border-border/50"
       >
-        <Link href="/companies">
+        <Link href="/products">
           <Button
             variant="ghost"
             size="icon"
@@ -184,7 +185,7 @@ export default function ChatPage() {
             </h1>
             <div className="flex items-center gap-2">
               <Badge variant="outline" size="sm">
-                {conversation?.company_name}
+                {conversation?.product_name}
               </Badge>
             </div>
           </div>
@@ -208,7 +209,7 @@ export default function ChatPage() {
               </h3>
               <p className="text-muted-foreground text-sm max-w-sm">
                 Ask questions about the privacy policy or terms of service for{" "}
-                {conversation?.company_name}.
+                {conversation?.product_name}.
               </p>
             </motion.div>
           ) : (
@@ -259,7 +260,7 @@ export default function ChatPage() {
             <ChatInput
               onSend={handleSendMessage}
               disabled={sending}
-              placeholder={`Ask about ${conversation?.company_name}...`}
+              placeholder={`Ask about ${conversation?.product_name}...`}
             />
           </Card>
         </div>

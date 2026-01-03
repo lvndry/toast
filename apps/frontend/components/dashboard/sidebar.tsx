@@ -19,8 +19,8 @@ export function Sidebar({ className }: SidebarProps) {
     {
       label: "Companies",
       icon: Building2,
-      href: "/companies",
-      active: pathname?.startsWith("/companies") || pathname?.startsWith("/c/"),
+      href: "/products",
+      active: pathname?.startsWith("/products") || pathname?.startsWith("/c/"),
       description: "Privacy analysis",
     },
   ];

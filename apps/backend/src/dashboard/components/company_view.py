@@ -2,68 +2,68 @@ import streamlit as st
 from streamlit_tags import st_tags
 
 from src.dashboard.db_utils import (
-    delete_company_isolated,
-    get_all_companies_isolated,
-    get_document_counts_by_company,
-    update_company_isolated,
+    delete_product_isolated,
+    get_all_products_isolated,
+    get_document_counts_by_product,
+    update_product_isolated,
 )
 from src.dashboard.utils import run_async_with_retry
-from src.models.company import Company
+from src.models.product import Product
 from src.models.user import UserTier
 
 
-def show_edit_form(company: Company) -> None:
-    """Show edit form for a company"""
-    st.subheader(f"Edit Company: {company.name}")
+def show_edit_form(product: Product) -> None:
+    """Show edit form for a product"""
+    st.subheader(f"Edit Product: {product.name}")
 
-    with st.form(f"edit_company_form_{company.id}"):
+    with st.form(f"edit_product_form_{product.id}"):
         # Pre-fill form with existing data
-        name = st.text_input("Company Name", value=company.name)
-        slug = st.text_input("Company Slug", value=company.slug)
+        name = st.text_input("Product Name", value=product.name)
+        slug = st.text_input("Product Slug", value=product.slug)
 
         # Use tag inputs instead of text areas
         domains = st_tags(
             label="Domains",
             text="Press enter to add a domain",
-            value=company.domains if company.domains else [],
-            key=f"domains_{company.id}",
+            value=product.domains if product.domains else [],
+            key=f"domains_{product.id}",
         )
         categories = st_tags(
             label="Categories",
             text="Press enter to add a category",
-            value=company.categories if company.categories else [],
-            key=f"categories_{company.id}",
+            value=product.categories if product.categories else [],
+            key=f"categories_{product.id}",
         )
         crawl_base_urls = st_tags(
             label="Crawl Base URLs",
             text="Press enter to add a URL",
-            value=company.crawl_base_urls if company.crawl_base_urls else [],
-            key=f"crawl_urls_{company.id}",
+            value=product.crawl_base_urls if product.crawl_base_urls else [],
+            key=f"crawl_urls_{product.id}",
         )
 
         # Tier visibility section
         st.write("**Tier Visibility:**")
-        st.write("Select which user tiers can access this company:")
+        st.write("Select which user tiers can access this product:")
 
         # Get current tier visibility
         current_tiers = (
-            company.visible_to_tiers
-            if hasattr(company, "visible_to_tiers")
+            product.visible_to_tiers
+            if hasattr(product, "visible_to_tiers")
             else [UserTier.FREE, UserTier.BUSINESS, UserTier.ENTERPRISE]
         )
 
         free_tier = st.checkbox(
-            "Free Tier", value=UserTier.FREE in current_tiers, key=f"free_tier_{company.id}"
+            "Free Tier", value=UserTier.FREE in current_tiers, key=f"free_tier_{product.id}"
         )
         business_tier = st.checkbox(
             "Business Tier",
             value=UserTier.BUSINESS in current_tiers,
-            key=f"business_tier_{company.id}",
+            key=f"business_tier_{product.id}",
         )
         enterprise_tier = st.checkbox(
             "Enterprise Tier",
             value=UserTier.ENTERPRISE in current_tiers,
-            key=f"enterprise_tier_{company.id}",
+            key=f"enterprise_tier_{product.id}",
         )
 
         # Validate that at least one tier is selected
@@ -73,14 +73,14 @@ def show_edit_form(company: Company) -> None:
 
         col1, col2 = st.columns(2)
         with col1:
-            submitted = st.form_submit_button("Update Company", type="primary")
+            submitted = st.form_submit_button("Update Product", type="primary")
         with col2:
             cancelled = st.form_submit_button("Cancel")
 
         if cancelled:
             # Clear the edit state
-            if f"editing_company_{company.id}" in st.session_state:
-                del st.session_state[f"editing_company_{company.id}"]
+            if f"editing_product_{product.id}" in st.session_state:
+                del st.session_state[f"editing_product_{product.id}"]
             st.rerun()
 
         if submitted:
@@ -103,9 +103,9 @@ def show_edit_form(company: Company) -> None:
                 if enterprise_tier:
                     visible_tiers.append(UserTier.ENTERPRISE)
 
-                # Create updated company instance
-                updated_company = Company(
-                    id=company.id,  # Keep the same ID
+                # Create updated product instance
+                updated_product = Product(
+                    id=product.id,  # Keep the same ID
                     name=name,
                     slug=slug,
                     domains=domains_list,
@@ -115,27 +115,27 @@ def show_edit_form(company: Company) -> None:
                 )
 
                 # Update in database with retry
-                success = run_async_with_retry(update_company_isolated(updated_company))
+                success = run_async_with_retry(update_product_isolated(updated_product))
 
                 if success:
                     st.success(f"Company '{name}' updated successfully!")
                     # Clear the edit state
-                    if f"editing_company_{company.id}" in st.session_state:
-                        del st.session_state[f"editing_company_{company.id}"]
+                    if f"editing_product_{product.id}" in st.session_state:
+                        del st.session_state[f"editing_product_{product.id}"]
                     st.rerun()
                 else:
-                    st.error("Failed to update company. Please try again.")
+                    st.error("Failed to update product. Please try again.")
 
             except Exception as e:
                 st.error(f"Error updating company: {str(e)}")
 
 
-def show_delete_confirmation(company: Company) -> None:
+def show_delete_confirmation(product: Product) -> None:
     """Show delete confirmation dialog"""
-    st.error(f"⚠️ **Delete Company: {company.name}**")
+    st.error(f"⚠️ **Delete Product: {product.name}**")
     st.write("**This action cannot be undone!**")
-    st.write("All data associated with this company will be permanently deleted, including:")
-    st.write("• Company information")
+    st.write("All data associated with this product will be permanently deleted, including:")
+    st.write("• Product information")
     st.write("• Associated documents")
     st.write("• Crawl data")
 
@@ -144,31 +144,31 @@ def show_delete_confirmation(company: Company) -> None:
     col1, col2, col3 = st.columns([1, 1, 2])
 
     with col1:
-        if st.button("🗑️ **DELETE**", key=f"confirm_delete_{company.id}", type="primary"):
+        if st.button("🗑️ **DELETE**", key=f"confirm_delete_{product.id}", type="primary"):
             # Perform the deletion with retry
-            success = run_async_with_retry(delete_company_isolated(company.id))
+            success = run_async_with_retry(delete_product_isolated(product.id))
 
             if success:
-                st.success(f"Company '{company.name}' has been deleted successfully!")
+                st.success(f"Product '{product.name}' has been deleted successfully!")
                 # Clear all related session state
-                delete_confirm_key = f"delete_confirm_{company.id}"
+                delete_confirm_key = f"delete_confirm_{product.id}"
                 if delete_confirm_key in st.session_state:
                     del st.session_state[delete_confirm_key]
                 st.rerun()
             else:
-                st.error("Failed to delete company. Please try again.")
+                st.error("Failed to delete product. Please try again.")
 
     with col2:
-        if st.button("Cancel", key=f"cancel_delete_{company.id}"):
+        if st.button("Cancel", key=f"cancel_delete_{product.id}"):
             # Clear the delete confirmation state
-            delete_confirm_key = f"delete_confirm_{company.id}"
+            delete_confirm_key = f"delete_confirm_{product.id}"
             if delete_confirm_key in st.session_state:
                 del st.session_state[delete_confirm_key]
             st.rerun()
 
 
 def show_company_view() -> None:
-    st.title("All Companies")
+    st.title("All Products")
 
     # Add a refresh button
     col1, col2 = st.columns([1, 4])
@@ -177,13 +177,13 @@ def show_company_view() -> None:
             st.rerun()
 
     try:
-        with st.spinner("Loading companies..."):
-            companies = run_async_with_retry(get_all_companies_isolated())
-            document_counts = run_async_with_retry(get_document_counts_by_company()) or {}
+        with st.spinner("Loading products..."):
+            products = run_async_with_retry(get_all_products_isolated())
+            document_counts = run_async_with_retry(get_document_counts_by_product()) or {}
 
-        if companies is None:
+        if products is None:
             st.error(
-                "Failed to load companies from database. Please check your connection and try again."
+                "Failed to load products from database. Please check your connection and try again."
             )
             st.info("💡 **Troubleshooting tips:**")
             st.write("• Make sure your MongoDB connection is working")
@@ -191,67 +191,67 @@ def show_company_view() -> None:
             st.write("• Try refreshing the page")
             return
 
-        if not companies:
-            st.info("No companies found. Create your first company!")
+        if not products:
+            st.info("No products found. Create your first product!")
             return
 
-        st.success(f"✅ Loaded {len(companies)} companies successfully")
+        st.success(f"✅ Loaded {len(products)} products successfully")
 
         # Create search/filter functionality
-        search_term = st.text_input("Search companies", placeholder="Enter company name or slug...")
+        search_term = st.text_input("Search products", placeholder="Enter product name or slug...")
 
-        # Filter companies based on search term
+        # Filter products based on search term
         if search_term:
-            filtered_companies = [
-                company
-                for company in companies
-                if search_term.lower() in company.name.lower()
-                or search_term.lower() in company.slug.lower()
-                or any(search_term.lower() in domain.lower() for domain in company.domains)
-                or any(search_term.lower() in category.lower() for category in company.categories)
+            filtered_products = [
+                product
+                for product in products
+                if search_term.lower() in product.name.lower()
+                or search_term.lower() in product.slug.lower()
+                or any(search_term.lower() in domain.lower() for domain in product.domains)
+                or any(search_term.lower() in category.lower() for category in product.categories)
             ]
         else:
-            filtered_companies = companies
+            filtered_products = products
 
-        # Sort filtered companies by name (case-insensitive)
-        filtered_companies = sorted(filtered_companies, key=lambda x: x.name.lower())
+        # Sort filtered products by name (case-insensitive)
+        filtered_products = sorted(filtered_products, key=lambda x: x.name.lower())
 
-        if not filtered_companies:
-            st.warning(f"No companies found matching '{search_term}'")
+        if not filtered_products:
+            st.warning(f"No products found matching '{search_term}'")
             return
 
-        # Display companies in a grid/card layout
-        for _i, company in enumerate(filtered_companies):
-            # Check if this company is being edited or deleted
-            edit_key = f"editing_company_{company.id}"
-            delete_confirm_key = f"delete_confirm_{company.id}"
+        # Display products in a grid/card layout
+        for _i, product in enumerate(filtered_products):
+            # Check if this product is being edited or deleted
+            edit_key = f"editing_product_{product.id}"
+            delete_confirm_key = f"delete_confirm_{product.id}"
             is_editing = st.session_state.get(edit_key, False)
             is_confirming_delete = st.session_state.get(delete_confirm_key, False)
 
             if is_confirming_delete:
                 # Show delete confirmation dialog
-                show_delete_confirmation(company)
+                show_delete_confirmation(product)
             elif is_editing:
-                # Show edit form instead of company card
-                show_edit_form(company)
+                # Show edit form instead of product card
+                show_edit_form(product)
             else:
-                # Show normal company card
-                with st.expander(f"🏢 {company.name} ({company.slug})", expanded=False):
+                # Show normal product card
+                with st.expander(f"🏢 {product.name} ({product.slug})", expanded=False):
                     # Key metric at the top
-                    doc_count = document_counts.get(company.id, 0)
+                    doc_count = document_counts.get(product.id, 0)
                     metric_col1, metric_col2, metric_col3 = st.columns(3)
                     with metric_col1:
                         st.metric("Documents", doc_count)
 
-                    # Basic company information
-                    st.write("**Company Information:**")
+                    # Basic product information
+                    st.write("**Product Information:**")
                     info_col1, info_col2, info_col3 = st.columns(3)
                     with info_col1:
-                        st.write(f"**ID:** `{company.id}`")
+                        st.write(f"**ID:** `{product.id}`")
                     with info_col2:
-                        st.write(f"**Name:** {company.name}")
+                        st.write(f"**Name:** {product.name}")
                     with info_col3:
-                        st.write(f"**Slug:** {company.slug}")
+                        st.write(f"**Slug:** {product.slug}")
 
                     st.divider()
 
@@ -260,24 +260,24 @@ def show_company_view() -> None:
 
                     with lists_col1:
                         st.write("**Domains:**")
-                        if company.domains:
-                            for domain in company.domains:
+                        if product.domains:
+                            for domain in product.domains:
                                 st.write(f"• {domain}")
                         else:
                             st.write("*No domains configured*")
 
                     with lists_col2:
                         st.write("**Categories:**")
-                        if company.categories:
-                            for category in company.categories:
+                        if product.categories:
+                            for category in product.categories:
                                 st.write(f"• {category}")
                         else:
                             st.write("*No categories*")
 
                     with lists_col3:
                         st.write("**Crawl Base URLs:**")
-                        if company.crawl_base_urls:
-                            for url in company.crawl_base_urls:
+                        if product.crawl_base_urls:
+                            for url in product.crawl_base_urls:
                                 st.write(f"• [{url}]({url})")
                         else:
                             st.write("*None configured*")
@@ -286,9 +286,9 @@ def show_company_view() -> None:
 
                     # Tier visibility section
                     st.write("**Tier Visibility:**")
-                    if hasattr(company, "visible_to_tiers") and company.visible_to_tiers:
+                    if hasattr(product, "visible_to_tiers") and product.visible_to_tiers:
                         tier_labels = []
-                        for tier in company.visible_to_tiers:
+                        for tier in product.visible_to_tiers:
                             if tier == UserTier.FREE:
                                 tier_labels.append("🟢 Free")
                             elif tier == UserTier.BUSINESS:
@@ -309,25 +309,25 @@ def show_company_view() -> None:
                     st.write("---")
                     col3, col4, col5, col6, col7 = st.columns(5)
                     with col3:
-                        if st.button("📊 Analytics", key=f"analytics_{company.id}"):
+                        if st.button("📊 Analytics", key=f"analytics_{product.id}"):
                             st.info("Analytics feature coming soon!")
                     with col4:
-                        if st.button("📄 Documents", key=f"docs_{company.id}"):
-                            # Set the selected company for documents and navigate to documents page
-                            st.session_state["selected_company_for_documents"] = company.id
+                        if st.button("📄 Documents", key=f"docs_{product.id}"):
+                            # Set the selected product for documents and navigate to documents page
+                            st.session_state["selected_product_for_documents"] = product.id
                             st.session_state["current_page"] = "view_documents"
                             st.rerun()
                     with col5:
-                        if st.button("🕷️ Crawl", key=f"crawl_{company.id}"):
-                            st.session_state["selected_company_for_crawl"] = company.id
+                        if st.button("🕷️ Crawl", key=f"crawl_{product.id}"):
+                            st.session_state["selected_product_for_crawl"] = product.id
                             st.session_state["current_page"] = "start_crawling"
                             st.rerun()
                     with col6:
-                        if st.button("✏️ Edit", key=f"edit_{company.id}"):
+                        if st.button("✏️ Edit", key=f"edit_{product.id}"):
                             st.session_state[edit_key] = True
                             st.rerun()
                     with col7:
-                        if st.button("🗑️ Delete", key=f"delete_{company.id}"):
+                        if st.button("🗑️ Delete", key=f"delete_{product.id}"):
                             st.session_state[delete_confirm_key] = True
                             st.rerun()
 
@@ -338,24 +338,24 @@ def show_company_view() -> None:
         col1, col2, col3, col4, col5 = st.columns(5)
 
         with col1:
-            st.metric("Total Companies", len(companies))
+            st.metric("Total Products", len(products))
 
         with col2:
-            total_domains = sum(len(company.domains) for company in companies)
+            total_domains = sum(len(product.domains) for product in products)
             st.metric("Total Domains", total_domains)
 
         with col3:
-            total_documents = sum(document_counts.get(company.id, 0) for company in companies)
+            total_documents = sum(document_counts.get(product.id, 0) for product in products)
             st.metric("Total Documents", total_documents)
 
         with col4:
-            companies_with_crawl_urls = len([c for c in companies if c.crawl_base_urls])
-            st.metric("Companies with Crawl URLs", companies_with_crawl_urls)
+            products_with_crawl_urls = len([p for p in products if p.crawl_base_urls])
+            st.metric("Products with Crawl URLs", products_with_crawl_urls)
 
         with col5:
             unique_categories: set[str] = set()
-            for company in companies:
-                unique_categories.update(company.categories)
+            for product in products:
+                unique_categories.update(product.categories)
             st.metric("Unique Categories", len(unique_categories))
 
         # Tier visibility statistics
@@ -365,12 +365,12 @@ def show_company_view() -> None:
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            # Count companies accessible to each tier
+            # Count products accessible to each tier
             free_accessible = len(
                 [
-                    c
-                    for c in companies
-                    if hasattr(c, "visible_to_tiers") and UserTier.FREE in c.visible_to_tiers
+                    p
+                    for p in products
+                    if hasattr(p, "visible_to_tiers") and UserTier.FREE in p.visible_to_tiers
                 ]
             )
             st.metric("Free Tier Accessible", free_accessible)
@@ -378,9 +378,9 @@ def show_company_view() -> None:
         with col2:
             business_accessible = len(
                 [
-                    c
-                    for c in companies
-                    if hasattr(c, "visible_to_tiers") and UserTier.BUSINESS in c.visible_to_tiers
+                    p
+                    for p in products
+                    if hasattr(p, "visible_to_tiers") and UserTier.BUSINESS in p.visible_to_tiers
                 ]
             )
             st.metric("Business Tier Accessible", business_accessible)
@@ -388,41 +388,39 @@ def show_company_view() -> None:
         with col3:
             enterprise_accessible = len(
                 [
-                    c
-                    for c in companies
-                    if hasattr(c, "visible_to_tiers") and UserTier.ENTERPRISE in c.visible_to_tiers
+                    p
+                    for p in products
+                    if hasattr(p, "visible_to_tiers") and UserTier.ENTERPRISE in p.visible_to_tiers
                 ]
             )
             st.metric("Enterprise Tier Accessible", enterprise_accessible)
 
         with col4:
-            # Count premium-only companies (business+ only)
+            # Count premium-only products (business+ only)
             premium_only = len(
                 [
-                    c
-                    for c in companies
-                    if hasattr(c, "visible_to_tiers") and UserTier.FREE not in c.visible_to_tiers
+                    p
+                    for p in products
+                    if hasattr(p, "visible_to_tiers") and UserTier.FREE not in p.visible_to_tiers
                 ]
             )
             st.metric("Premium Only", premium_only)
 
-        # Companies without crawl URLs
-        companies_without_crawl_urls = [c for c in companies if not c.crawl_base_urls]
+        # Products without crawl URLs
+        products_without_crawl_urls = [p for p in products if not p.crawl_base_urls]
 
-        if companies_without_crawl_urls:
+        if products_without_crawl_urls:
             st.write("---")
-            st.write("**⚠️ Companies without Crawl Base URLs:**")
-            company_names = [company.name for company in companies_without_crawl_urls]
-            st.write(", ".join(company_names))
+            st.write("**⚠️ Products without Crawl Base URLs:**")
+            product_names = [product.name for product in products_without_crawl_urls]
+            st.write(", ".join(product_names))
 
-            if len(companies_without_crawl_urls) == 1:
-                st.info("1 company needs crawl URLs configured.")
+            if len(products_without_crawl_urls) == 1:
+                st.info("1 product needs crawl URLs configured.")
             else:
-                st.info(
-                    f"{len(companies_without_crawl_urls)} companies need crawl URLs configured."
-                )
+                st.info(f"{len(products_without_crawl_urls)} products need crawl URLs configured.")
     except Exception as e:
-        st.error(f"Error loading companies: {str(e)}")
+        st.error(f"Error loading products: {str(e)}")
         st.write("Please try refreshing the page or check your database connection.")
         st.info("💡 **Troubleshooting tips:**")
         st.write("• Check that your MongoDB connection is working")

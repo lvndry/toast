@@ -59,9 +59,9 @@ from src.core.database import get_db
 from src.core.logging import get_logger
 from src.crawler import ClauseaCrawler, CrawlResult
 from src.llm import SupportedModel, acompletion_with_fallback
-from src.models.company import Company
 from src.models.document import Document, Region
-from src.services.service_factory import create_company_service, create_document_service
+from src.models.product import Product
+from src.services.service_factory import create_document_service, create_product_service
 from src.utils.llm_usage import usage_tracking
 from src.utils.llm_usage_tracking_mixin import LLMUsageTrackingMixin
 from src.utils.markdown import markdown_to_text
@@ -75,9 +75,9 @@ logger = get_logger(__name__)
 class ProcessingStats(BaseModel):
     """Statistics for document processing pipeline."""
 
-    companies_processed: int = 0
-    companies_failed: int = 0
-    failed_company_slugs: list[str] = Field(default_factory=list)
+    products_processed: int = 0
+    products_failed: int = 0
+    failed_product_slugs: list[str] = Field(default_factory=list)
     total_urls_crawled: int = 0
     total_documents_found: int = 0
     legal_documents_processed: int = 0
@@ -93,9 +93,9 @@ class ProcessingStats(BaseModel):
 
     @property
     def success_rate(self) -> float:
-        """Calculate company processing success rate."""
-        total = self.companies_processed + self.companies_failed
-        return (self.companies_processed / total * 100) if total > 0 else 0.0
+        """Calculate product processing success rate."""
+        total = self.products_processed + self.products_failed
+        return (self.products_processed / total * 100) if total > 0 else 0.0
 
     @property
     def legal_detection_rate(self) -> float:
@@ -1090,7 +1090,7 @@ class LegalDocumentPipeline:
     """
     Main pipeline orchestrator for legal document crawling and processing.
 
-    This class coordinates the entire pipeline from company retrieval to document storage,
+    This class coordinates the entire pipeline from product retrieval to document storage,
     providing comprehensive error handling, logging, and performance monitoring.
     """
 
@@ -1139,12 +1139,12 @@ class LegalDocumentPipeline:
             f"max_pages={max_pages}, strategy={crawler_strategy}"
         )
 
-    def _create_crawler_for_company(self, company: Company) -> ClauseaCrawler:
-        """Create a configured crawler instance for a specific company."""
+    def _create_crawler_for_product(self, product: Product) -> ClauseaCrawler:
+        """Create a configured crawler instance for a specific product."""
         from datetime import datetime
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_filename = f"{timestamp}_{company.slug}_crawl.log"
+        log_filename = f"{timestamp}_{product.slug}_crawl.log"
         log_file_path = f"logs/{log_filename}"
 
         return ClauseaCrawler(
@@ -1153,7 +1153,7 @@ class LegalDocumentPipeline:
             max_concurrent=self.concurrent_limit,
             delay_between_requests=self.delay_between_requests,
             timeout=self.timeout,
-            allowed_domains=company.domains,
+            allowed_domains=product.domains,
             respect_robots_txt=self.respect_robots_txt,
             user_agent="ClauseaCrawler/2.0 (Legal Document Discovery Bot of Clausea)",
             follow_external_links=False,
@@ -1162,8 +1162,8 @@ class LegalDocumentPipeline:
             log_file_path=log_file_path,
             use_browser=self.use_browser,
             proxy=self.proxy,
-            allowed_paths=company.crawl_allowed_paths,
-            denied_paths=company.crawl_denied_paths,
+            allowed_paths=product.crawl_allowed_paths,
+            denied_paths=product.crawl_denied_paths,
         )
 
     async def _store_documents(self, documents: list[Document]) -> int:
@@ -1210,13 +1210,13 @@ class LegalDocumentPipeline:
 
         return stored_count
 
-    async def _process_crawl_result(self, result: CrawlResult, company: Company) -> Document | None:
+    async def _process_crawl_result(self, result: CrawlResult, product: Product) -> Document | None:
         """
         Process a single crawl result through the analysis pipeline.
 
         Args:
             result: Crawl result from ClauseaCrawler
-            company: Company being processed
+            product: Product being processed
 
         Returns:
             Document if legal and English, None otherwise
@@ -1299,7 +1299,7 @@ class LegalDocumentPipeline:
             document = Document(
                 title=title_result.get("title", "Untitled Legal Document"),
                 url=result.url,
-                company_id=company.id,
+                product_id=product.id,
                 markdown=result.markdown,
                 text=text_content,
                 metadata=result.metadata,
@@ -1348,44 +1348,44 @@ class LegalDocumentPipeline:
                 context=result.url,
                 reason=usage_reason,
                 operation_type="crawl",
-                company_slug=company.slug,
-                company_id=company.id,
+                product_slug=product.slug,
+                product_id=product.id,
                 document_url=result.url,
                 document_title=document_title,
                 document_id=document_id,
             )
 
-    async def _process_company(self, company: Company) -> list[Document]:
+    async def _process_product(self, product: Product) -> list[Document]:
         """
-        Process a single company through the complete pipeline.
+        Process a single product through the complete pipeline.
 
         Args:
-            company: Company to process
+            product: Product to process
 
         Returns:
             List of processed and stored documents
         """
-        company_start_time = time.time()
-        log_memory_usage(f"Starting {company.name}")
+        product_start_time = time.time()
+        log_memory_usage(f"Starting {product.name}")
 
-        if not company.crawl_base_urls:
-            logger.warning(f"No crawl base URLs for {company.name}")
-            self.stats.companies_failed += 1
-            self.stats.failed_company_slugs.append(company.slug)
+        if not product.crawl_base_urls:
+            logger.warning(f"No crawl base URLs for {product.name}")
+            self.stats.products_failed += 1
+            self.stats.failed_product_slugs.append(product.slug)
             return []
 
         try:
             logger.info(
-                f"🕷️ Crawling {company.name} ({len(company.domains)} domains) "
-                f"from {len(company.crawl_base_urls)} base URLs"
+                f"🕷️ Crawling {product.name} ({len(product.domains)} domains) "
+                f"from {len(product.crawl_base_urls)} base URLs"
             )
 
             # Create crawler and crawl documents
-            crawler = self._create_crawler_for_company(company)
+            crawler = self._create_crawler_for_product(product)
             crawl_results = []
 
             try:
-                for base_url in company.crawl_base_urls:
+                for base_url in product.crawl_base_urls:
                     logger.info(f"Crawling base URL: {base_url}")
                     results = await crawler.crawl(base_url)
                     crawl_results.extend(results)
@@ -1396,13 +1396,13 @@ class LegalDocumentPipeline:
             self.stats.total_urls_crawled += len(crawl_results)
             self.stats.total_documents_found += len(crawl_results)
 
-            logger.info(f"📄 Found {len(crawl_results)} documents for {company.name}")
+            logger.info(f"📄 Found {len(crawl_results)} documents for {product.name}")
 
             # Process each crawl result
             processed_documents = []
             for result in crawl_results:
                 if result.success:
-                    document = await self._process_crawl_result(result, company)
+                    document = await self._process_crawl_result(result, product)
                     if document:
                         processed_documents.append(document)
                 else:
@@ -1414,32 +1414,32 @@ class LegalDocumentPipeline:
                 self.stats.legal_documents_stored += stored_count
                 logger.info(
                     f"💾 Stored {stored_count}/{len(processed_documents)} "
-                    f"legal documents for {company.name}"
+                    f"legal documents for {product.name}"
                 )
             else:
-                logger.info(f"No legal documents found for {company.name}")
+                logger.info(f"No legal documents found for {product.name}")
 
             # Cleanup crawler (specifically browser resources)
             await crawler._cleanup_browser()
 
-            self.stats.companies_processed += 1
+            self.stats.products_processed += 1
 
-            company_duration = time.time() - company_start_time
-            log_memory_usage(f"Completed {company.name}")
+            product_duration = time.time() - product_start_time
+            log_memory_usage(f"Completed {product.name}")
             logger.info(
-                f"✅ Completed {company.name} in {company_duration:.2f}s "
+                f"✅ Completed {product.name} in {product_duration:.2f}s "
                 f"({len(processed_documents)} legal docs)"
             )
 
             return processed_documents
 
         except Exception as e:
-            logger.error(f"Failed to process company {company.name}: {e}")
-            self.stats.companies_failed += 1
-            self.stats.failed_company_slugs.append(company.slug)
+            logger.error(f"Failed to process product {product.name}: {e}")
+            self.stats.products_failed += 1
+            self.stats.failed_product_slugs.append(product.slug)
             return []
 
-    async def run(self, companies: list[Company] | None = None) -> ProcessingStats:
+    async def run(self, products: list[Product] | None = None) -> ProcessingStats:
         """
         Execute the complete legal document crawling pipeline.
 
@@ -1457,26 +1457,25 @@ class LegalDocumentPipeline:
         memory_task = asyncio.create_task(memory_monitor_task(60))
 
         try:
-            # Get all companies
-            if companies is None:
+            # Get all products
+            if products is None:
                 async with get_db() as db:
-                    company_service = create_company_service()
-                    companies = await company_service.get_all_companies(db)
-            logger.info(f"📊 Processing {len(companies)} companies")
+                    product_service = create_product_service()
+                    products = await product_service.get_all_products(db)
+            logger.info(f"📊 Processing {len(products)} products")
 
-            # Use a semaphore to limit parallel companies
+            # Use a semaphore to limit parallel products
             semaphore = asyncio.Semaphore(self.max_parallel_companies)
 
-            async def _process_company_with_semaphore(idx: int, company: Company) -> None:
+            async def _process_product_with_semaphore(idx: int, product: Product) -> None:
                 async with semaphore:
-                    logger.info(f"🏢 [{idx}/{len(companies)}] Starting company: {company.name}")
-                    await self._process_company(company)
-                    logger.info(f"✅ [{idx}/{len(companies)}] Finished company: {company.name}")
+                    logger.info(f"🏢 [{idx}/{len(products)}] Starting product: {product.name}")
+                    await self._process_product(product)
+                    logger.info(f"✅ [{idx}/{len(products)}] Finished product: {product.name}")
 
-            # Create tasks for all companies
+            # Create tasks for all products
             tasks = [
-                _process_company_with_semaphore(i, company)
-                for i, company in enumerate(companies, 1)
+                _process_product_with_semaphore(i, product) for i, product in enumerate(products, 1)
             ]
 
             # Execute tasks in parallel with limited concurrency
@@ -1487,11 +1486,11 @@ class LegalDocumentPipeline:
 
             # Log comprehensive results
             logger.info("🎉 Pipeline completed successfully!")
-            logger.info(f"📊 Companies processed: {self.stats.companies_processed}")
-            logger.info(f"❌ Companies failed: {self.stats.companies_failed}")
-            if self.stats.failed_company_slugs:
+            logger.info(f"📊 Products processed: {self.stats.products_processed}")
+            logger.info(f"❌ Products failed: {self.stats.products_failed}")
+            if self.stats.failed_product_slugs:
                 logger.info(
-                    f"❌ Failed company slugs: {', '.join(self.stats.failed_company_slugs)}"
+                    f"❌ Failed product slugs: {', '.join(self.stats.failed_product_slugs)}"
                 )
             logger.info(f"🌐 Total URLs crawled: {self.stats.total_urls_crawled}")
             logger.info(f"📄 Total documents found: {self.stats.total_documents_found}")
@@ -1552,12 +1551,12 @@ async def main() -> None:
         stats = await pipeline.run()
 
         # Exit with appropriate code
-        if stats.companies_failed > 0:
+        if stats.products_failed > 0:
             failed_slugs = (
-                ", ".join(stats.failed_company_slugs) if stats.failed_company_slugs else "unknown"
+                ", ".join(stats.failed_product_slugs) if stats.failed_product_slugs else "unknown"
             )
             logger.warning(
-                f"Pipeline completed with {stats.companies_failed} failures: {failed_slugs}"
+                f"Pipeline completed with {stats.products_failed} failures: {failed_slugs}"
             )
         else:
             logger.info("Pipeline completed successfully")

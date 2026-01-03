@@ -13,7 +13,7 @@ class Agent:
         self.system_prompt = system_prompt
 
     async def chat(
-        self, messages: list[dict[str, str]], company_slug: str
+        self, messages: list[dict[str, str]], product_slug: str
     ) -> AsyncGenerator[str, None]:
         """
         Run the agent loop:
@@ -31,7 +31,7 @@ class Agent:
                 "type": "function",
                 "function": {
                     "name": "search_query",
-                    "description": "Search for information in the company's legal documents.",
+                    "description": "Search for information in the product's legal documents.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -48,7 +48,7 @@ class Agent:
                 "type": "function",
                 "function": {
                     "name": "check_compliance",
-                    "description": "Check if the company's documents comply with a specific regulation (e.g. GDPR, CCPA).",
+                    "description": "Check if the product's documents comply with a specific regulation (e.g. GDPR, CCPA).",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -103,7 +103,7 @@ class Agent:
 
                     try:
                         # Execute tool
-                        search_results = await search_query(query, company_slug)
+                        search_results = await search_query(query, product_slug)
 
                         # Format results for the model
                         if not search_results.get("matches"):
@@ -126,7 +126,7 @@ class Agent:
                     logger.info(f"Executing check_compliance: {regulation}")
 
                     try:
-                        assessment = await check_compliance(regulation, company_slug)
+                        assessment = await check_compliance(regulation, product_slug)
                         content = assessment
                     except Exception as e:
                         logger.error(f"Tool execution failed: {e}")

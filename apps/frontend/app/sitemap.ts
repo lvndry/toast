@@ -4,28 +4,28 @@ import { getBackendUrl } from "@lib/config";
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://clausea.co";
 
-interface Company {
+interface Product {
   slug: string;
   name: string;
   updated_at?: string;
 }
 
-async function getCompanies(): Promise<Company[]> {
+async function getProducts(): Promise<Product[]> {
   try {
-    const backendUrl = getBackendUrl("/companies");
+    const backendUrl = getBackendUrl("/products");
     const response = await fetch(backendUrl, {
       next: { revalidate: 3600 }, // Revalidate every hour
     });
 
     if (!response.ok) {
-      console.warn("Failed to fetch companies for sitemap");
+      console.warn("Failed to fetch products for sitemap");
       return [];
     }
 
-    const companies = await response.json();
-    return Array.isArray(companies) ? companies : [];
+    const products = await response.json();
+    return Array.isArray(products) ? products : [];
   } catch (error) {
-    console.warn("Error fetching companies for sitemap:", error);
+    console.warn("Error fetching products for sitemap:", error);
     return [];
   }
 }
@@ -73,16 +73,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Dynamic company pages
-  const companies = await getCompanies();
-  const companyPages: MetadataRoute.Sitemap = companies.map((company) => ({
-    url: `${baseUrl}/companies/${company.slug}`,
-    lastModified: company.updated_at
-      ? new Date(company.updated_at)
+  // Dynamic product pages
+  const products = await getProducts();
+  const productPages: MetadataRoute.Sitemap = products.map((product) => ({
+    url: `${baseUrl}/products/${product.slug}`,
+    lastModified: product.updated_at
+      ? new Date(product.updated_at)
       : new Date(),
     changeFrequency: "weekly" as const,
     priority: 0.7,
   }));
 
-  return [...staticPages, ...companyPages];
+  return [...staticPages, ...productPages];
 }

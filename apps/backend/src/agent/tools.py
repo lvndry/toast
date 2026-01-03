@@ -31,14 +31,14 @@ async def embed_query(query: str) -> list[float]:
 
 
 async def search_query(
-    query: str, company_slug: str, top_k: int = 8, *, namespace: str | None = None
+    query: str, product_slug: str, top_k: int = 8, *, namespace: str | None = None
 ) -> dict[str, Any]:
     """
     Search for relevant documents in Pinecone.
 
     Args:
         query: The search query
-        company_slug: The company slug (used as namespace if namespace not provided)
+        product_slug: The product slug (used as namespace if namespace not provided)
         top_k: Number of results to return
         namespace: Optional specific namespace
 
@@ -48,7 +48,7 @@ async def search_query(
     # Convert text query to vector embedding
     query_vector = await embed_query(query)
     index = pc.Index(INDEX_NAME)
-    ns = namespace or company_slug
+    ns = namespace or product_slug
     search_results = index.query(
         namespace=ns,
         top_k=top_k,
@@ -60,20 +60,20 @@ async def search_query(
     return search_results  # type: ignore
 
 
-async def check_compliance(regulation: str, company_slug: str) -> str:
+async def check_compliance(regulation: str, product_slug: str) -> str:
     """
-    Check if the company's documents comply with a specific regulation.
+    Check if the product's documents comply with a specific regulation.
 
     Args:
         regulation: The regulation to check (e.g., "GDPR", "CCPA")
-        company_slug: The company slug to search within
+        product_slug: The product slug to search within
 
     Returns:
         str: Assessment of compliance
     """
     # 1. Search for relevant documents (broad search for regulation keywords)
     search_query_text = f"privacy policy terms {regulation} compliance data rights"
-    search_results = await search_query(search_query_text, company_slug, top_k=10)
+    search_results = await search_query(search_query_text, product_slug, top_k=10)
 
     if not search_results.get("matches"):
         return f"I couldn't find enough information to assess {regulation} compliance."

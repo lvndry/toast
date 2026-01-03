@@ -28,7 +28,7 @@ def _normalize_document_record(document: dict[str, Any]) -> dict[str, Any]:
     if isinstance(analysis, dict):
         verdict = analysis.get("verdict")
 
-        # Allowed verdict values in DocumentAnalysis / MetaSummary / CompanyOverview
+        # Allowed verdict values in DocumentAnalysis / MetaSummary / ProductOverview
         allowed_verdicts = {
             "very_user_friendly",
             "user_friendly",
@@ -105,18 +105,18 @@ class DocumentRepository(BaseRepository):
             return None
         return Document(**_normalize_document_record(document))
 
-    async def find_by_company_id(self, db: AgnosticDatabase, company_id: str) -> list[Document]:
-        """Get all documents for a specific company.
+    async def find_by_product_id(self, db: AgnosticDatabase, product_id: str) -> list[Document]:
+        """Get all documents for a specific product.
 
         Args:
             db: Database instance
-            company_id: Company ID
+            product_id: Product ID
 
         Returns:
-            List of documents for the company
+            List of documents for the product
         """
         documents: list[dict[str, Any]] = await db.documents.find(
-            {"company_id": company_id}
+            {"product_id": product_id}
         ).to_list(length=None)
         return [Document(**_normalize_document_record(document)) for document in documents]
 
@@ -136,20 +136,20 @@ class DocumentRepository(BaseRepository):
         return [Document(**_normalize_document_record(document)) for document in documents]
 
     async def find_with_analysis(
-        self, db: AgnosticDatabase, company_slug: str | None = None
+        self, db: AgnosticDatabase, product_slug: str | None = None
     ) -> list[Document]:
         """Get documents that have analysis data.
 
         Args:
             db: Database instance
-            company_slug: Optional company slug to filter by
+            product_slug: Optional product slug to filter by
 
         Returns:
             List of documents with analysis
         """
         query: dict[str, Any] = {"analysis": {"$exists": True, "$ne": None}}
-        if company_slug:
-            query["company_slug"] = company_slug
+        if product_slug:
+            query["product_slug"] = product_slug
 
         documents: list[dict[str, Any]] = await db.documents.find(query).to_list(length=None)
         return [Document(**_normalize_document_record(document)) for document in documents]
@@ -174,7 +174,7 @@ class DocumentRepository(BaseRepository):
         try:
             document_dict = document.model_dump()
             await db.documents.insert_one(document_dict)
-            logger.info(f"Stored document {document.id} for company {document.company_id}")
+            logger.info(f"Stored document {document.id} for product {document.product_id}")
             return document
         except Exception as e:
             logger.error(f"Error storing document {document.id}: {e}")

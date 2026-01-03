@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.core.config import config
 from src.core.logging import setup_logging
 from src.core.middleware import AuthMiddleware
-from src.routes import companies, conversations, list, paddle, promotion, q, subscription
+from src.routes import conversations, list, paddle, products, promotion, q, subscription
 from src.routes import user as user_routes
 
 setup_logging()
@@ -39,7 +39,7 @@ async def healthcheck() -> dict[str, str]:
 
 routes = [
     q.router,
-    companies.router,
+    products.router,
     conversations.router,
     list.router,
     promotion.router,

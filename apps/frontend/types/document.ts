@@ -3,6 +3,6 @@ export interface Document {
   url: string;
   title: string | null;
   doc_type: string;
-  company_id: string;
+  product_id: string;
   created_at: string;
 }

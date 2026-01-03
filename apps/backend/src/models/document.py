@@ -164,15 +164,16 @@ class ComplianceBreakdown(BaseModel):
     gaps: list[str]  # What's missing or unclear
 
 
-class CompanyOverview(BaseModel):
+class ProductOverview(BaseModel):
     """
     Level 1: Quick decision-making overview.
     For users who need to decide "Should I use this service?" in under 60 seconds.
     """
 
     # Identity
-    company_name: str
-    company_slug: str
+    product_name: str
+    product_slug: str
+    company_name: str | None = None
     last_updated: datetime | None = None
 
     # Decision Support
@@ -246,14 +247,14 @@ class DocumentSummary(BaseModel):
         return cls(**summary_data)
 
 
-class CompanyAnalysis(BaseModel):
+class ProductAnalysis(BaseModel):
     """
     Level 2: Full analysis with detailed scores and justifications.
     For users who need comprehensive understanding (2-5 minutes).
     """
 
     # Include Level 1
-    overview: CompanyOverview
+    overview: ProductOverview
 
     # Detailed scores from MetaSummary
     detailed_scores: MetaSummaryScores
@@ -443,14 +444,14 @@ class RiskPrioritization(BaseModel):
     low: list[str] = Field(default_factory=list)
 
 
-class CompanyDeepAnalysis(BaseModel):
+class ProductDeepAnalysis(BaseModel):
     """
     Level 3: Deep analysis for legal/compliance review.
     For users who need comprehensive, detailed analysis (10-20 minutes).
     """
 
     # Include Level 2
-    analysis: CompanyAnalysis
+    analysis: ProductAnalysis
 
     # Document-by-document deep breakdown
     document_analyses: list[DocumentDeepAnalysis] = Field(default_factory=list)
@@ -472,7 +473,7 @@ class Document(BaseModel):
     id: str = Field(default_factory=shortuuid.uuid)
     url: str
     title: str | None = None
-    company_id: str
+    product_id: str
     doc_type: DocType
     markdown: str
     text: str

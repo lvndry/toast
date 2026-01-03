@@ -25,12 +25,12 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { getVerdictConfig } from "@/lib/verdict";
-import type { Company } from "@/types";
+import type { Product } from "@/types";
 import { useUser } from "@clerk/nextjs";
 import { useAnalytics } from "@hooks/useAnalytics";
 
-function CompanyCard({
-  company,
+function ProductCard({
+  product,
   index,
   verdict,
   riskScore,
@@ -38,7 +38,7 @@ function CompanyCard({
   fetchMetaSummary,
   onClick,
 }: {
-  company: Company;
+  product: Product;
   index: number;
   verdict?: string;
   riskScore?: number;
@@ -46,7 +46,7 @@ function CompanyCard({
   fetchMetaSummary?: (slug: string) => void;
   onClick: () => void;
 }) {
-  const [logo, setLogo] = useState<string | null>(company.logo || null);
+  const [logo, setLogo] = useState<string | null>(product.logo || null);
   const [isLoadingLogo, setIsLoadingLogo] = useState(false);
   const [hasTriedLoading, setHasTriedLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -65,9 +65,9 @@ function CompanyCard({
             setIsLoadingLogo(true);
 
             const params = new URLSearchParams();
-            params.append("slug", company.slug);
+            params.append("slug", product.slug);
 
-            fetch(`/api/companies/logos?${params.toString()}`)
+            fetch(`/api/products/logos?${params.toString()}`)
               .then((res) => {
                 if (res.ok) return res.json();
                 return null;
@@ -76,7 +76,7 @@ function CompanyCard({
                 if (data?.logo) setLogo(data.logo);
               })
               .catch((err) => {
-                console.warn(`Failed to fetch logo for ${company.name}:`, err);
+                console.warn(`Failed to fetch logo for ${product.name}:`, err);
               })
               .finally(() => {
                 setIsLoadingLogo(false);
@@ -90,7 +90,7 @@ function CompanyCard({
 
     observer.observe(cardRef.current);
     return () => observer.disconnect();
-  }, [company.slug, company.name, logo, hasTriedLoading]);
+  }, [product.slug, product.name, logo, hasTriedLoading]);
 
   // Lazy load summary
   useEffect(() => {
@@ -100,7 +100,7 @@ function CompanyCard({
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && fetchMetaSummary) {
-            fetchMetaSummary(company.slug);
+            fetchMetaSummary(product.slug);
             summaryObserver.disconnect();
           }
         });
@@ -110,7 +110,7 @@ function CompanyCard({
 
     if (cardRef.current) summaryObserver.observe(cardRef.current);
     return () => summaryObserver.disconnect();
-  }, [company.slug, verdict, isLoadingSummary, fetchMetaSummary]);
+  }, [product.slug, verdict, isLoadingSummary, fetchMetaSummary]);
 
   // Vary card styles - some with borders, some minimal
   const cardVariants = [
@@ -155,14 +155,14 @@ function CompanyCard({
                   <div className="w-12 h-12 rounded-lg overflow-hidden bg-background border border-border flex items-center justify-center p-2">
                     <img
                       src={logo}
-                      alt={`${company.name} logo`}
+                      alt={`${product.name} logo`}
                       className="w-full h-full object-contain"
                       loading="lazy"
                     />
                   </div>
                 ) : (
                   <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-display font-bold text-lg">
-                    {company.name.charAt(0).toUpperCase()}
+                    {product.name.charAt(0).toUpperCase()}
                   </div>
                 )}
               </div>
@@ -182,11 +182,11 @@ function CompanyCard({
             {/* Company Info */}
             <div className="space-y-1">
               <h3 className="font-display font-bold text-lg text-foreground group-hover:text-primary transition-colors">
-                {company.name}
+                {product.name}
               </h3>
-              {company.description && (
+              {product.description && (
                 <p className="text-sm text-muted-foreground line-clamp-2 leading-snug">
-                  {company.description}
+                  {product.description}
                 </p>
               )}
             </div>
@@ -242,15 +242,15 @@ function CompanyCard({
   );
 }
 
-export default function CompaniesPage() {
+export default function ProductsPage() {
   const { user } = useUser();
   const router = useRouter();
 
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const { trackUserJourney, trackPageView } = useAnalytics();
 
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [companySummaries, setCompanySummaries] = useState<Record<string, any>>(
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productSummaries, setProductSummaries] = useState<Record<string, any>>(
     {},
   );
   const [summaryLoading, setSummaryLoading] = useState<Record<string, boolean>>(
@@ -262,46 +262,46 @@ export default function CompaniesPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    trackPageView("companies");
+    trackPageView("products");
   }, [trackPageView]);
 
   useEffect(() => {
     if (searchTerm.trim()) {
-      const filteredCount = companies.filter(
-        (company) =>
-          company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          company.description
+      const filteredCount = products.filter(
+        (product) =>
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.description
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          company.industry?.toLowerCase().includes(searchTerm.toLowerCase()),
+          product.industry?.toLowerCase().includes(searchTerm.toLowerCase()),
       ).length;
-      trackUserJourney.companySearched(searchTerm, filteredCount);
+      trackUserJourney.productSearched(searchTerm, filteredCount);
     }
-  }, [searchTerm, companies, trackUserJourney]);
+  }, [searchTerm, products, trackUserJourney]);
 
   useEffect(() => {
-    async function fetchCompanies() {
+    async function fetchProducts() {
       try {
         setLoading(true);
-        const response = await fetch("/api/companies");
-        if (!response.ok) throw new Error("Failed to fetch companies");
+        const response = await fetch("/api/products");
+        if (!response.ok) throw new Error("Failed to fetch products");
         const data = await response.json();
-        setCompanies(data);
+        setProducts(data);
       } catch (err) {
-        console.error("Error fetching companies:", err);
+        console.error("Error fetching products:", err);
         setError(
-          err instanceof Error ? err.message : "Failed to fetch companies",
+          err instanceof Error ? err.message : "Failed to fetch products",
         );
       } finally {
         setLoading(false);
       }
     }
-    fetchCompanies();
+    fetchProducts();
   }, []);
 
   const fetchMetaSummary = useCallback(
     (slug: string) => {
-      if (!slug || companySummaries[slug] || summaryLoading[slug]) return;
+      if (!slug || productSummaries[slug] || summaryLoading[slug]) return;
       setSummaryLoading((s) => ({ ...s, [slug]: true }));
       fetch(`/api/meta-summary/${slug}`)
         .then((res) => {
@@ -309,28 +309,28 @@ export default function CompaniesPage() {
           return null;
         })
         .then((data) => {
-          if (data) setCompanySummaries((s) => ({ ...s, [slug]: data }));
+          if (data) setProductSummaries((s) => ({ ...s, [slug]: data }));
         })
         .catch(() => {})
         .finally(() => {
           setSummaryLoading((s) => ({ ...s, [slug]: false }));
         });
     },
-    [companySummaries, summaryLoading],
+    [productSummaries, summaryLoading],
   );
 
-  const filteredCompanies = companies.filter(
-    (company) =>
-      company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.industry?.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredProducts = products.filter(
+    (product) =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.industry?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const sortedCompanies = [...filteredCompanies].sort((a, b) => {
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortBy === "name") return a.name.localeCompare(b.name);
     if (sortBy === "risk") {
-      const ra = companySummaries[a.slug]?.verdict || "";
-      const rb = companySummaries[b.slug]?.verdict || "";
+      const ra = productSummaries[a.slug]?.verdict || "";
+      const rb = productSummaries[b.slug]?.verdict || "";
       const rank = (v: string) =>
         v === "very_pervasive"
           ? 5
@@ -347,19 +347,19 @@ export default function CompaniesPage() {
     }
     if (sortBy === "recent") {
       const ta = new Date(
-        companySummaries[a.slug]?.last_updated || 0,
+        productSummaries[a.slug]?.last_updated || 0,
       ).getTime();
       const tb = new Date(
-        companySummaries[b.slug]?.last_updated || 0,
+        productSummaries[b.slug]?.last_updated || 0,
       ).getTime();
       return tb - ta;
     }
     return 0;
   });
 
-  function handleCompanyClick(company: Company) {
-    trackUserJourney.companyViewed(company.slug, company.name);
-    router.push(`/companies/${company.slug}`);
+  function handleProductClick(product: Product) {
+    trackUserJourney.productViewed(product.slug, product.name);
+    router.push(`/products/${product.slug}`);
   }
 
   if (loading) {
@@ -392,7 +392,7 @@ export default function CompaniesPage() {
           </div>
           <div className="space-y-2">
             <h2 className="text-xl font-bold font-display text-foreground">
-              Error Loading Companies
+              Error Loading Products
             </h2>
             <p className="text-muted-foreground">{error}</p>
           </div>
@@ -432,7 +432,7 @@ export default function CompaniesPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
           <Input
-            placeholder="Search companies..."
+            placeholder="Search products..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-10 border-none bg-transparent focus-visible:ring-0 text-sm"
@@ -443,7 +443,7 @@ export default function CompaniesPage() {
           <div className="hidden md:block w-px h-6 bg-border" />
 
           <Badge variant="secondary" size="sm" className="gap-1.5 rounded-md">
-            {filteredCompanies.length}
+            {filteredProducts.length}
           </Badge>
 
           <DropdownMenu>
@@ -487,7 +487,7 @@ export default function CompaniesPage() {
 
       {/* Grid - Varied spacing */}
       <AnimatePresence mode="popLayout">
-        {filteredCompanies.length === 0 ? (
+        {filteredProducts.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -501,27 +501,27 @@ export default function CompaniesPage() {
                 No services found
               </h3>
               <p className="text-muted-foreground max-w-sm mx-auto text-sm">
-                Try searching for a different company or check back later.
+                Try searching for a different product or check back later.
               </p>
             </div>
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {sortedCompanies.map((company, index) => {
-              const verdict = companySummaries[company.slug]?.verdict;
-              const riskScore = companySummaries[company.slug]?.risk_score;
-              const isLoadingSummary = summaryLoading[company.slug];
+            {sortedProducts.map((product, index) => {
+              const verdict = productSummaries[product.slug]?.verdict;
+              const riskScore = productSummaries[product.slug]?.risk_score;
+              const isLoadingSummary = summaryLoading[product.slug];
 
               return (
-                <CompanyCard
-                  key={company.id}
-                  company={company}
+                <ProductCard
+                  key={product.id}
+                  product={product}
                   index={index}
                   verdict={verdict}
                   riskScore={riskScore}
                   isLoadingSummary={isLoadingSummary}
                   fetchMetaSummary={fetchMetaSummary}
-                  onClick={() => handleCompanyClick(company)}
+                  onClick={() => handleProductClick(product)}
                 />
               );
             })}

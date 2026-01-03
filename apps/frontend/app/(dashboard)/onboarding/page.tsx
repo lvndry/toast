@@ -63,7 +63,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!userDataLoading && userData?.onboarding_completed) {
-      router.push("/companies");
+      router.push("/products");
     }
   }, [userData, userDataLoading, router]);
 
@@ -123,7 +123,7 @@ export default function OnboardingPage() {
         goal,
       });
 
-      router.push("/companies");
+      router.push("/products");
     } catch (error) {
       console.error("Submission failed:", error);
     } finally {

@@ -15,15 +15,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const company = await httpJson<{
+    const product = await httpJson<{
       logo?: string | null;
       domains?: string[];
-    }>(`${apiEndpoints.companies()}/${slug}`, { method: "GET" });
+    }>(`${apiEndpoints.products()}/${slug}`, { method: "GET" });
 
-    let logo = company.logo;
+    let logo = product.logo;
 
-    if (!logo && company.domains) {
-      const domain = company.domains[0];
+    if (!logo && product.domains) {
+      const domain = product.domains[0];
 
       const logoDevToken = process.env.LOGO_DEV_PUBLIC_KEY;
 

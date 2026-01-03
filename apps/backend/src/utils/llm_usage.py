@@ -243,8 +243,8 @@ def _write_usage_to_file(
     context: str | None = None,
     reason: str | None = None,
     operation_type: str | None = None,
-    company_slug: str | None = None,
-    company_id: str | None = None,
+    product_slug: str | None = None,
+    product_id: str | None = None,
     document_url: str | None = None,
     document_title: str | None = None,
     document_id: str | None = None,
@@ -258,8 +258,8 @@ def _write_usage_to_file(
         context: Context identifier
         reason: Optional reason suffix
         operation_type: Type of operation (e.g., "summarization", "crawl", "meta_summary")
-        company_slug: Company slug identifier
-        company_id: Company ID identifier
+        product_slug: Product slug identifier
+        product_id: Product ID identifier
         document_url: URL of the document being processed
         document_title: Title of the document
         document_id: ID of the document
@@ -274,10 +274,10 @@ def _write_usage_to_file(
 
         if operation_type:
             metadata_parts.append(f"operation={operation_type}")
-        if company_slug:
-            metadata_parts.append(f"company_slug={company_slug}")
-        elif company_id:
-            metadata_parts.append(f"company_id={company_id}")
+        if product_slug:
+            metadata_parts.append(f"product_slug={product_slug}")
+        if product_id:
+            metadata_parts.append(f"product_id={product_id}")
         if document_id:
             metadata_parts.append(f"document_id={document_id}")
         if document_url:
@@ -318,8 +318,8 @@ def log_usage_summary(
     reason: str | None = None,
     log_level: str = "info",
     operation_type: str | None = None,
-    company_slug: str | None = None,
-    company_id: str | None = None,
+    product_slug: str | None = None,
+    product_id: str | None = None,
     document_url: str | None = None,
     document_title: str | None = None,
     document_id: str | None = None,
@@ -334,8 +334,8 @@ def log_usage_summary(
         reason: Optional reason suffix for the log message
         log_level: Logging level ("info", "debug", "warning")
         operation_type: Type of operation (e.g., "summarization", "crawl", "meta_summary", "classify_document")
-        company_slug: Company slug identifier
-        company_id: Company ID identifier
+        product_slug: Product slug identifier
+        product_id: Product ID identifier
         document_url: URL of the document being processed
         document_title: Title of the document
         document_id: ID of the document
@@ -373,8 +373,8 @@ def log_usage_summary(
         context,
         reason,
         operation_type,
-        company_slug,
-        company_id,
+        product_slug,
+        product_id,
         document_url,
         document_title,
         document_id,

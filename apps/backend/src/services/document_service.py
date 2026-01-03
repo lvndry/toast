@@ -11,8 +11,8 @@ from motor.core import AgnosticDatabase
 
 from src.core.logging import get_logger
 from src.models.document import Document, DocumentAnalysis
-from src.repositories.company_repository import CompanyRepository
 from src.repositories.document_repository import DocumentRepository
+from src.repositories.product_repository import ProductRepository
 
 logger = get_logger(__name__)
 
@@ -28,16 +28,16 @@ class DocumentService:
     def __init__(
         self,
         document_repo: DocumentRepository,
-        company_repo: CompanyRepository,
+        product_repo: ProductRepository,
     ) -> None:
         """Initialize DocumentService with repository dependencies.
 
         Args:
             document_repo: Repository for document data access
-            company_repo: Repository for company data access (for cache invalidation)
+            product_repo: Repository for product data access (for cache invalidation)
         """
         self._document_repo = document_repo
-        self._company_repo = company_repo
+        self._product_repo = product_repo
 
     # ============================================================================
     # Document Query Operations
@@ -79,38 +79,38 @@ class DocumentService:
         """
         return await self._document_repo.find_by_url(db, url)
 
-    async def get_company_documents(self, db: AgnosticDatabase, company_id: str) -> list[Document]:
-        """Get all documents for a specific company.
+    async def get_product_documents(self, db: AgnosticDatabase, product_id: str) -> list[Document]:
+        """Get all documents for a specific product.
 
         Args:
             db: Database instance
-            company_id: Company ID
+            product_id: Product ID
 
         Returns:
-            List of documents for the company
+            List of documents for the product
         """
-        documents: list[Document] = await self._document_repo.find_by_company_id(db, company_id)
+        documents: list[Document] = await self._document_repo.find_by_product_id(db, product_id)
         return documents
 
-    async def get_company_documents_by_slug(
-        self, db: AgnosticDatabase, company_slug: str
+    async def get_product_documents_by_slug(
+        self, db: AgnosticDatabase, product_slug: str
     ) -> list[Document]:
-        """Get all documents for a specific company by slug.
+        """Get all documents for a specific product by slug.
 
         Args:
             db: Database instance
-            company_slug: Company slug
+            product_slug: Product slug
 
         Returns:
-            List of documents for the company
+            List of documents for the product
 
         Raises:
-            ValueError: If company not found
+            ValueError: If product not found
         """
-        company = await self._company_repo.find_by_slug(db, company_slug)
-        if not company:
-            raise ValueError(f"Company with slug {company_slug} not found")
-        documents: list[Document] = await self._document_repo.find_by_company_id(db, company.id)
+        product = await self._product_repo.find_by_slug(db, product_slug)
+        if not product:
+            raise ValueError(f"Product with slug {product_slug} not found")
+        documents: list[Document] = await self._document_repo.find_by_product_id(db, product.id)
         return documents
 
     async def get_documents_by_type(self, db: AgnosticDatabase, doc_type: str) -> list[Document]:
@@ -127,18 +127,18 @@ class DocumentService:
         return documents
 
     async def get_documents_with_analysis(
-        self, db: AgnosticDatabase, company_slug: str | None = None
+        self, db: AgnosticDatabase, product_slug: str | None = None
     ) -> list[Document]:
         """Get documents that have analysis data.
 
         Args:
             db: Database instance
-            company_slug: Optional company slug to filter by
+            product_slug: Optional product slug to filter by
 
         Returns:
             List of documents with analysis
         """
-        documents: list[Document] = await self._document_repo.find_with_analysis(db, company_slug)
+        documents: list[Document] = await self._document_repo.find_with_analysis(db, product_slug)
         return documents
 
     # ============================================================================
@@ -163,12 +163,12 @@ class DocumentService:
         try:
             result = await self._document_repo.save(db, document)
 
-            # Business logic: Invalidate meta-summary cache for this company
+            # Business logic: Invalidate meta-summary cache for this product
             try:
-                company = await self._company_repo.find_by_id(db, document.company_id)
-                if company:
-                    await self._company_repo.delete_meta_summary(db, company.slug)
-                    logger.debug(f"Deleted meta-summary for company {company.slug}")
+                product = await self._product_repo.find_by_id(db, document.product_id)
+                if product:
+                    await self._product_repo.delete_meta_summary(db, product.slug)
+                    logger.debug(f"Deleted meta-summary for product {product.slug}")
             except Exception as cache_error:
                 # Don't fail document storage if cache invalidation fails
                 logger.warning(
@@ -199,12 +199,12 @@ class DocumentService:
             success = await self._document_repo.update(db, document)
 
             if success:
-                # Business logic: Invalidate meta-summary cache for this company
+                # Business logic: Invalidate meta-summary cache for this product
                 try:
-                    company = await self._company_repo.find_by_id(db, document.company_id)
-                    if company:
-                        await self._company_repo.delete_meta_summary(db, company.slug)
-                        logger.debug(f"Deleted meta-summary for company {company.slug}")
+                    product = await self._product_repo.find_by_id(db, document.product_id)
+                    if product:
+                        await self._product_repo.delete_meta_summary(db, product.slug)
+                        logger.debug(f"Deleted meta-summary for product {product.slug}")
                 except Exception as cache_error:
                     # Don't fail document update if cache invalidation fails
                     logger.warning(
@@ -232,19 +232,19 @@ class DocumentService:
             Exception: If deletion fails
         """
         try:
-            # Get document first to get company_id for cache invalidation
+            # Get document first to get product_id for cache invalidation
             document = await self._document_repo.find_by_id(db, document_id)
-            company_id = document.company_id if document else None
+            product_id = document.product_id if document else None
 
             success = await self._document_repo.delete(db, document_id)
 
-            if success and company_id:
-                # Business logic: Invalidate meta-summary cache for this company
+            if success and product_id:
+                # Business logic: Invalidate meta-summary cache for this product
                 try:
-                    company = await self._company_repo.find_by_id(db, company_id)
-                    if company:
-                        await self._company_repo.delete_meta_summary(db, company.slug)
-                        logger.debug(f"Deleted meta-summary for company {company.slug}")
+                    product = await self._product_repo.find_by_id(db, product_id)
+                    if product:
+                        await self._product_repo.delete_meta_summary(db, product.slug)
+                        logger.debug(f"Deleted meta-summary for product {product.slug}")
                 except Exception as cache_error:
                     # Don't fail document deletion if cache invalidation fails
                     logger.warning(

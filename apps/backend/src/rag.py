@@ -12,14 +12,14 @@ logger = get_logger(__name__)
 
 
 async def get_answer_stream(
-    question: str, company_slug: str, *, namespace: str | None = None
+    question: str, product_slug: str, *, namespace: str | None = None
 ) -> AsyncGenerator[str, None]:
     """
     Get an answer to a question using the Agent with streaming.
 
     Args:
         question: The question to answer
-        company_slug: The company slug to search within
+        product_slug: The product slug to search within
         namespace: Optional namespace (not used by Agent yet, but kept for API compat)
 
     Yields:
@@ -29,25 +29,25 @@ async def get_answer_stream(
 
     messages = [{"role": "user", "content": question}]
 
-    # We pass company_slug to the agent so it can use it in tools
-    async for chunk in agent.chat(messages, company_slug):
+    # We pass product_slug to the agent so it can use it in tools
+    async for chunk in agent.chat(messages, product_slug):
         yield chunk
 
 
-async def get_answer(question: str, company_slug: str, *, namespace: str | None = None) -> str:
+async def get_answer(question: str, product_slug: str, *, namespace: str | None = None) -> str:
     """
     Get an answer to a question using the Agent (non-streaming wrapper).
 
     Args:
         question: The question to answer
-        company_slug: The company slug to search within
+        product_slug: The product slug to search within
         namespace: Optional namespace
 
     Returns:
         str: The complete answer
     """
     chunks = []
-    async for chunk in get_answer_stream(question, company_slug, namespace=namespace):
+    async for chunk in get_answer_stream(question, product_slug, namespace=namespace):
         chunks.append(chunk)
 
     return "".join(chunks)

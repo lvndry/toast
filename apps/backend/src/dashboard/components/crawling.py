@@ -6,27 +6,27 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.dashboard.db_utils import get_all_companies_isolated
+from src.dashboard.db_utils import get_all_products_isolated
 from src.dashboard.utils import run_async, suppress_streamlit_warnings
-from src.models.company import Company
+from src.models.product import Product
 from src.pipeline import LegalDocumentPipeline, ProcessingStats
 
 
-def get_log_file_path(company: Company) -> Path:
-    """Generate the log file path for a company crawl (matching the format used in LegalDocumentPipeline)."""
+def get_log_file_path(product: Product) -> Path:
+    """Generate the log file path for a product crawl (matching the format used in LegalDocumentPipeline)."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_filename = f"{timestamp}_{company.slug}_crawl.log"
+    log_filename = f"{timestamp}_{product.slug}_crawl.log"
     return Path("logs") / log_filename
 
 
-def find_most_recent_log_file(company: Company) -> Path | None:
-    """Find the most recent log file for a company."""
+def find_most_recent_log_file(product: Product) -> Path | None:
+    """Find the most recent log file for a product."""
     logs_dir = Path("logs")
     if not logs_dir.exists():
         return None
 
-    # Find all log files for this company
-    pattern = f"*_{company.slug}_crawl.log"
+    # Find all log files for this product
+    pattern = f"*_{product.slug}_crawl.log"
     log_files = list(logs_dir.glob(pattern))
 
     if not log_files:
@@ -86,7 +86,7 @@ def read_log_file_tail(
         return f"Error reading log file: {str(e)}", last_position
 
 
-def run_crawl_async(company: Company) -> ProcessingStats | None:
+def run_crawl_async(product: Product) -> ProcessingStats | None:
     """Run crawling using LegalDocumentPipeline in a completely isolated thread with its own event loop"""
 
     def run_in_thread() -> ProcessingStats | None:
@@ -96,17 +96,17 @@ def run_crawl_async(company: Company) -> ProcessingStats | None:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                # Create pipeline instance for single company processing
+                # Create pipeline instance for single product processing
                 pipeline = LegalDocumentPipeline(
                     max_depth=4,
                     max_pages=500,
                     crawler_strategy="bfs",
-                    concurrent_limit=5,  # Reduced for single company
+                    concurrent_limit=5,  # Reduced for single product
                     delay_between_requests=1.0,
                 )
 
-                # Process single company and return documents
-                result = loop.run_until_complete(pipeline.run([company]))
+                # Process single product and return documents
+                result = loop.run_until_complete(pipeline.run([product]))
 
                 # CRITICAL: Wait until ALL tasks are truly complete before closing the loop
                 # This includes all database operations that may be pending
@@ -165,17 +165,17 @@ def run_crawl_async(company: Company) -> ProcessingStats | None:
             return None
 
 
-def run_crawl_all_companies_async(
-    companies: list[Company], max_parallel: int = 2
+def run_crawl_all_products_async(
+    products: list[Product], max_parallel: int = 2
 ) -> dict[str, ProcessingStats | None]:
-    """Run crawling for all companies with optional parallelization
+    """Run crawling for all products with optional parallelization
 
     Args:
-        companies: List of companies to crawl
-        max_parallel: Maximum number of companies to crawl in parallel (default: 2)
+        products: List of products to crawl
+        max_parallel: Maximum number of products to crawl in parallel (default: 2)
 
     Returns:
-        Dictionary mapping company slugs to their processing stats (or None if failed)
+        Dictionary mapping product slugs to their processing stats (or None if failed)
     """
     results: dict[str, ProcessingStats | None] = {}
 
@@ -188,7 +188,7 @@ def run_crawl_all_companies_async(
                 semaphore = asyncio.Semaphore(max_parallel)
 
                 async def crawl_with_semaphore(
-                    company: Company,
+                    product: Product,
                 ) -> tuple[str, ProcessingStats | None]:
                     async with semaphore:
                         try:
@@ -199,13 +199,13 @@ def run_crawl_all_companies_async(
                                 concurrent_limit=5,
                                 delay_between_requests=1.0,
                             )
-                            # Process single company - returns list[Document]
-                            documents = await pipeline._process_company(company)
-                            # Create a minimal ProcessingStats for single company
-                            return company.slug, ProcessingStats(
-                                companies_processed=1,
-                                companies_failed=0,
-                                failed_company_slugs=[],
+                            # Process single product - returns list[Document]
+                            documents = await pipeline._process_product(product)
+                            # Create a minimal ProcessingStats for single product
+                            return product.slug, ProcessingStats(
+                                products_processed=1,
+                                products_failed=0,
+                                failed_product_slugs=[],
                                 legal_documents_stored=len(documents) if documents else 0,
                             )
                         except Exception as e:
@@ -213,11 +213,11 @@ def run_crawl_all_companies_async(
                             from src.core.logging import get_logger
 
                             logger = get_logger(__name__)
-                            logger.error(f"Error crawling {company.name}: {str(e)}")
-                            return company.slug, None
+                            logger.error(f"Error crawling {product.name}: {str(e)}")
+                            return product.slug, None
 
-                # Create tasks for all companies
-                tasks = [crawl_with_semaphore(company) for company in companies]
+                # Create tasks for all products
+                tasks = [crawl_with_semaphore(product) for product in products]
                 # Run all tasks
                 crawl_results = loop.run_until_complete(asyncio.gather(*tasks))
 
@@ -282,87 +282,87 @@ def run_crawl_all_companies_async(
 def show_crawling() -> None:
     st.title("🕷️ Start Crawling")
 
-    # Get all companies
-    companies = run_async(get_all_companies_isolated())
+    # Get all products
+    products = run_async(get_all_products_isolated())
 
-    if companies is None:
-        st.error("Failed to load companies from database")
+    if products is None:
+        st.error("Failed to load products from database")
         return
 
-    if not companies:
-        st.warning("No companies found. Please create a company first.")
+    if not products:
+        st.warning("No products found. Please create a product first.")
         return
 
-    # Filter companies that have crawl_base_urls
-    companies_with_urls = [c for c in companies if c.crawl_base_urls]
+    # Filter products that have crawl_base_urls
+    products_with_urls = [p for p in products if p.crawl_base_urls]
 
-    if not companies_with_urls:
+    if not products_with_urls:
         st.warning(
-            "No companies have crawl base URLs configured. Please add crawl URLs to at least one company."
+            "No products have crawl base URLs configured. Please add crawl URLs to at least one product."
         )
         return
 
-    # Create company dropdown options
-    company_options = {
-        f"{company.name} ({company.slug})": company for company in companies_with_urls
+    # Create product dropdown options
+    product_options = {
+        f"{product.name} ({product.slug})": product for product in products_with_urls
     }
 
-    # Check if a company was preselected (from session state)
-    preselected_company = st.session_state.get("selected_company_for_crawl", None)
+    # Check if a product was preselected (from session state)
+    preselected_product = st.session_state.get("selected_product_for_crawl", None)
     default_index = 0
 
-    if preselected_company:
-        # Find the index of the preselected company
-        for i, company in enumerate(companies_with_urls):
-            if company.id == preselected_company:
+    if preselected_product:
+        # Find the index of the preselected product
+        for i, product in enumerate(products_with_urls):
+            if product.id == preselected_product:
                 default_index = i
                 break
 
-    selected_company_key = st.selectbox(
-        "Select Company to Crawl",
-        options=list(company_options.keys()),
+    selected_product_key = st.selectbox(
+        "Select Product to Crawl",
+        options=list(product_options.keys()),
         index=default_index,
-        help="Choose which company you want to crawl for legal documents",
+        help="Choose which product you want to crawl for legal documents",
     )
 
-    selected_company = company_options[selected_company_key]
+    selected_product = product_options[selected_product_key]
 
-    # Show company details
+    # Show product details
     st.write("---")
-    st.subheader(f"Company Details: {selected_company.name}")
+    st.subheader(f"Product Details: {selected_product.name}")
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.write("**Domains:**")
-        for domain in selected_company.domains:
+        for domain in selected_product.domains:
             st.write(f"• {domain}")
 
     with col2:
         st.write("**Crawl Base URLs:**")
-        for url in selected_company.crawl_base_urls:
+        for url in selected_product.crawl_base_urls:
             st.write(f"• [{url}]({url})")
 
     st.write("**Categories:**")
     st.write(
-        ", ".join(selected_company.categories) if selected_company.categories else "No categories"
+        ", ".join(selected_product.categories) if selected_product.categories else "No categories"
     )
 
     # Crawling section
     st.write("---")
     st.subheader("Start Crawling")
 
-    # Single company crawling section
+    # Single product crawling section
     st.info(f"""
-    **Single Company:**
-    • Crawl the base URLs for {selected_company.name}
+    **Single Product:**
+    • Crawl the base URLs for {selected_product.name}
     • Find and classify legal documents
     • Store discovered documents in the database
     • This process may take several minutes
     """)
 
     # Initialize crawl session state
-    crawl_key = f"crawl_{selected_company.slug}"
+    crawl_key = f"crawl_{selected_product.slug}"
     if crawl_key not in st.session_state:
         st.session_state[crawl_key] = {
             "running": False,
@@ -376,15 +376,15 @@ def show_crawling() -> None:
 
     crawl_state = st.session_state[crawl_key]
 
-    # Start crawling button for single company
+    # Start crawling button for single product
     if st.button("🚀 Start Crawling", type="primary", key="start_crawl_btn"):
         # Clear any previous crawl session state
-        if "selected_company_for_crawl" in st.session_state:
-            del st.session_state["selected_company_for_crawl"]
+        if "selected_product_for_crawl" in st.session_state:
+            del st.session_state["selected_product_for_crawl"]
 
         # Determine log file path before starting (using same format as crawler)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_filename = f"{timestamp}_{selected_company.slug}_crawl.log"
+        log_filename = f"{timestamp}_{selected_product.slug}_crawl.log"
         expected_log_path = Path("logs") / log_filename
 
         # Initialize crawl state
@@ -396,7 +396,7 @@ def show_crawling() -> None:
 
         # Start crawling in a thread (don't use context manager to keep executor alive)
         executor = concurrent.futures.ThreadPoolExecutor()
-        future = executor.submit(run_crawl_async, selected_company)
+        future = executor.submit(run_crawl_async, selected_product)
         crawl_state["future"] = future
         crawl_state["executor"] = executor  # Keep executor reference
 
@@ -421,7 +421,7 @@ def show_crawling() -> None:
 
             # Use status for better control over display
             with st.status(
-                f"🕷️ Crawling {selected_company.name}... This may take several minutes.",
+                f"🕷️ Crawling {selected_product.name}... This may take several minutes.",
                 expanded=True,
             ) as status:
                 st.write("🔍 Crawler is running...")
@@ -470,9 +470,9 @@ def show_crawling() -> None:
 
             # Show final status
             with st.status(
-                f"✅ Crawling {selected_company.name} completed!"
+                f"✅ Crawling {selected_product.name} completed!"
                 if crawl_state["stats"] is not None
-                else f"❌ Crawling {selected_company.name} failed",
+                else f"❌ Crawling {selected_product.name} failed",
                 expanded=False,
                 state="complete" if crawl_state["stats"] is not None else "error",
             ) as status:
@@ -509,7 +509,7 @@ def show_crawling() -> None:
     st.subheader("Crawl All Companies")
 
     st.info(f"""
-    **All Companies ({len(companies_with_urls)} companies):**
+    **All Products ({len(products_with_urls)} products):**
     • Crawl all companies with crawl URLs configured
     • Process up to 2 companies in parallel
     • This process may take a long time
@@ -517,26 +517,26 @@ def show_crawling() -> None:
 
     # Start crawling all companies button
     if st.button("🚀 Crawl All Companies", type="secondary", key="start_crawl_all_btn"):
-        # Start crawling all companies
+        # Start crawling all products
         with st.status(
-            f"🕷️ Crawling {len(companies_with_urls)} companies... This may take a very long time.",
+            f"🕷️ Crawling {len(products_with_urls)} products... This may take a very long time.",
             expanded=True,
         ) as status:
             # Show progress info
-            st.write(f"🔍 Starting crawler for {len(companies_with_urls)} companies...")
+            st.write(f"🔍 Starting crawler for {len(products_with_urls)} products...")
 
-            # Run the crawling process for all companies
-            results = run_crawl_all_companies_async(companies_with_urls, max_parallel=2)
+            # Run the crawling process for all products
+            results = run_crawl_all_products_async(products_with_urls, max_parallel=2)
 
             if results:
                 successful = sum(1 for stats in results.values() if stats is not None)
                 status.update(
-                    label=f"✅ Crawling completed! {successful}/{len(results)} companies processed.",
+                    label=f"✅ Crawling completed! {successful}/{len(results)} products processed.",
                     state="complete",
                     expanded=False,
                 )
             else:
-                status.update(label="❌ Crawling all companies failed", state="error")
+                status.update(label="❌ Crawling all products failed", state="error")
 
         if results:
             # Show results summary
@@ -547,24 +547,24 @@ def show_crawling() -> None:
             )
 
             if successful > 0:
-                st.success(f"✅ Crawling completed! {successful} companies processed successfully.")
+                st.success(f"✅ Crawling completed! {successful} products processed successfully.")
                 st.write(f"**Total legal documents found: {total_docs}**")
 
                 if failed > 0:
-                    st.warning(f"⚠️ {failed} companies failed to crawl.")
+                    st.warning(f"⚠️ {failed} products failed to crawl.")
 
                 # Show detailed results
                 with st.expander("View detailed results"):
-                    for company in companies_with_urls:
-                        stats = results.get(company.slug)
+                    for product in products_with_urls:
+                        stats = results.get(product.slug)
                         if stats is not None:
                             st.write(
-                                f"✅ **{company.name}**: {stats.legal_documents_stored} documents"
+                                f"✅ **{product.name}**: {stats.legal_documents_stored} documents"
                             )
                         else:
-                            st.write(f"❌ **{company.name}**: Failed")
+                            st.write(f"❌ **{product.name}**: Failed")
             else:
-                st.error("All companies failed to crawl. Please check the logs and try again.")
+                st.error("All products failed to crawl. Please check the logs and try again.")
         else:
             st.error("Crawling operation failed to return results.")
 

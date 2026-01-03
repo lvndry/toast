@@ -3,9 +3,10 @@ import type { Message } from "./message";
 export interface Conversation {
   id: string;
   user_id: string;
-  company_name: string;
-  company_slug?: string;
-  company_description?: string;
+  product_name: string;
+  product_slug?: string;
+  company_name?: string | null;
+  product_description?: string;
   documents: string[];
   messages: Message[];
   title?: string | null;

@@ -9,15 +9,15 @@ export async function GET(
 ) {
   const { slug } = await params;
   try {
-    const deepAnalysis = await httpJson(
-      `${apiEndpoints.companies()}/${slug}/deep-analysis`,
+    const documents = await httpJson(
+      `${apiEndpoints.products()}/${slug}/documents`,
       { method: "GET" },
     );
-    return NextResponse.json(deepAnalysis);
+    return NextResponse.json(documents);
   } catch (error) {
-    console.error("Error fetching company deep analysis:", error);
+    console.error("Error fetching product documents:", error);
     return NextResponse.json(
-      { error: `Failed to fetch company deep analysis: ${error}` },
+      { error: `Failed to fetch product documents: ${error}` },
       { status: 500 },
     );
   }

@@ -42,9 +42,9 @@ async def _test_connection_async() -> bool:
         # Test basic operations
         print("📊 Testing database operations...")
 
-        # Count companies
-        companies_count = await db.companies.count_documents({})
-        print(f"✅ Found {companies_count} companies in database")
+        # Count products
+        products_count = await db.products.count_documents({})
+        print(f"✅ Found {products_count} products in database")
 
         # Count documents
         documents_count = await db.documents.count_documents({})

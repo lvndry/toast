@@ -24,7 +24,7 @@ const features = [
   {
     title: "Multi-Document Context",
     description:
-      "Compare terms of service across multiple companies side-by-side automatically.",
+      "Compare terms of service across multiple products side-by-side automatically.",
     icon: Layers,
     size: "sm",
   },

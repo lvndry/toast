@@ -3,9 +3,9 @@ from datetime import datetime
 import streamlit as st
 
 from src.dashboard.components.summarization import run_summarization_async
-from src.dashboard.db_utils import get_all_companies_isolated, get_company_documents_by_id_isolated
+from src.dashboard.db_utils import get_all_products_isolated, get_product_documents_by_id_isolated
 from src.dashboard.utils import run_async_with_retry
-from src.models.company import Company
+from src.models.product import Product
 
 
 def format_datetime(dt: datetime | None) -> str:
@@ -23,48 +23,48 @@ def format_effective_date(dt: datetime | None) -> str:
 
 
 def show_documents_view() -> None:
-    st.title("📄 Company Documents")
+    st.title("📄 Product Documents")
 
-    # Get all companies
-    companies = run_async_with_retry(get_all_companies_isolated())
+    # Get all products
+    products = run_async_with_retry(get_all_products_isolated())
 
-    if companies is None:
+    if products is None:
         st.error(
-            "Failed to load companies from database. Please check your connection and try again."
+            "Failed to load products from database. Please check your connection and try again."
         )
         return
 
-    if not companies:
-        st.warning("No companies found. Please create a company first.")
+    if not products:
+        st.warning("No products found. Please create a product first.")
         return
 
-    # Check if a company was preselected (from session state)
-    preselected_company_id = st.session_state.get("selected_company_for_documents", None)
+    # Check if a product was preselected (from session state)
+    preselected_product_id = st.session_state.get("selected_product_for_documents", None)
 
-    # Create company dropdown options
-    company_options = {f"{company.name} ({company.slug})": company for company in companies}
+    # Create product dropdown options
+    product_options = {f"{product.name} ({product.slug})": product for product in products}
     default_index = 0
 
-    if preselected_company_id:
-        # Find the index of the preselected company
-        for idx, company in enumerate(companies):
-            if company.id == preselected_company_id:
+    if preselected_product_id:
+        # Find the index of the preselected product
+        for idx, product in enumerate(products):
+            if product.id == preselected_product_id:
                 default_index = idx
                 break
 
-    # Company selection dropdown
-    selected_company_name = st.selectbox(
-        "Select Company",
-        options=list(company_options.keys()),
+    # Product selection dropdown
+    selected_product_name = st.selectbox(
+        "Select Product",
+        options=list(product_options.keys()),
         index=default_index,
-        key="documents_company_select",
+        key="documents_product_select",
     )
 
-    selected_company: Company = company_options[selected_company_name]
+    selected_product: Product = product_options[selected_product_name]
 
-    # Load documents for selected company
-    with st.spinner(f"Loading documents for {selected_company.name}..."):
-        documents = run_async_with_retry(get_company_documents_by_id_isolated(selected_company.id))
+    # Load documents for selected product
+    with st.spinner(f"Loading documents for {selected_product.name}..."):
+        documents = run_async_with_retry(get_product_documents_by_id_isolated(selected_product.id))
 
     if documents is None:
         st.error("Failed to load documents from database.")
@@ -109,13 +109,13 @@ def show_documents_view() -> None:
             else:
                 # Start document analysis
                 with st.spinner(
-                    f"Analyzing documents for {selected_company.name}... This may take several minutes."
+                    f"Analyzing documents for {selected_product.name}... This may take several minutes."
                 ):
                     progress_placeholder = st.empty()
                     progress_placeholder.info("🔍 Processing documents...")
 
                     # Run the summarization process
-                    success = run_summarization_async(selected_company.slug)
+                    success = run_summarization_async(selected_product.slug)
 
                     progress_placeholder.empty()
 
@@ -261,9 +261,9 @@ def show_documents_view() -> None:
 
     # Back button
     st.divider()
-    if st.button("← Back to Companies", key="back_to_companies_from_documents"):
+    if st.button("← Back to Products", key="back_to_products_from_documents"):
         # Clear session state and navigate back
-        if "selected_company_for_documents" in st.session_state:
-            del st.session_state["selected_company_for_documents"]
-        st.session_state["current_page"] = "view_companies"
+        if "selected_product_for_documents" in st.session_state:
+            del st.session_state["selected_product_for_documents"]
+        st.session_state["current_page"] = "view_products"
         st.rerun()
