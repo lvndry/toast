@@ -31,7 +31,7 @@ def test_extract_links_various_sources():
     crawler = ClauseaCrawler()
 
     links = crawler.extract_links(soup, "https://example.com")
-    urls = {l["url"] for l in links}
+    urls = {link["url"] for link in links}
 
     assert "https://example.com/privacy-policy" in urls
     assert "https://example.com/terms" in urls
@@ -53,9 +53,9 @@ def test_add_urls_to_queue_respects_rel_nofollow_and_meta():
     # By default follow_nofollow=False -> the specific nofollow link should be skipped
     crawler.add_urls_to_queue(links, "https://example.com", depth=0, page_metadata=None)
     all_urls = (
-        set(u for u, _ in crawler.url_queue)
-        | set(u for u, _ in crawler.url_stack)
-        | set(u for _, u, _ in crawler.url_priority_queue)
+        {u for u, _ in crawler.url_queue}
+        | {u for u, _ in crawler.url_stack}
+        | {u for _, u, _ in crawler.url_priority_queue}
     )
     assert "https://example.com/privacy" not in all_urls
 
@@ -63,9 +63,9 @@ def test_add_urls_to_queue_respects_rel_nofollow_and_meta():
     crawler2 = ClauseaCrawler(follow_nofollow=True)
     crawler2.add_urls_to_queue(links, "https://example.com", depth=0, page_metadata=None)
     all_urls2 = (
-        set(u for u, _ in crawler2.url_queue)
-        | set(u for u, _ in crawler2.url_stack)
-        | set(u for _, u, _ in crawler2.url_priority_queue)
+        {u for u, _ in crawler2.url_queue}
+        | {u for u, _ in crawler2.url_stack}
+        | {u for _, u, _ in crawler2.url_priority_queue}
     )
     assert "https://example.com/privacy" in all_urls2
 
