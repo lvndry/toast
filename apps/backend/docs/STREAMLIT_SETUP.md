@@ -49,9 +49,6 @@ MONGO_URI = "mongodb://localhost:27017/clausea"
 
 # Production MongoDB connection string
 PRODUCTION_MONGO_URI = "mongodb+srv://username:password@cluster.mongodb.net/clausea"
-
-# API Base URL (optional, defaults to localhost:8000)
-API_BASE_URL = "http://localhost:8000"
 ```
 
 **⚠️ Security Note:** Add `.streamlit/secrets.toml` to your `.gitignore` file to prevent sensitive credentials from being committed to version control.

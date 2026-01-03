@@ -28,7 +28,7 @@ The promotion system allows you to:
    cp .streamlit/secrets.toml .streamlit/secrets.toml
    ```
 
-   Then edit `.streamlit/secrets.toml` with your database URIs:
+   Then edit `.streamlit/secrets.toml` with your database URIs and API URL:
 
    ```toml
    MONGO_URI = "mongodb://localhost:27017/clausea"
@@ -36,7 +36,14 @@ The promotion system allows you to:
    API_BASE_URL = "http://localhost:8000"
    ```
 
-3. **API Server**: Ensure the Clausea API server is running (default: http://localhost:8000)
+3. **API Server**: The Clausea API server must be running, as the Streamlit dashboard makes HTTP requests to promotion endpoints. Start it with:
+
+   ```bash
+   # From the backend directory
+   uvicorn main:app --reload
+   ```
+
+   The default API URL is `http://localhost:8000` (configurable in the dashboard interface).
 
 4. **Dependencies**: Install the required dependencies:
    ```bash

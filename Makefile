@@ -1,7 +1,7 @@
 # Clausea Makefile
 # Provides convenient commands for setting up and running the development environment
 
-.PHONY: help setup dev clean install-deps setup-backend setup-frontend setup-precommit run-backend run-frontend test lint format check-deps
+.PHONY: help setup dev clean install-deps setup-backend setup-frontend setup-precommit run-backend run-frontend test lint format check-deps docker-build-streamlit docker-run-streamlit docker-stop-streamlit docker-rm-streamlit docker-restart-streamlit docker-logs-streamlit
 
 # Default target
 help:
@@ -26,6 +26,14 @@ help:
 	@echo "  make format         - Format code"
 	@echo "  make clean          - Clean up temporary files"
 	@echo "  make check-deps     - Check if required dependencies are installed"
+	@echo ""
+	@echo "Docker Commands:"
+	@echo "  make docker-build-streamlit  - Build Streamlit Docker image"
+	@echo "  make docker-run-streamlit    - Run Streamlit container (requires MONGO_URI and DASHBOARD_PASSWORD)"
+	@echo "  make docker-stop-streamlit   - Stop Streamlit container"
+	@echo "  make docker-rm-streamlit    - Remove Streamlit container"
+	@echo "  make docker-restart-streamlit - Restart Streamlit container"
+	@echo "  make docker-logs-streamlit   - View Streamlit container logs"
 	@echo ""
 
 # Complete project setup
@@ -157,6 +165,61 @@ docker-run:
 docker-stop:
 	@echo "🐳 Stopping Docker containers..."
 	@docker-compose down
+
+# Docker Streamlit commands
+docker-build-streamlit:
+	@echo "🐳 Building Streamlit Docker image..."
+	@cd apps/backend && docker build -f Dockerfile.streamlit -t clausea-streamlit .
+	@echo "✅ Streamlit Docker image built successfully"
+	@echo "Run 'make docker-run-streamlit' to start the container"
+
+docker-run-streamlit:
+	@echo "🐳 Running Streamlit container..."
+	@echo "💡 Note: Use 'host.docker.internal' instead of 'localhost' to access MongoDB on your host machine"
+	@echo "   Example: MONGO_URI='mongodb://host.docker.internal:27017/clausea'"
+	@if [ -z "$$MONGO_URI" ]; then \
+		echo "❌ Error: MONGO_URI environment variable is required"; \
+		echo "Example: MONGO_URI='mongodb://host.docker.internal:27017/clausea' make docker-run-streamlit"; \
+		echo "   (Use 'host.docker.internal' for Docker Desktop, or your host IP for remote MongoDB)"; \
+		exit 1; \
+	fi
+	@if [ -z "$$DASHBOARD_PASSWORD" ]; then \
+		echo "❌ Error: DASHBOARD_PASSWORD environment variable is required"; \
+		echo "Example: DASHBOARD_PASSWORD='your-password' make docker-run-streamlit"; \
+		exit 1; \
+	fi
+	@PORT=$${PORT:-8501}; \
+	ENV_MODE=$${ENVIRONMENT:-production}; \
+	docker run -d \
+		--name clausea-streamlit \
+		-p $$PORT:8501 \
+		-e MONGO_URI="$$MONGO_URI" \
+		-e DASHBOARD_PASSWORD="$$DASHBOARD_PASSWORD" \
+		-e ENVIRONMENT="$$ENV_MODE" \
+		-e PORT="8501" \
+		$$([ -f apps/backend/.env ] && echo "--env-file apps/backend/.env" || true) \
+		clausea-streamlit || \
+		(docker start clausea-streamlit && echo "✅ Streamlit container started (was already created)"); \
+	PORT=$${PORT:-8501}; \
+	echo "✅ Streamlit container is running"; \
+	echo "Access the dashboard at: http://localhost:$$PORT"
+
+docker-stop-streamlit:
+	@echo "🛑 Stopping Streamlit container..."
+	@docker stop clausea-streamlit 2>/dev/null || echo "Container not running"
+	@echo "✅ Streamlit container stopped"
+
+docker-rm-streamlit:
+	@echo "🗑️  Removing Streamlit container..."
+	@docker rm -f clausea-streamlit 2>/dev/null || echo "Container not found"
+	@echo "✅ Streamlit container removed"
+
+docker-logs-streamlit:
+	@echo "📋 Streamlit container logs (Ctrl+C to exit)..."
+	@docker logs -f clausea-streamlit 2>/dev/null || echo "❌ Container 'clausea-streamlit' not found. Run 'make docker-run-streamlit' first"
+
+docker-restart-streamlit: docker-stop-streamlit docker-run-streamlit
+	@echo "✅ Streamlit container restarted"
 
 # Development shortcuts
 backend: run-backend

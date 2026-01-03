@@ -66,7 +66,9 @@ def show_promotion() -> None:
     # API Configuration
     st.subheader("API Configuration")
     api_url = st.text_input(
-        "API Base URL", value="http://localhost:8000", help="Base URL for the Clausea API"
+        "API Base URL",
+        value=st.secrets.get("API_BASE_URL", "http://localhost:8000"),
+        help="Base URL for the Clausea API",
     )
 
     # Promotion Summary

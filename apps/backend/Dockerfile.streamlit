@@ -3,6 +3,9 @@ FROM python:3.11-slim
 ENV VENV_PATH="/opt/venv"
 ENV PATH="$VENV_PATH/bin:$PATH"
 
+# Set working directory
+WORKDIR /app
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
@@ -41,6 +44,9 @@ RUN uv run playwright install --with-deps chromium
 
 # Copy application code
 COPY . .
+
+# Set PYTHONPATH to include the working directory so imports work
+ENV PYTHONPATH="/app:${PYTHONPATH}"
 
 EXPOSE 8501
 
