@@ -11,7 +11,7 @@ from collections import OrderedDict, deque
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import ParseResult, urljoin, urlparse, urlunparse
 
 import aiohttp
@@ -24,6 +24,11 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+# Standard user agent string following RFC 7231 format
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (compatible; ClauseaBot/2.0; +https://www.clausea.co/bot.html; lvndry@proton.me)"
+)
 
 
 class CrawlResult(BaseModel):
@@ -577,7 +582,7 @@ class RobotsTxtChecker:
         """
         self.robots_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self.max_cache_size = max_cache_size
-        self.user_agent = "ClauseaCrawler/2.0"
+        self.user_agent = DEFAULT_USER_AGENT
         # Common user agent patterns that should be treated as wildcards
         self.user_agent_patterns = [
             "*",  # Standard wildcard
@@ -789,6 +794,91 @@ class RobotsTxtChecker:
         return path.startswith(pattern)
 
 
+class HTTPCache:
+    """
+    HTTP response cache for ETag and Last-Modified headers.
+
+    Implements conditional requests using If-None-Match (ETag) and
+    If-Modified-Since (Last-Modified) headers to avoid re-downloading
+    unchanged content.
+    """
+
+    def __init__(self, max_cache_size: int = 10000):
+        """
+        Initialize the HTTP cache.
+
+        Args:
+            max_cache_size: Maximum number of URLs to cache (LRU eviction)
+        """
+        self.cache: OrderedDict[str, dict[str, str]] = OrderedDict()
+        self.max_cache_size = max_cache_size
+
+    def get_cache_headers(self, url: str) -> dict[str, str]:
+        """
+        Get cache headers (If-None-Match, If-Modified-Since) for a URL.
+
+        Args:
+            url: The URL to get cache headers for
+
+        Returns:
+            Dictionary with cache headers, empty if URL not in cache
+        """
+        if url not in self.cache:
+            return {}
+
+        cache_entry = self.cache[url]
+        headers = {}
+
+        if "etag" in cache_entry:
+            headers["If-None-Match"] = cache_entry["etag"]
+
+        if "last_modified" in cache_entry:
+            headers["If-Modified-Since"] = cache_entry["last_modified"]
+
+        return headers
+
+    def update_cache(self, url: str, response: aiohttp.ClientResponse) -> None:
+        """
+        Update cache with ETag and Last-Modified from response headers.
+
+        Args:
+            url: The URL that was requested
+            response: The HTTP response
+        """
+        etag = response.headers.get("ETag")
+        last_modified = response.headers.get("Last-Modified")
+
+        # Only cache if we have at least one cache header
+        if not etag and not last_modified:
+            return
+
+        # Remove oldest entry if cache is full
+        if len(self.cache) >= self.max_cache_size:
+            self.cache.popitem(last=False)
+
+        cache_entry: dict[str, str] = {}
+        if etag:
+            cache_entry["etag"] = etag
+        if last_modified:
+            cache_entry["last_modified"] = last_modified
+
+        # Remove from cache if exists (to move to end for LRU)
+        if url in self.cache:
+            del self.cache[url]
+
+        # Add to end (most recently used)
+        self.cache[url] = cache_entry
+
+    def clear_cache(self) -> None:
+        """Clear the HTTP cache (useful between crawl sessions)."""
+        self.cache.clear()
+
+    def remove_from_cache(self, url: str) -> None:
+        """Remove a specific URL from cache."""
+        if url in self.cache:
+            del self.cache[url]
+
+
 class AsyncFileLogHandler(logging.Handler):
     """Async logging handler that writes to file in a thread pool (fire-and-forget)."""
 
@@ -837,7 +927,7 @@ class ClauseaCrawler:
         timeout: int = 30,
         allowed_domains: list[str] | None = None,
         respect_robots_txt: bool = True,
-        user_agent: str = "ClauseaCrawler/2.0 (Legal Document Discovery Bot; website coming soon)",
+        user_agent: str = DEFAULT_USER_AGENT,
         follow_external_links: bool = False,
         min_legal_score: float = 2.0,
         strategy: str = "bfs",  # "bfs", "dfs", "best_first"
@@ -900,6 +990,9 @@ class ClauseaCrawler:
         self.url_scorer = URLScorer()
         self.content_analyzer = ContentAnalyzer()
         self.robots_checker = RobotsTxtChecker(max_cache_size=1000) if respect_robots_txt else None
+        self.http_cache = HTTPCache(
+            max_cache_size=10000
+        )  # HTTP response cache for ETag/Last-Modified
 
         # Set up file logging if log_file_path is provided
         self.file_handler: logging.FileHandler | None = None
@@ -1067,7 +1160,17 @@ class ClauseaCrawler:
                 logger.debug("🌐 Playwright browser closed")
 
     async def _fetch_with_browser(self, url: str) -> CrawlResult:
-        """Fetch page content using a headless browser (for dynamic rendering)."""
+        """
+        Fetch page content using a headless browser (for dynamic rendering).
+
+        Tries progressively less strict wait conditions:
+        1. networkidle (most strict, waits for all network activity to stop)
+        2. load (waits for page load event)
+        3. domcontentloaded (waits for DOM to be ready)
+
+        Returns a failed result if all strategies fail, which can be used
+        by the caller to fall back to static HTML parsing.
+        """
         browser, context = await self._setup_browser()
         page: Page = await context.new_page()
 
@@ -1077,10 +1180,36 @@ class ClauseaCrawler:
                 "**/*.{png,jpg,jpeg,gif,svg,css,woff,woff2,ttf,otf}", lambda route: route.abort()
             )
 
-            # Navigate with timeout
-            response = await page.goto(url, wait_until="networkidle", timeout=self.timeout * 1000)
+            # Try progressively less strict wait conditions
+            wait_strategies: list[
+                tuple[str, Literal["networkidle", "load", "domcontentloaded"]]
+            ] = [
+                ("networkidle", "networkidle"),
+                ("load", "load"),
+                ("domcontentloaded", "domcontentloaded"),
+            ]
+
+            response = None
+            last_error = None
+
+            for strategy_name, wait_until in wait_strategies:
+                try:
+                    logger.debug(f"Trying browser fetch with {strategy_name} strategy for {url}")
+                    response = await page.goto(
+                        url, wait_until=wait_until, timeout=self.timeout * 1000
+                    )
+                    if response:
+                        logger.debug(f"Successfully loaded {url} with {strategy_name} strategy")
+                        break
+                except Exception as e:
+                    last_error = e
+                    logger.debug(f"Browser fetch with {strategy_name} failed for {url}: {e}")
+                    # Continue to next strategy
+                    continue
 
             if not response:
+                # All strategies failed
+                logger.warning(f"All browser fetch strategies failed for {url}: {last_error}")
                 return CrawlResult(
                     url=url,
                     title="",
@@ -1089,7 +1218,7 @@ class ClauseaCrawler:
                     metadata={},
                     status_code=500,
                     success=False,
-                    error_message="No response from browser",
+                    error_message=f"Browser fetch error: {str(last_error)}",
                 )
 
             # Extract content
@@ -1467,6 +1596,10 @@ class ClauseaCrawler:
             timeout = aiohttp.ClientTimeout(total=self.timeout)
             headers = {"User-Agent": self.user_agent}
 
+            # Add HTTP cache headers (If-None-Match, If-Modified-Since)
+            cache_headers = self.http_cache.get_cache_headers(url)
+            headers.update(cache_headers)
+
             # Use proxy if configured
             request_args = {
                 "timeout": timeout,
@@ -1476,6 +1609,26 @@ class ClauseaCrawler:
                 request_args["proxy"] = self.proxy
 
             async with session.get(url, **request_args) as response:
+                # Handle 304 Not Modified - content hasn't changed
+                if response.status == 304:
+                    logger.debug(f"Content not modified (304) for {url}, using cached metadata")
+                    # Return a result indicating no change (but still successful)
+                    # The caller can decide whether to process this or skip
+                    return CrawlResult(
+                        url=url,
+                        title="",
+                        content="",
+                        markdown="",
+                        metadata={"cached": True, "status": "not_modified"},
+                        status_code=304,
+                        success=True,
+                        error_message=None,
+                    )
+
+                # Update cache with ETag/Last-Modified if present
+                if response.status == 200:
+                    self.http_cache.update_cache(url, response)
+
                 content_type = response.headers.get("content-type", "").lower()
 
                 # Process both HTML and plain text content
@@ -1528,9 +1681,19 @@ class ClauseaCrawler:
 
                     if should_fallback:
                         logger.info(
-                            f"🔄 Detected dynamic content or short page, falling back to browser: {url}"
+                            f"🔄 Detected dynamic content or short page, trying browser: {url}"
                         )
-                        return await self._fetch_with_browser(url)
+                        browser_result = await self._fetch_with_browser(url)
+
+                        # If browser fetch succeeded, use it
+                        if browser_result.success:
+                            return browser_result
+
+                        # Browser fetch failed, fall back to static HTML parsing
+                        logger.info(
+                            f"⚠️ Browser fetch failed, falling back to static HTML parsing: {url}"
+                        )
+                        # Continue with static HTML parsing below (don't return)
 
                     # Convert to markdown
                     markdown_content = markdownify.markdownify(str(soup), heading_style="ATX")

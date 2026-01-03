@@ -4,6 +4,7 @@ from streamlit_tags import st_tags
 from src.dashboard.db_utils import (
     delete_company_isolated,
     get_all_companies_isolated,
+    get_document_counts_by_company,
     update_company_isolated,
 )
 from src.dashboard.utils import run_async_with_retry
@@ -178,6 +179,7 @@ def show_company_view() -> None:
     try:
         with st.spinner("Loading companies..."):
             companies = run_async_with_retry(get_all_companies_isolated())
+            document_counts = run_async_with_retry(get_document_counts_by_company()) or {}
 
         if companies is None:
             st.error(
@@ -235,29 +237,52 @@ def show_company_view() -> None:
             else:
                 # Show normal company card
                 with st.expander(f"🏢 {company.name} ({company.slug})", expanded=False):
-                    col1, col2 = st.columns(2)
+                    # Key metric at the top
+                    doc_count = document_counts.get(company.id, 0)
+                    metric_col1, metric_col2, metric_col3 = st.columns(3)
+                    with metric_col1:
+                        st.metric("Documents", doc_count)
 
-                    with col1:
-                        st.write("**Company Details:**")
-                        st.write(f"• **ID:** `{company.id}`")
-                        st.write(f"• **Name:** {company.name}")
-                        st.write(f"• **Slug:** {company.slug}")
+                    # Basic company information
+                    st.write("**Company Information:**")
+                    info_col1, info_col2, info_col3 = st.columns(3)
+                    with info_col1:
+                        st.write(f"**ID:** `{company.id}`")
+                    with info_col2:
+                        st.write(f"**Name:** {company.name}")
+                    with info_col3:
+                        st.write(f"**Slug:** {company.slug}")
 
+                    st.divider()
+
+                    # Lists section - organized in columns
+                    lists_col1, lists_col2, lists_col3 = st.columns(3)
+
+                    with lists_col1:
                         st.write("**Domains:**")
-                        for domain in company.domains:
-                            st.write(f"• {domain}")
+                        if company.domains:
+                            for domain in company.domains:
+                                st.write(f"• {domain}")
+                        else:
+                            st.write("*No domains configured*")
 
-                    with col2:
+                    with lists_col2:
                         st.write("**Categories:**")
-                        for category in company.categories:
-                            st.write(f"• {category}")
+                        if company.categories:
+                            for category in company.categories:
+                                st.write(f"• {category}")
+                        else:
+                            st.write("*No categories*")
 
+                    with lists_col3:
+                        st.write("**Crawl Base URLs:**")
                         if company.crawl_base_urls:
-                            st.write("**Crawl Base URLs:**")
                             for url in company.crawl_base_urls:
                                 st.write(f"• [{url}]({url})")
                         else:
-                            st.write("**Crawl Base URLs:** None configured")
+                            st.write("*None configured*")
+
+                    st.divider()
 
                     # Tier visibility section
                     st.write("**Tier Visibility:**")
@@ -288,21 +313,21 @@ def show_company_view() -> None:
                             st.info("Analytics feature coming soon!")
                     with col4:
                         if st.button("📄 Documents", key=f"docs_{company.id}"):
-                            st.info("Documents view coming soon!")
+                            # Set the selected company for documents and navigate to documents page
+                            st.session_state["selected_company_for_documents"] = company.id
+                            st.session_state["current_page"] = "view_documents"
+                            st.rerun()
                     with col5:
                         if st.button("🕷️ Crawl", key=f"crawl_{company.id}"):
-                            # Set the selected company for crawling and navigate to crawl page
                             st.session_state["selected_company_for_crawl"] = company.id
                             st.session_state["current_page"] = "start_crawling"
                             st.rerun()
                     with col6:
                         if st.button("✏️ Edit", key=f"edit_{company.id}"):
-                            # Set the editing state
                             st.session_state[edit_key] = True
                             st.rerun()
                     with col7:
                         if st.button("🗑️ Delete", key=f"delete_{company.id}"):
-                            # Set the delete confirmation state
                             st.session_state[delete_confirm_key] = True
                             st.rerun()
 
@@ -310,7 +335,7 @@ def show_company_view() -> None:
         st.write("---")
         st.subheader("Summary Statistics")
 
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
 
         with col1:
             st.metric("Total Companies", len(companies))
@@ -320,10 +345,14 @@ def show_company_view() -> None:
             st.metric("Total Domains", total_domains)
 
         with col3:
+            total_documents = sum(document_counts.get(company.id, 0) for company in companies)
+            st.metric("Total Documents", total_documents)
+
+        with col4:
             companies_with_crawl_urls = len([c for c in companies if c.crawl_base_urls])
             st.metric("Companies with Crawl URLs", companies_with_crawl_urls)
 
-        with col4:
+        with col5:
             unique_categories: set[str] = set()
             for company in companies:
                 unique_categories.update(company.categories)
