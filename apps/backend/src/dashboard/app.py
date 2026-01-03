@@ -2,11 +2,14 @@ import warnings
 
 import streamlit as st
 
+from src.core.config import config
 from src.core.logging import setup_logging
+from src.dashboard.auth import check_password, show_logout_button
 from src.dashboard.components.company_creation import show_company_creation
 from src.dashboard.components.company_view import show_company_view
 from src.dashboard.components.crawling import show_crawling
 from src.dashboard.components.deep_analysis import show_deep_analysis
+from src.dashboard.components.documents_view import show_documents_view
 from src.dashboard.components.embedding import show_embedding
 from src.dashboard.components.promotion import show_promotion
 from src.dashboard.components.rag import show_rag
@@ -22,20 +25,31 @@ setup_logging()
 
 
 def main() -> None:
+    # Check authentication before showing dashboard
+    if not check_password():
+        return  # Login form is shown by check_password()
+
+    # Show logout button in sidebar
+    show_logout_button()
     st.sidebar.title("Navigation")
 
     # Create page options with id and display_name
     page_options = [
         {"id": "create_company", "display_name": "Create Company"},
         {"id": "view_companies", "display_name": "View Companies"},
+        {"id": "view_documents", "display_name": "View Documents"},
         {"id": "start_crawling", "display_name": "Start Crawling"},
         {"id": "generate_embeddings", "display_name": "Generate & Store Embeddings"},
         {"id": "summarization", "display_name": "Summarization"},
         {"id": "deep_analysis", "display_name": "Deep Analysis & Overview"},
         {"id": "rag", "display_name": "RAG"},
-        {"id": "promotion", "display_name": "Promotion"},
-        {"id": "settings", "display_name": "Settings"},
     ]
+
+    # Only show Promotion page in development/localhost
+    if config.app.is_development:
+        page_options.append({"id": "promotion", "display_name": "Promotion"})
+
+    page_options.append({"id": "settings", "display_name": "Settings"})
 
     # Check if we have a current page in session state
     current_page_id = st.session_state.get("current_page", "view_companies")
@@ -45,13 +59,13 @@ def main() -> None:
     legacy_page_mapping = {
         "Create Company": "create_company",
         "View Companies": "view_companies",
+        "View Documents": "view_documents",
         "Start Crawling": "start_crawling",
         "Generate Embeddings": "generate_embeddings",
         "Generate & Store Embeddings": "generate_embeddings",
         "Summarization": "summarization",
         "Deep Analysis & Overview": "deep_analysis",
         "RAG": "rag",
-        "Migration": "promotion",  # Legacy mapping for old migration page
         "Promotion": "promotion",
         "Settings": "settings",
     }
@@ -59,6 +73,11 @@ def main() -> None:
     # If current_page_id is a legacy display name, convert it to page ID
     if current_page_id in legacy_page_mapping:
         current_page_id = legacy_page_mapping[current_page_id]
+        st.session_state["current_page"] = current_page_id
+
+    # If promotion page is selected but we're in production, redirect to view_companies
+    if current_page_id == "promotion" and not config.app.is_development:
+        current_page_id = "view_companies"
         st.session_state["current_page"] = current_page_id
 
     # Find the index of the current page
@@ -89,6 +108,8 @@ def main() -> None:
         show_company_creation()
     elif page_id == "view_companies":
         show_company_view()
+    elif page_id == "view_documents":
+        show_documents_view()
     elif page_id == "start_crawling":
         show_crawling()
     elif page_id == "generate_embeddings":
@@ -100,7 +121,14 @@ def main() -> None:
     elif page_id == "rag":
         show_rag()
     elif page_id == "promotion":
-        show_promotion()
+        # Double-check we're in development (shouldn't reach here in production due to redirect above)
+        if config.app.is_development:
+            show_promotion()
+        else:
+            st.error("Promotion page is only available in development mode.")
+            st.info("Redirecting to View Companies...")
+            st.session_state["current_page"] = "view_companies"
+            st.rerun()
     else:
         st.title("Settings")
         st.info("This feature is coming soon!")

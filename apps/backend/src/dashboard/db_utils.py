@@ -225,6 +225,33 @@ async def get_company_documents_isolated(company_slug: str) -> list[Document]:
         await db.disconnect()
 
 
+async def get_company_documents_by_id_isolated(company_id: str) -> list[Document]:
+    """Get all documents for a company by company_id with an isolated database connection"""
+    db = await get_dashboard_db()
+    try:
+        documents = await db.db.documents.find({"company_id": company_id}).to_list(length=None)
+        # Convert MongoDB documents to Document objects
+        result = []
+        for doc in documents:
+            try:
+                # Handle _id field conversion
+                doc_dict = dict(doc)
+                if "_id" in doc_dict and "id" not in doc_dict:
+                    doc_dict["id"] = str(doc_dict.pop("_id"))
+                elif "_id" in doc_dict:
+                    doc_dict.pop("_id", None)
+                result.append(Document(**doc_dict))
+            except Exception as e:
+                logger.error(f"Error converting document to Document object: {e}")
+                continue
+        return result
+    except Exception as e:
+        logger.error(f"Error getting documents for company_id {company_id}: {e}")
+        return []
+    finally:
+        await db.disconnect()
+
+
 async def get_all_documents_isolated() -> list[Document]:
     """Get all documents with an isolated database connection"""
     db = await get_dashboard_db()
@@ -234,5 +261,30 @@ async def get_all_documents_isolated() -> list[Document]:
     except Exception as e:
         logger.error(f"Error getting all documents: {e}")
         return []
+    finally:
+        await db.disconnect()
+
+
+async def get_document_counts_by_company() -> dict[str, int]:
+    """Get document counts for all companies with an isolated database connection.
+
+    Returns:
+        Dictionary mapping company_id to document count
+    """
+    db = await get_dashboard_db()
+    try:
+        # Use aggregation to count documents per company_id
+        pipeline = [
+            {"$group": {"_id": "$company_id", "count": {"$sum": 1}}},
+        ]
+        results = await db.db.documents.aggregate(pipeline).to_list(length=None)
+
+        # Convert to dictionary: company_id -> count
+        counts = {result["_id"]: result["count"] for result in results if result.get("_id")}
+        logger.info(f"Retrieved document counts for {len(counts)} companies")
+        return counts
+    except Exception as e:
+        logger.error(f"Error getting document counts by company: {e}")
+        return {}
     finally:
         await db.disconnect()
