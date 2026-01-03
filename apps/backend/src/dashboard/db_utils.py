@@ -216,8 +216,35 @@ async def get_company_documents_isolated(company_slug: str) -> list[Document]:
     """Get all documents for a company with an isolated database connection"""
     db = await get_dashboard_db()
     try:
-        documents = await db.db.documents.find({"company_slug": company_slug}).to_list(length=None)
-        return [Document(**doc) for doc in documents]
+        # First find the company by slug to get its ID
+        company = await db.db.companies.find_one({"slug": company_slug})
+        if not company:
+            logger.warning(f"Company with slug {company_slug} not found")
+            return []
+
+        # Get company_id (handle both _id and id fields)
+        company_id = company.get("id") or str(company.get("_id", ""))
+        if not company_id:
+            logger.error(f"Company {company_slug} has no ID")
+            return []
+
+        # Query documents by company_id
+        documents = await db.db.documents.find({"company_id": company_id}).to_list(length=None)
+        # Convert MongoDB documents to Document objects
+        result = []
+        for doc in documents:
+            try:
+                # Handle _id field conversion
+                doc_dict = dict(doc)
+                if "_id" in doc_dict and "id" not in doc_dict:
+                    doc_dict["id"] = str(doc_dict.pop("_id"))
+                elif "_id" in doc_dict:
+                    doc_dict.pop("_id", None)
+                result.append(Document(**doc_dict))
+            except Exception as e:
+                logger.error(f"Error converting document to Document object: {e}")
+                continue
+        return result
     except Exception as e:
         logger.error(f"Error getting documents for company {company_slug}: {e}")
         return []
