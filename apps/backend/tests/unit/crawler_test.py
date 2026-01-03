@@ -1,6 +1,6 @@
 """Unit tests for the ClauseaCrawler."""
 
-from src.clausea_crawler import ClauseaCrawler
+from src.crawler import ClauseaCrawler
 
 
 class TestClauseaCrawler:

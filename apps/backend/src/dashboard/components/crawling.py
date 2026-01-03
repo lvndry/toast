@@ -1,12 +1,89 @@
 import asyncio
 import concurrent.futures
+import time
+from datetime import datetime
+from pathlib import Path
 
 import streamlit as st
 
-from src.crawling import LegalDocumentPipeline, ProcessingStats
 from src.dashboard.db_utils import get_all_companies_isolated
 from src.dashboard.utils import run_async, suppress_streamlit_warnings
 from src.models.company import Company
+from src.pipeline import LegalDocumentPipeline, ProcessingStats
+
+
+def get_log_file_path(company: Company) -> Path:
+    """Generate the log file path for a company crawl (matching the format used in LegalDocumentPipeline)."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"{timestamp}_{company.slug}_crawl.log"
+    return Path("logs") / log_filename
+
+
+def find_most_recent_log_file(company: Company) -> Path | None:
+    """Find the most recent log file for a company."""
+    logs_dir = Path("logs")
+    if not logs_dir.exists():
+        return None
+
+    # Find all log files for this company
+    pattern = f"*_{company.slug}_crawl.log"
+    log_files = list(logs_dir.glob(pattern))
+
+    if not log_files:
+        return None
+
+    # Return the most recently modified file
+    return max(log_files, key=lambda p: p.stat().st_mtime)
+
+
+def read_log_file(log_file_path: Path | None) -> str:
+    """Read the contents of a log file if it exists."""
+    if not log_file_path or not log_file_path.exists():
+        return ""
+    try:
+        return log_file_path.read_text(encoding="utf-8")
+    except Exception as e:
+        return f"Error reading log file: {str(e)}"
+
+
+def read_log_file_tail(
+    log_file_path: Path | None, last_position: int = 0, max_lines: int = 1000
+) -> tuple[str, int]:
+    """Read new content from a log file since last position (tail-like behavior).
+
+    Limits output to the last max_lines to prevent exceeding maximum call size.
+
+    Args:
+        log_file_path: Path to the log file
+        last_position: Last known position in the file
+        max_lines: Maximum number of lines to return (default: 1000)
+
+    Returns:
+        Tuple of (new_content, new_position)
+    """
+    if not log_file_path or not log_file_path.exists():
+        return "", last_position
+
+    try:
+        with open(log_file_path, encoding="utf-8") as f:
+            f.seek(last_position)
+            new_content = f.read()
+            new_position = f.tell()
+
+            # Limit to last max_lines to prevent exceeding maximum call size
+            if new_content:
+                lines = new_content.splitlines(keepends=True)
+                if len(lines) > max_lines:
+                    # Keep only the last max_lines
+                    new_content = "".join(lines[-max_lines:])
+                    # Update position to reflect we're only keeping tail
+                    # This ensures we don't skip content on next read
+                    # but we'll handle truncation at display level
+                    new_position = f.tell()
+
+            return new_content, new_position
+    except Exception as e:
+        return f"Error reading log file: {str(e)}", last_position
 
 
 def run_crawl_async(company: Company) -> ProcessingStats | None:
@@ -284,56 +361,148 @@ def show_crawling() -> None:
     • This process may take several minutes
     """)
 
+    # Initialize crawl session state
+    crawl_key = f"crawl_{selected_company.slug}"
+    if crawl_key not in st.session_state:
+        st.session_state[crawl_key] = {
+            "running": False,
+            "future": None,
+            "executor": None,
+            "log_path": None,
+            "log_position": 0,
+            "log_content": "",
+            "stats": None,
+        }
+
+    crawl_state = st.session_state[crawl_key]
+
     # Start crawling button for single company
     if st.button("🚀 Start Crawling", type="primary", key="start_crawl_btn"):
         # Clear any previous crawl session state
         if "selected_company_for_crawl" in st.session_state:
             del st.session_state["selected_company_for_crawl"]
 
-        # Use status for better control over display
-        with st.status(
-            f"🕷️ Crawling {selected_company.name}... This may take several minutes.",
-            expanded=True,
-        ) as status:
-            # Show progress info
-            st.write("🔍 Starting crawler...")
+        # Determine log file path before starting (using same format as crawler)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_filename = f"{timestamp}_{selected_company.slug}_crawl.log"
+        expected_log_path = Path("logs") / log_filename
 
-            # Run the crawling process
-            processing_stats = run_crawl_async(selected_company)
+        # Initialize crawl state
+        crawl_state["running"] = True
+        crawl_state["log_path"] = str(expected_log_path)
+        crawl_state["log_position"] = 0
+        crawl_state["log_content"] = ""
+        crawl_state["stats"] = None
 
-            if processing_stats is not None:
-                status.update(
-                    label=f"✅ Crawling {selected_company.name} completed!",
-                    state="complete",
-                    expanded=False,
+        # Start crawling in a thread (don't use context manager to keep executor alive)
+        executor = concurrent.futures.ThreadPoolExecutor()
+        future = executor.submit(run_crawl_async, selected_company)
+        crawl_state["future"] = future
+        crawl_state["executor"] = executor  # Keep executor reference
+
+    # Display crawl status and logs if crawl is running or was started
+    if crawl_state.get("running") or crawl_state.get("future"):
+        # Check if crawl is still running
+        if crawl_state.get("future") and not crawl_state["future"].done():
+            # Poll for logs
+            log_path = Path(crawl_state["log_path"]) if crawl_state.get("log_path") else None
+            if log_path and log_path.exists():
+                new_content, new_position = read_log_file_tail(
+                    log_path, crawl_state["log_position"], max_lines=1000
                 )
-                # Show results summary within status if desired, or outside
-                if processing_stats.legal_documents_stored > 0:
-                    st.write(f"Found {processing_stats.legal_documents_stored} legal documents.")
+                if new_content:
+                    # Accumulate new content
+                    crawl_state["log_content"] += new_content
+                    # Keep only last 1000 lines to prevent exceeding maximum call size
+                    all_lines = crawl_state["log_content"].splitlines(keepends=True)
+                    if len(all_lines) > 1000:
+                        crawl_state["log_content"] = "".join(all_lines[-1000:])
+                    crawl_state["log_position"] = new_position
+
+            # Use status for better control over display
+            with st.status(
+                f"🕷️ Crawling {selected_company.name}... This may take several minutes.",
+                expanded=True,
+            ) as status:
+                st.write("🔍 Crawler is running...")
+
+                # Display logs
+                if crawl_state["log_content"]:
+                    st.write("---")
+                    st.subheader("📋 Crawler Logs (Live)")
+                    if log_path:
+                        st.caption(f"Log file: `{log_path}`")
+                    st.code(crawl_state["log_content"], language="text")
                 else:
-                    st.write("No legal documents were found.")
-            else:
-                status.update(
-                    label=f"❌ Crawling {selected_company.name} failed",
-                    state="error",
-                    expanded=True,
-                )
+                    st.info("📝 Waiting for logs to appear...")
 
-        if processing_stats is not None:
-            # Show detailed success results outside status
-            st.success("✅ Crawling completed successfully!")
+            # Rerun to update logs (with a small delay to avoid too frequent updates)
+            time.sleep(0.5)
+            st.rerun()
 
-            if processing_stats.legal_documents_stored > 0:
-                st.write(f"**Found {processing_stats.legal_documents_stored} legal documents:**")
-                # Removed redundant check if processing_stats is truthy as it's a BaseModel
-            else:
-                st.warning("No legal documents were found during the crawl.")
-                with st.expander("Possible reasons:"):
-                    st.write("• The websites don't have legal documents")
-                    st.write("• The documents aren't accessible")
-                    st.write("• The classification didn't identify them as legal documents")
         else:
-            st.error("Crawling failed. Please check the logs and try again.")
+            # Crawl completed, get final result
+            if crawl_state.get("future"):
+                try:
+                    crawl_state["stats"] = crawl_state["future"].result()
+                except Exception as e:
+                    crawl_state["stats"] = None
+                    st.error(f"Crawling error: {str(e)}")
+                finally:
+                    # Clean up executor
+                    if "executor" in crawl_state:
+                        crawl_state["executor"].shutdown(wait=False)
+                        del crawl_state["executor"]
+                    crawl_state["running"] = False
+                    crawl_state["future"] = None
+
+            # Read final log content (limit to last 1000 lines)
+            log_path = Path(crawl_state["log_path"]) if crawl_state.get("log_path") else None
+            if log_path and log_path.exists():
+                final_content = read_log_file(log_path)
+                if final_content:
+                    # Keep only last 1000 lines to prevent exceeding maximum call size
+                    lines = final_content.splitlines(keepends=True)
+                    if len(lines) > 1000:
+                        crawl_state["log_content"] = "".join(lines[-1000:])
+                    else:
+                        crawl_state["log_content"] = final_content
+
+            # Show final status
+            with st.status(
+                f"✅ Crawling {selected_company.name} completed!"
+                if crawl_state["stats"] is not None
+                else f"❌ Crawling {selected_company.name} failed",
+                expanded=False,
+                state="complete" if crawl_state["stats"] is not None else "error",
+            ) as status:
+                if crawl_state["log_content"]:
+                    st.write("---")
+                    st.subheader("📋 Crawler Logs")
+                    if log_path:
+                        st.caption(f"Log file: `{log_path}`")
+                    with st.expander("View full crawler logs", expanded=True):
+                        st.code(crawl_state["log_content"], language="text")
+
+            # Show results
+            if crawl_state["stats"] is not None:
+                st.success("✅ Crawling completed successfully!")
+                if crawl_state["stats"].legal_documents_stored > 0:
+                    st.write(
+                        f"**Found {crawl_state['stats'].legal_documents_stored} legal documents.**"
+                    )
+                else:
+                    st.warning("No legal documents were found during the crawl.")
+                    with st.expander("Possible reasons:"):
+                        st.write("• The websites don't have legal documents")
+                        st.write("• The documents aren't accessible")
+                        st.write("• The classification didn't identify them as legal documents")
+            else:
+                st.error("Crawling failed. Please check the logs and try again.")
+
+            # Clear crawl state after showing results
+            if crawl_key in st.session_state:
+                del st.session_state[crawl_key]
 
     # All companies crawling section
     st.write("---")

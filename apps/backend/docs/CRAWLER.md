@@ -19,8 +19,8 @@ The Clausea Crawler is a sophisticated, AI-powered web crawler specifically desi
 
 The crawler consists of two main components:
 
-1. **ClauseaCrawler** (`src/clausea_crawler.py`): Core crawling engine that discovers and fetches web pages
-2. **LegalDocumentPipeline** (`src/crawling.py`): High-level pipeline that orchestrates crawling, AI analysis, and document storage
+1. **ClauseaCrawler** (`src/crawler.py`): Core crawling engine that discovers and fetches web pages
+2. **LegalDocumentPipeline** (`src/pipeline.py`): High-level pipeline that orchestrates crawling, AI analysis, and document storage
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -452,7 +452,7 @@ else:
 ### Basic Crawling
 
 ```python
-from src.clausea_crawler import ClauseaCrawler
+from src.crawler import ClauseaCrawler
 
 crawler = ClauseaCrawler(
     max_depth=3,
@@ -481,7 +481,7 @@ legal_docs = [r for r in results if r.legal_score >= 3.0]
 ### Company-Specific Crawling
 
 ```python
-from src.crawling import LegalDocumentPipeline
+from src.pipeline import LegalDocumentPipeline
 
 pipeline = LegalDocumentPipeline(
     max_depth=4,
@@ -760,7 +760,7 @@ class CrawlResult(BaseModel):
 
 ```python
 import asyncio
-from src.clausea_crawler import ClauseaCrawler
+from src.crawler import ClauseaCrawler
 
 async def main():
     crawler = ClauseaCrawler(
@@ -783,7 +783,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from src.clausea_crawler import ClauseaCrawler
+from src.crawler import ClauseaCrawler
 
 async def main():
     crawler = ClauseaCrawler(
@@ -811,7 +811,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from src.crawling import LegalDocumentPipeline
+from src.pipeline import LegalDocumentPipeline
 
 async def main():
     pipeline = LegalDocumentPipeline(

@@ -69,13 +69,9 @@ PORT=8000
 
 # Database
 MONGODB_URI=mongodb://localhost:27017/clausea
-MONGODB_SSL_CA_CERTS=
-MONGODB_SSL_CERTFILE=
-MONGODB_SSL_KEYFILE=
 
 # Vector Database
 PINECONE_API_KEY=your_pinecone_api_key
-PINECONE_ENVIRONMENT=your_pinecone_environment
 
 # LLM Services
 OPENAI_API_KEY=your_openai_api_key

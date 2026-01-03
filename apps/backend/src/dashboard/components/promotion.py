@@ -1,23 +1,12 @@
-import asyncio
+import os
 import time
-from collections.abc import Coroutine
 from typing import Any
 
 import streamlit as st
 
 from src.dashboard.db_utils import get_all_companies_isolated, update_company_isolated
-from src.dashboard.utils import make_api_request, run_async_with_retry
+from src.dashboard.utils import make_api_request, run_async, run_async_with_retry
 from src.models.user import UserTier
-
-
-def run_async(coro: Coroutine[Any, Any, Any]) -> Any:
-    """Helper to run async functions in Streamlit"""
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    return loop.run_until_complete(coro)
 
 
 async def get_promotion_summary_async(api_url: str) -> tuple[dict[str, Any], int]:
@@ -49,7 +38,7 @@ def show_promotion() -> None:
         st.subheader("Local Database")
         _local_uri = st.text_input(
             "Local MongoDB URI",
-            value=st.secrets.get("MONGO_URI", ""),
+            value=os.getenv("MONGO_URI", ""),
             type="password",
             help="MongoDB connection string for local database",
         )
@@ -58,7 +47,7 @@ def show_promotion() -> None:
         st.subheader("Production Database")
         _production_uri = st.text_input(
             "Production MongoDB URI",
-            value=st.secrets.get("PRODUCTION_MONGO_URI", ""),
+            value=os.getenv("PRODUCTION_MONGO_URI", ""),
             type="password",
             help="MongoDB connection string for production database",
         )
@@ -67,7 +56,7 @@ def show_promotion() -> None:
     st.subheader("API Configuration")
     api_url = st.text_input(
         "API Base URL",
-        value=st.secrets.get("API_BASE_URL", "http://localhost:8000"),
+        value=os.getenv("API_BASE_URL", "http://localhost:8000"),
         help="Base URL for the Clausea API",
     )
 
@@ -81,7 +70,15 @@ def show_promotion() -> None:
 
         try:
             with st.spinner("Fetching promotion summary..."):
-                result, status_code = run_async(get_promotion_summary_async(api_url))
+                response = run_async(get_promotion_summary_async(api_url))
+
+                if response is None:
+                    st.error(
+                        "Failed to fetch promotion summary. Please check your API connection and try again."
+                    )
+                    return
+
+                result, status_code = response
 
                 if status_code == 200:
                     if result.get("success"):
@@ -241,7 +238,13 @@ def run_promotion(
 
     try:
         with st.spinner(f"Running {action}..."):
-            result, status_code = run_async(run_promotion_async(api_url, endpoint, data))
+            response = run_async(run_promotion_async(api_url, endpoint, data))
+
+            if response is None:
+                st.error(f"Failed to run {action}. Please check your API connection and try again.")
+                return
+
+            result, status_code = response
 
             if status_code == 200:
                 if result.get("success"):

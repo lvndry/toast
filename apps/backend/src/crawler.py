@@ -4,6 +4,7 @@ Legal document crawler for extracting privacy policies, terms of service, and ot
 
 import asyncio
 import heapq
+import json
 import logging
 import re
 import time
@@ -633,7 +634,12 @@ class RobotsTxtChecker:
                 logger.debug(f"No robots.txt rules for {base_url}, allowing access")
                 return True, "No robots.txt rules found"
 
-            return self._check_url_allowed(url, robots_rules)
+            # If sitemaps exist in parsed rules, expose them to the caller
+            return (
+                self._check_url_allowed(url, robots_rules)
+                if not robots_rules.get("sitemaps")
+                else (True, "Sitemap directives present")
+            )
 
         except Exception as e:
             logger.warning(f"Error checking robots.txt for {url}: {e}")
@@ -653,7 +659,11 @@ class RobotsTxtChecker:
         self.robots_cache.clear()
 
     def _parse_robots_txt(self, content: str) -> dict[str, Any]:
-        """Parse robots.txt content into rules following the standard format."""
+        """Parse robots.txt content into rules following the standard format.
+
+        This parser also collects `Sitemap:` directives and returns them under
+        the `sitemaps` key in the returned dict if present.
+        """
         lines = [line.strip() for line in content.split("\n") if line.strip()]
         logger.debug(f"Parsing robots.txt with {len(lines)} lines")
 
@@ -699,8 +709,18 @@ class RobotsTxtChecker:
                         logger.debug(f"Added crawl-delay for {current_user_agent}: {delay}")
                     except ValueError:
                         logger.warning(f"Invalid crawl-delay value: {value}")
+                elif directive == "sitemap":
+                    # Record sitemap directives for later discovery
+                    if "sitemaps" not in locals():
+                        sitemaps: list[str] = []
+                    sitemaps.append(value)
+                    logger.debug(f"Found sitemap directive: {value}")
 
-        return {"user_agents": user_agents}
+        # Return user agent rules and sitemaps (if any were found via directives)
+        parsed: dict[str, Any] = {"user_agents": user_agents}
+        if "sitemaps" in locals():
+            parsed["sitemaps"] = sitemaps
+        return parsed
 
     def _check_url_allowed(self, url: str, robots_rules: dict[str, Any]) -> tuple[bool, str]:
         """Check if URL is allowed based on parsed robots.txt rules."""
@@ -730,6 +750,11 @@ class RobotsTxtChecker:
                     matched_user_agent = pattern
                     logger.debug(f"Found wildcard user-agent match: {pattern}")
                     break
+
+        # If robots_rules include sitemaps (collected during parsing), attach for callers
+        sitemaps = robots_rules.get("sitemaps")
+        if sitemaps:
+            logger.debug(f"Robots.txt contains {len(sitemaps)} sitemaps")
 
         # If no rules found, allow by default
         if not applicable_rules:
@@ -929,6 +954,8 @@ class ClauseaCrawler:
         respect_robots_txt: bool = True,
         user_agent: str = DEFAULT_USER_AGENT,
         follow_external_links: bool = False,
+        follow_nofollow: bool = False,  # Whether to follow links marked rel="nofollow"
+        respect_meta_robots: bool = True,  # Respect <meta name="robots" content="nofollow"> on pages
         min_legal_score: float = 2.0,
         strategy: str = "bfs",  # "bfs", "dfs", "best_first"
         ignore_robots_for_domains: list[str]
@@ -939,6 +966,10 @@ class ClauseaCrawler:
         proxy: str | None = None,  # Optional proxy URL (e.g., "http://user:pass@host:port")
         allowed_paths: list[str] | None = None,  # Optional list of allowed path regexes
         denied_paths: list[str] | None = None,  # Optional list of denied path regexes
+        # Opt-in binary crawling and parser preferences
+        enable_binary_crawling: bool = False,
+        use_tika_for_binaries: bool = False,
+        use_pdfminer_for_pdf: bool = False,
     ):
         """
         Initialize the ClauseaCrawler.
@@ -970,6 +1001,8 @@ class ClauseaCrawler:
         self.respect_robots_txt = respect_robots_txt
         self.user_agent = user_agent
         self.follow_external_links = follow_external_links
+        self.follow_nofollow = follow_nofollow
+        self.respect_meta_robots = respect_meta_robots
         self.min_legal_score = min_legal_score
         self.strategy = strategy
         self.ignore_robots_for_domains = set(ignore_robots_for_domains or [])
@@ -979,6 +1012,12 @@ class ClauseaCrawler:
         self.proxy = proxy
         self.allowed_paths = allowed_paths
         self.denied_paths = denied_paths
+
+        # Opt-in: whether to fetch and parse binary documents (PDF/Office)
+        self.enable_binary_crawling = enable_binary_crawling
+        # Optional parsing strategies (these are hints; the processor will attempt them if available)
+        self.use_tika_for_binaries = use_tika_for_binaries
+        self.use_pdfminer_for_pdf = use_pdfminer_for_pdf
 
         # Compile path patterns
         self.compiled_allowed_paths = (
@@ -1019,10 +1058,17 @@ class ClauseaCrawler:
         self.rate_limiter = DomainRateLimiter(delay_between_requests=delay_between_requests)
 
         # Compile skip patterns once for efficiency
+        # PDFs are optionally crawlable via `enable_binary_crawling`.
+        binary_exclusions = "jpg|jpeg|png|gif|css|js|ico|xml"
+        first_pattern = (
+            rf"\.(?:{binary_exclusions})$"
+            if self.enable_binary_crawling
+            else r"\.(?:pdf|jpg|jpeg|png|gif|css|js|ico|xml)$"
+        )
         self.compiled_skip_patterns = [
             re.compile(pattern, re.IGNORECASE)
             for pattern in [
-                r"\.(?:pdf|jpg|jpeg|png|gif|css|js|ico|xml)$",
+                first_pattern,
                 r"#",  # Skip anchor links
                 r"mailto:",
                 r"tel:",
@@ -1238,6 +1284,13 @@ class ClauseaCrawler:
             metadata = self.extract_metadata(soup)
             discovered_links = self.extract_links(soup, url)
 
+            # Prefer canonical if present and valid
+            resolved_url = self._choose_effective_url(url, metadata)
+            if resolved_url != url:
+                metadata["canonical_resolved"] = True
+                logger.debug(f"Using canonical URL for result: {resolved_url} (original: {url})")
+                url = resolved_url
+
             return CrawlResult(
                 url=url,
                 title=title,
@@ -1314,6 +1367,191 @@ class ClauseaCrawler:
             normalized = normalized[:-1]
 
         return normalized
+
+    def _choose_effective_url(self, url: str, metadata: dict[str, Any]) -> str:
+        """Choose the effective URL between the original URL and canonical URL from metadata.
+
+        Returns the canonical URL if it exists and is valid (same domain), otherwise returns the original URL.
+
+        Args:
+            url: The original URL
+            metadata: Metadata dict that may contain 'canonical_url'
+
+        Returns:
+            The effective URL to use
+        """
+        candidate = None
+        if metadata:
+            candidate = metadata.get("canonical_url") or metadata.get("og:url")
+        if not candidate:
+            return self.normalize_url(url)
+
+        try:
+            # Resolve relative canonical against the response URL
+            candidate_abs = urljoin(url, str(candidate).strip())
+            canonical_normalized = self.normalize_url(candidate_abs)
+
+            # Allow canonical if it is same-domain OR within allowed_domains if configured
+            if self.is_same_domain(url, canonical_normalized):
+                return canonical_normalized
+
+            if self.allowed_domains:
+                parsed = urlparse(canonical_normalized)
+                canon_domain = self._normalize_domain(parsed.netloc)
+                normalized_allowed = {self._normalize_domain(d) for d in self.allowed_domains}
+                if canon_domain in normalized_allowed or any(
+                    canon_domain.endswith("." + d) for d in normalized_allowed
+                ):
+                    return canonical_normalized
+
+        except Exception as e:
+            logger.debug(f"Failed to process canonical URL {candidate}: {e}")
+
+        return self.normalize_url(url)
+
+    def _parse_sitemap_xml(self, content: str) -> list[str]:
+        """Parse XML sitemap content and extract URLs.
+
+        Supports both regular sitemaps (<urlset>) and sitemap index files (<sitemapindex>).
+        For sitemap index files, returns the sitemap URLs (not the URLs within them).
+
+        Args:
+            content: XML sitemap content as string
+
+        Returns:
+            List of URLs found in the sitemap
+        """
+        urls: list[str] = []
+        try:
+            soup = BeautifulSoup(content, "xml")
+
+            # Check if it's a sitemap index (contains <sitemap> tags)
+            sitemap_tags = soup.find_all("sitemap")
+            if sitemap_tags:
+                # It's a sitemap index - extract sitemap URLs
+                for sitemap in sitemap_tags:
+                    loc = sitemap.find("loc")
+                    if loc and loc.string:
+                        urls.append(loc.string.strip())
+            else:
+                # Regular sitemap - extract URL locations
+                url_tags = soup.find_all("url")
+                for url_tag in url_tags:
+                    loc = url_tag.find("loc")
+                    if loc and loc.string:
+                        urls.append(loc.string.strip())
+        except Exception as e:
+            logger.warning(f"Failed to parse sitemap XML: {e}")
+
+        return urls
+
+    async def _discover_sitemap_urls(
+        self, session: aiohttp.ClientSession, base_url: str
+    ) -> list[str]:
+        """Discover sitemap URLs from robots.txt and fetch/parse sitemap files.
+
+        This method:
+        1. Fetches robots.txt for the base URL
+        2. Parses it to extract sitemap directives
+        3. Fetches and parses sitemap XML files
+        4. Returns all discovered URLs from sitemaps
+
+        Args:
+            session: aiohttp session for making requests
+            base_url: Base URL to discover sitemaps for
+
+        Returns:
+            List of URLs discovered from sitemaps
+        """
+        discovered_urls: list[str] = []
+
+        try:
+            # Get robots.txt rules (this will use the cache if available)
+            if self.robots_checker:
+                parsed_url = urlparse(base_url)
+                robots_url = f"{parsed_url.scheme}://{parsed_url.netloc}/robots.txt"
+
+                # Fetch robots.txt
+                try:
+                    async with session.get(
+                        robots_url, headers={"User-Agent": self.user_agent}
+                    ) as response:
+                        if response.status == 200:
+                            robots_content = await response.text()
+                            robots_rules = self.robots_checker._parse_robots_txt(robots_content)
+
+                            # Extract sitemap URLs from robots.txt
+                            sitemap_urls = robots_rules.get("sitemaps", [])
+
+                            # Fetch and parse each sitemap
+                            for sitemap_url in sitemap_urls:
+                                try:
+                                    async with session.get(
+                                        sitemap_url, headers={"User-Agent": self.user_agent}
+                                    ) as sitemap_response:
+                                        if sitemap_response.status == 200:
+                                            sitemap_content = await sitemap_response.text()
+                                            urls = self._parse_sitemap_xml(sitemap_content)
+
+                                            # Check if it's a sitemap index (returns sitemap URLs)
+                                            # or a regular sitemap (returns page URLs)
+                                            if urls:
+                                                # If URLs look like sitemap URLs (contain "sitemap" in path),
+                                                # recursively fetch them
+                                                for url in urls:
+                                                    if "sitemap" in url.lower():
+                                                        # It's another sitemap index - fetch it
+                                                        try:
+                                                            async with session.get(
+                                                                url,
+                                                                headers={
+                                                                    "User-Agent": self.user_agent
+                                                                },
+                                                            ) as nested_response:
+                                                                if nested_response.status == 200:
+                                                                    nested_content = (
+                                                                        await nested_response.text()
+                                                                    )
+                                                                    nested_urls = (
+                                                                        self._parse_sitemap_xml(
+                                                                            nested_content
+                                                                        )
+                                                                    )
+                                                                    discovered_urls.extend(
+                                                                        nested_urls
+                                                                    )
+                                                        except Exception as e:
+                                                            logger.debug(
+                                                                f"Failed to fetch nested sitemap {url}: {e}"
+                                                            )
+                                                    else:
+                                                        # It's a regular page URL
+                                                        discovered_urls.append(url)
+                                except Exception as e:
+                                    logger.debug(f"Failed to fetch sitemap {sitemap_url}: {e}")
+                except Exception as e:
+                    logger.debug(f"Failed to fetch robots.txt from {robots_url}: {e}")
+        except Exception as e:
+            logger.debug(f"Error discovering sitemaps for {base_url}: {e}")
+
+        return discovered_urls
+
+    def _parse_robots_txt(self, content: str) -> dict[str, Any]:
+        """Parse robots.txt content into rules.
+
+        This is a convenience method that delegates to RobotsTxtChecker.
+        Used primarily for testing.
+
+        Args:
+            content: robots.txt content as string
+
+        Returns:
+            Parsed robots.txt rules including sitemaps
+        """
+        if self.robots_checker:
+            return self.robots_checker._parse_robots_txt(content)
+        # If robots checking is disabled, return empty structure
+        return {"user_agents": {}}
 
     def is_allowed_domain(self, url: str) -> bool:
         """Check if URL domain is allowed."""
@@ -1417,37 +1655,134 @@ class ClauseaCrawler:
         return True
 
     def extract_links(self, soup: BeautifulSoup, base_url: str) -> list[dict[str, str]]:
-        """Extract links from HTML."""
+        """Extract links from HTML and from various attributes and scripts.
+
+        The extractor now records `rel` attributes on links and also captures
+        canonical link tags in metadata (handled by `extract_metadata`).
+        """
         links: list[dict[str, str]] = []
 
-        for link in soup.find_all("a", href=True):
-            if hasattr(link, "get"):
-                href_attr = link.get("href")
-                anchor_text = link.get_text().strip()
-                if href_attr:
-                    href = str(href_attr).strip()
-                    if not href:
-                        continue
+        def add_url(raw_url: str | None, text: str = "", rel: str | None = None) -> None:
+            if not raw_url:
+                return
+            raw_url = str(raw_url).strip()
+            # Ignore non-http schemes and fragment-only anchors
+            if (
+                raw_url.startswith("javascript:")
+                or raw_url.startswith("mailto:")
+                or raw_url.startswith("tel:")
+                or raw_url.startswith("#")
+            ):
+                return
+            absolute = urljoin(base_url, raw_url)
+            normalized = self.normalize_url(absolute)
+            entry = {"url": normalized, "text": (text or "").strip()}
+            if rel:
+                entry["rel"] = rel
+            links.append(entry)
 
-                    # Convert relative URLs to absolute
-                    absolute_url = urljoin(base_url, href)
-                    normalized_url = self.normalize_url(absolute_url)
+        # Standard anchors and common data-* attributes
+        for a in soup.find_all("a"):
+            href = a.get("href")
+            text = a.get_text().strip() if a.get_text() else ""
+            rel_attr = a.get("rel")
+            rel = (
+                " ".join(rel_attr).lower()
+                if isinstance(rel_attr, (list, tuple))
+                else (str(rel_attr).lower() if rel_attr else "")
+            )
+            add_url(str(href) if href else None, text, rel or None)
+            for attr in ("data-href", "data-url", "data-link", "data-target"):
+                attr_value = a.get(attr)
+                if attr_value:
+                    add_url(str(attr_value), text, rel or None)
 
-                    links.append({"url": normalized_url, "text": anchor_text})
+        # <link> tags (canonical, alternate, etc.)
+        for link_tag in soup.find_all("link", href=True):
+            rel = " ".join(link_tag.get("rel") or [])
+            href_value = link_tag.get("href")
+            add_url(str(href_value) if href_value else None, f"link:{rel}", rel)
 
-        # Remove duplicates based on URL and log discovered links
+        # Image map areas
+        for area in soup.find_all("area", href=True):
+            href_value = area.get("href")
+            alt_value = area.get("alt")
+            add_url(str(href_value) if href_value else None, str(alt_value) if alt_value else "")
+
+        # Forms (action attributes can point to endpoints)
+        for form in soup.find_all("form", action=True):
+            action_value = form.get("action")
+            add_url(str(action_value) if action_value else None, "form action")
+
+        # Buttons and other elements using data-href/data-url
+        for el in soup.find_all():
+            for attr in ("data-href", "data-url", "data-action", "data-link"):
+                attr_value = el.get(attr)
+                if attr_value:
+                    add_url(str(attr_value), (el.get_text() or "").strip())
+
+        # onclick handlers that perform location changes
+        onclick_elements = soup.find_all(attrs={"onclick": True})
+        for el in onclick_elements:
+            onclick = str(el.get("onclick") or "")
+            # capture direct assignments and common APIs
+            matches = re.findall(
+                r"(?:location(?:\.href)?|window\.location(?:\.href)?)\s*=\s*['\"](.*?)['\"]|location\.assign\(['\"](.*?)['\"]\)|location\.replace\(['\"](.*?)['\"]\)",
+                onclick,
+            )
+            for m in matches:
+                url_candidate = next((x for x in m if x), None)
+                if url_candidate:
+                    add_url(url_candidate, (el.get_text() or "").strip())
+
+        # JSON-LD scripts may contain URLs
+        for script in soup.find_all("script", type="application/ld+json"):
+            try:
+                payload = script.string or script.get_text() or ""
+                obj = json.loads(payload)
+
+                def _extract_urls(o):
+                    if isinstance(o, str):
+                        if o.startswith("http"):
+                            add_url(o, "json-ld")
+                    elif isinstance(o, dict):
+                        for v in o.values():
+                            _extract_urls(v)
+                    elif isinstance(o, list):
+                        for item in o:
+                            _extract_urls(item)
+
+                _extract_urls(obj)
+            except Exception:
+                continue
+
+        # Meta properties like og:url or twitter:url
+        for meta in soup.find_all("meta"):
+            property_value = meta.get("property")
+            content_value = meta.get("content")
+            if property_value and content_value:
+                prop = str(property_value).lower()
+                if prop in ("og:url", "og:see_also", "twitter:url"):
+                    add_url(str(content_value), prop)
+
+        # Extract plain http(s) URLs from visible text (sometimes pages list endpoints)
+        visible_text = soup.get_text(" ")
+        for m in re.findall(r"https?://[^\s'\"<>]+", visible_text):
+            add_url(m, "text")
+
+        # Remove duplicates while preserving order
         seen_urls = set()
-        unique_links = []
+        unique_links: list[dict[str, str]] = []
         for link in links:
             if link["url"] not in seen_urls:
                 seen_urls.add(link["url"])
                 unique_links.append(link)
 
         logger.debug(f"🔗 Discovered {len(unique_links)} unique links from {base_url}")
-        for link in unique_links[:10]:
-            logger.debug(f"  - {link['url']} ({link['text'][:30]})")
-        if len(unique_links) > 10:
-            logger.debug(f"  ... and {len(unique_links) - 10} more links")
+        for link in unique_links[:20]:
+            logger.debug(f"  - {link['url']} ({link['text'][:60]})")
+        if len(unique_links) > 20:
+            logger.debug(f"  ... and {len(unique_links) - 20} more links")
 
         return unique_links
 
@@ -1485,6 +1820,9 @@ class ClauseaCrawler:
                     rel_lower = rel_value.lower()
                     if rel_lower == "canonical":
                         metadata["canonical_url"] = href
+                        # Also capture canonical link as discovered link for visibility
+                        # (will be normalized later when adding to queues)
+                        # Note: we don't automatically follow cross-domain canonicals
                     elif rel_lower == "alternate":
                         hreflang = link.get("hreflang")
                         if hreflang:
@@ -1633,6 +1971,82 @@ class ClauseaCrawler:
 
                 # Process both HTML and plain text content
                 if "text/html" not in content_type and "text/plain" not in content_type:
+                    # Optionally support binary parsing (PDF/Office) when enabled
+                    if self.enable_binary_crawling and (
+                        "application/pdf" in content_type or content_type.startswith("application/")
+                    ):
+                        # Read raw bytes
+                        raw_bytes = await response.read()
+                        # Try to extract text using DocumentProcessor (opt-in)
+                        from src.document_processor import DocumentProcessor
+
+                        processor = DocumentProcessor(
+                            max_content_length=5000,
+                            enable_binary_parsing=True,
+                            prefer_tika=self.use_tika_for_binaries,
+                            prefer_pdfminer=self.use_pdfminer_for_pdf,
+                        )
+
+                        filename = urlparse(url).path.split("/")[-1] or "document"
+                        text_content = await processor._extract_text(
+                            raw_bytes, filename, content_type
+                        )
+
+                        if not text_content:
+                            return CrawlResult(
+                                url=url,
+                                title="",
+                                content="",
+                                markdown="",
+                                metadata={"content-type": content_type},
+                                status_code=response.status,
+                                success=False,
+                                error_message=f"Unsupported or unparseable binary content type: {content_type}",
+                            )
+
+                        # Build simple metadata and markdown
+                        title_text = filename
+                        lines = text_content.splitlines()
+                        markdown_content = text_content
+
+                        metadata = {
+                            "content-type": content_type,
+                            "estimated_title": title_text,
+                            "line_count": len(lines),
+                            "character_count": len(text_content),
+                        }
+
+                        discovered_links = []
+
+                        # Analyze for legal content
+                        is_legal, legal_score, indicators = self.content_analyzer.analyze_content(
+                            text_content, title_text, metadata
+                        )
+
+                        if is_legal:
+                            self.stats.legal_documents_found += 1
+
+                        effective_url = self._choose_effective_url(url, metadata)
+                        if effective_url != url:
+                            metadata["canonical_resolved"] = True
+                            logger.debug(
+                                f"Returning canonical URL for result: {effective_url} (original: {url})"
+                            )
+                            url = effective_url
+
+                        return CrawlResult(
+                            url=url,
+                            title=title_text,
+                            content=text_content,
+                            markdown=markdown_content,
+                            metadata=metadata,
+                            status_code=response.status,
+                            success=True,
+                            error_message=None,
+                            legal_score=legal_score,
+                            discovered_links=discovered_links,
+                        )
+
                     return CrawlResult(
                         url=url,
                         title="",
@@ -1704,6 +2118,15 @@ class ClauseaCrawler:
                     # Extract links
                     discovered_links = self.extract_links(soup, url)
 
+                    # If page has a canonical URL, prefer it for the result URL (when appropriate)
+                    resolved_url = self._choose_effective_url(url, metadata)
+                    if resolved_url != url:
+                        metadata["canonical_resolved"] = True
+                        logger.debug(
+                            f"Using canonical URL for result: {resolved_url} (original: {url})"
+                        )
+                    url = resolved_url
+
                 # Handle plain text content
                 elif "text/plain" in content_type:
                     # For plain text, use the content as-is
@@ -1761,6 +2184,15 @@ class ClauseaCrawler:
 
                 if is_legal:
                     self.stats.legal_documents_found += 1
+
+                # Ensure the URL we return is the preferred canonical when appropriate
+                effective_url = self._choose_effective_url(url, metadata)
+                if effective_url != url:
+                    metadata["canonical_resolved"] = True
+                    logger.debug(
+                        f"Returning canonical URL for result: {effective_url} (original: {url})"
+                    )
+                    url = effective_url
 
                 return CrawlResult(
                     url=url,
@@ -1940,11 +2372,41 @@ class ClauseaCrawler:
 
         return potential_urls
 
-    def add_urls_to_queue(self, links: list[dict[str, str]], base_url: str, depth: int) -> None:
-        """Add URLs to the appropriate queue based on strategy."""
+    def add_urls_to_queue(
+        self,
+        links: list[dict[str, str]],
+        base_url: str,
+        depth: int,
+        page_metadata: dict[str, Any] | None = None,
+    ) -> None:
+        """Add URLs to the appropriate queue based on strategy.
+
+        Respects rel="nofollow" on links if `follow_nofollow` is False and will skip
+        adding discovered links entirely if the page contains a meta robots:nofollow
+        directive when `respect_meta_robots` is True.
+        """
+        # Honor page-level meta robots (e.g., <meta name="robots" content="nofollow">)
+        if page_metadata and self.respect_meta_robots:
+            robots_meta = page_metadata.get("robots") or page_metadata.get("meta:robots")
+            if isinstance(robots_meta, str) and "nofollow" in robots_meta.lower():
+                logger.debug(
+                    f"Page meta robots contains 'nofollow'; skipping discovered links for {base_url}"
+                )
+                return
+
+        # Track URLs explicitly skipped due to rel='nofollow' so generated potential
+        # legal URLs that match them are not redundantly added.
+        skipped_urls: set[str] = set()
         for link in links:
             url = link["url"]
             anchor_text = link.get("text")
+            rel = link.get("rel") or ""
+
+            # Skip links explicitly marked as nofollow when configured to do so
+            if rel and "nofollow" in rel and not self.follow_nofollow:
+                logger.debug(f"Skipping link {url} due to rel='nofollow'")
+                skipped_urls.add(self.normalize_url(url))
+                continue
 
             if not self.should_crawl_url(url, base_url, depth + 1):
                 continue
@@ -1968,6 +2430,14 @@ class ClauseaCrawler:
             logger.info(f"🔍 Generated {len(potential_legal_urls)} potential legal URLs")
 
             for url in potential_legal_urls:
+                normalized = self.normalize_url(url)
+                # Skip potential URLs that match links explicitly skipped due to rel='nofollow'
+                if normalized in skipped_urls:
+                    logger.debug(
+                        f"Skipping generated potential URL {url} because it was marked nofollow on the page"
+                    )
+                    continue
+
                 if not self.should_crawl_url(url, base_url, 1):
                     continue
 
@@ -2033,6 +2503,24 @@ class ClauseaCrawler:
             timeout = aiohttp.ClientTimeout(total=self.timeout)
 
             async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+                # Discover sitemaps early (before main loop) to seed queue
+                try:
+                    sitemap_urls = await self._discover_sitemap_urls(session, base_url)
+                    if sitemap_urls:
+                        logger.info(f"🔍 Found {len(sitemap_urls)} sitemap URLs for {base_url}")
+                        for url in sitemap_urls:
+                            if not self.should_crawl_url(url, base_url, 1):
+                                continue
+                            if self.strategy == "bfs":
+                                self.url_queue.append((url, 1))
+                            elif self.strategy == "dfs":
+                                self.url_stack.append((url, 1))
+                            elif self.strategy == "best_first":
+                                score = self.url_scorer.score_url(url, anchor_text=None)
+                                heapq.heappush(self.url_priority_queue, (-score, url, 1))
+                except Exception:
+                    logger.debug("Sitemap discovery failed; continuing without sitemap")
+
                 # Semaphore to limit concurrent requests
                 semaphore = asyncio.Semaphore(self.max_concurrent)
 
@@ -2072,8 +2560,12 @@ class ClauseaCrawler:
 
                             # Add discovered URLs to queue
                             if depth < self.max_depth:
-                                self.add_urls_to_queue(result.discovered_links, base_url, depth)
-
+                                self.add_urls_to_queue(
+                                    result.discovered_links,
+                                    base_url,
+                                    depth,
+                                    page_metadata=result.metadata,
+                                )
                             logger.info(
                                 f"✅ [{self.stats.crawled_urls}/{self.max_pages}] "
                                 f"{url} (Legal: {result.legal_score:.1f}) "
@@ -2207,7 +2699,7 @@ async def main() -> None:
     import sys
 
     if len(sys.argv) < 2:
-        logger.info("Usage: python clausea_crawler.py <base_url> [--test-url specific_url]")
+        logger.info("Usage: python crawler.py <base_url> [--test-url specific_url]")
         return
 
     # Check if we're testing a specific URL
@@ -2264,4 +2756,5 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    asyncio.run(main())
     asyncio.run(main())

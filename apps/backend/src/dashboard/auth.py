@@ -17,20 +17,8 @@ def hash_password(password: str) -> str:
 
 
 def get_dashboard_password() -> str | None:
-    """Get dashboard password from environment variable or Streamlit secrets."""
-    # Try environment variable first (for Railway/production)
-    env_password = os.getenv("DASHBOARD_PASSWORD")
-    if env_password:
-        return env_password
-
-    # Fallback to Streamlit secrets (for local development)
-    try:
-        if hasattr(st, "secrets") and st.secrets:
-            return st.secrets.get("DASHBOARD_PASSWORD")
-    except Exception:
-        pass
-
-    return None
+    """Get dashboard password from environment variable."""
+    return os.getenv("DASHBOARD_PASSWORD")
 
 
 def check_password() -> bool:
