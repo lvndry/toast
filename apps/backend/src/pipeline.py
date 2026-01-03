@@ -34,10 +34,10 @@ Performance Characteristics:
 
 Usage:
     # Run the complete pipeline
-    python -m src.crawling
+    python -m src.pipeline
 
     # Or use programmatically
-    from src.crawling import LegalDocumentPipeline
+    from src.pipeline import LegalDocumentPipeline
 
     pipeline = LegalDocumentPipeline()
     results = await pipeline.run()
@@ -55,9 +55,9 @@ from typing import Any, cast
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-from src.clausea_crawler import ClauseaCrawler, CrawlResult
 from src.core.database import get_db
 from src.core.logging import get_logger
+from src.crawler import ClauseaCrawler, CrawlResult
 from src.llm import SupportedModel, acompletion_with_fallback
 from src.models.company import Company
 from src.models.document import Document, Region
@@ -145,23 +145,28 @@ class DocumentAnalyzer(LLMUsageTrackingMixin):
             "other",
         ]
 
-    async def detect_locale(self, text: str, metadata: dict[str, Any]) -> dict[str, Any]:
+    async def detect_locale(
+        self, text: str, metadata: dict[str, Any], url: str | None = None
+    ) -> dict[str, Any]:
         """
         Detect the locale of a document.
 
         Priority order:
         1. Check metadata for explicit locale information
-        2. Use LLM analysis of text content
-        3. Fallback to English (en-US)
+        2. Check URL patterns for locale indicators
+        3. Use simple text heuristics (common words, character patterns)
+        4. Use LLM analysis of text content (only if needed)
+        5. Fallback to English (en-US)
 
         Args:
             text: Document content
             metadata: Document metadata
+            url: Optional document URL for pattern analysis
 
         Returns:
             Dict containing locale, confidence, and language_name
         """
-        # Check reliable metadata sources first
+        # 1. Check reliable metadata sources first
         if metadata:
             # Open Graph tags are highly reliable (set for SEO/social sharing)
             for key in ["og:locale", "og:language"]:
@@ -174,7 +179,7 @@ class DocumentAnalyzer(LLMUsageTrackingMixin):
                         "language_name": locale,
                     }
 
-            # Some sites still use geolocation-based switching, so it's less reliable.
+            # HTML lang attribute
             if "lang" in metadata and metadata["lang"]:
                 locale = metadata["lang"]
                 logger.debug(f"Found locale in HTML lang attribute: {locale}")
@@ -184,8 +189,109 @@ class DocumentAnalyzer(LLMUsageTrackingMixin):
                     "language_name": locale,
                 }
 
-        # Use LLM for text-based detection
-        logger.debug("Locale not found in metadata, using LLM analysis")
+            # Check alternate languages from link tags
+            if "alternate_languages" in metadata and isinstance(
+                metadata["alternate_languages"], dict
+            ):
+                # If we have alternate languages, check if current page matches one
+                # For now, assume primary language is first or most common
+                alt_langs = metadata["alternate_languages"]
+                if alt_langs:
+                    # Extract locale from first alternate (heuristic)
+                    first_lang = list(alt_langs.keys())[0]
+                    if first_lang:
+                        logger.debug(f"Found locale from alternate languages: {first_lang}")
+                        return {
+                            "locale": first_lang,
+                            "confidence": 0.75,
+                            "language_name": first_lang,
+                        }
+
+        # 2. Check URL patterns for locale indicators
+        if url:
+            url_lower = url.lower()
+            # Common locale patterns in URLs: /en/, /en-us/, /fr/, /de/, etc.
+            locale_patterns = {
+                r"/en[-_]?us?/": "en-US",
+                r"/en[-_]?gb?/": "en-GB",
+                r"/en[-_]?ca?/": "en-CA",
+                r"/en/": "en-US",  # Default English to US
+                r"/fr[-_]?fr?/": "fr-FR",
+                r"/de[-_]?de?/": "de-DE",
+                r"/es[-_]?es?/": "es-ES",
+                r"/it[-_]?it?/": "it-IT",
+                r"/pt[-_]?br?/": "pt-BR",
+                r"/ja[-_]?jp?/": "ja-JP",
+                r"/zh[-_]?cn?/": "zh-CN",
+                r"/ko[-_]?kr?/": "ko-KR",
+            }
+
+            for pattern, locale in locale_patterns.items():
+                if re.search(pattern, url_lower):
+                    logger.debug(f"Found locale from URL pattern ({pattern}): {locale}")
+                    return {
+                        "locale": locale,
+                        "confidence": 0.80,
+                        "language_name": locale,
+                    }
+
+        # 3. Simple text heuristics (fast, no LLM needed)
+        text_lower = text.lower()[:1000]  # Check first 1000 chars
+
+        # Common English words/phrases in legal documents
+        english_indicators = [
+            "privacy policy",
+            "terms of service",
+            "effective date",
+            "last updated",
+            "we collect",
+            "personal information",
+            "data protection",
+            "your rights",
+            "governing law",
+            "jurisdiction",
+            "dispute resolution",
+        ]
+        english_count = sum(1 for indicator in english_indicators if indicator in text_lower)
+
+        # Common non-English patterns (basic detection)
+        non_english_patterns = {
+            "fr": [
+                "politique de confidentialité",
+                "conditions d'utilisation",
+                "données personnelles",
+            ],
+            "de": ["datenschutzerklärung", "nutzungsbedingungen", "personenbezogene daten"],
+            "es": ["política de privacidad", "términos de servicio", "datos personales"],
+            "it": ["informativa sulla privacy", "termini di servizio", "dati personali"],
+        }
+
+        # If strong English indicators found, likely English
+        if english_count >= 3:
+            logger.debug(f"Detected English from text heuristics ({english_count} indicators)")
+            return {
+                "locale": "en-US",
+                "confidence": 0.70,
+                "language_name": "English (United States)",
+            }
+
+        # Check for non-English patterns
+        for lang_code, patterns in non_english_patterns.items():
+            matches = sum(1 for pattern in patterns if pattern in text_lower)
+            if matches >= 2:
+                locale_map = {"fr": "fr-FR", "de": "de-DE", "es": "es-ES", "it": "it-IT"}
+                detected_locale = locale_map.get(lang_code, lang_code)
+                logger.debug(
+                    f"Detected {detected_locale} from text heuristics ({matches} patterns)"
+                )
+                return {
+                    "locale": detected_locale,
+                    "confidence": 0.70,
+                    "language_name": detected_locale,
+                }
+
+        # 4. Use LLM for text-based detection (only if pre-filtering couldn't determine)
+        logger.debug("Locale not found via metadata, using LLM analysis")
 
         # Extract representative text sample (middle portion for better language detection)
         text_length = len(text)
@@ -254,6 +360,12 @@ Example output:
         """
         Classify if document is a legal document and determine its type.
 
+        Priority order:
+        1. Check URL patterns for document type indicators
+        2. Check metadata (title, description) for document type
+        3. Check content heuristics (keywords, structure)
+        4. Use LLM analysis (only if needed)
+
         Args:
             url: Document URL
             text: Document content
@@ -262,7 +374,186 @@ Example output:
         Returns:
             Dict containing classification, justification, and is_legal_document flag
         """
-        # Truncate content for LLM analysis
+        # 1. Pre-filter using URL patterns (very fast, no LLM needed)
+        url_lower = url.lower()
+        url_patterns = {
+            "privacy_policy": [
+                r"/privacy",
+                r"/privacy-policy",
+                r"/privacy_policy",
+                r"/datenschutz",  # German
+                r"/politique-de-confidentialite",  # French
+                r"/politica-de-privacidad",  # Spanish
+            ],
+            "terms_of_service": [
+                r"/terms",
+                r"/terms-of-service",
+                r"/terms_of_service",
+                r"/tos",
+                r"/terms-and-conditions",
+                r"/nutzungsbedingungen",  # German
+                r"/conditions-d-utilisation",  # French
+                r"/terminos-de-servicio",  # Spanish
+            ],
+            "cookie_policy": [
+                r"/cookie",
+                r"/cookie-policy",
+                r"/cookie_policy",
+                r"/cookies",
+                r"/cookie-richtlinie",  # German
+            ],
+            "copyright_policy": [
+                r"/copyright",
+                r"/dmca",
+                r"/copyright-policy",
+            ],
+        }
+
+        for doc_type, patterns in url_patterns.items():
+            for pattern in patterns:
+                if re.search(pattern, url_lower):
+                    # Verify it's actually a legal document (not just a link)
+                    text_lower = text.lower()
+                    legal_indicators = [
+                        "effective date",
+                        "last updated",
+                        "governing law",
+                        "jurisdiction",
+                        "dispute",
+                        "liability",
+                        "indemnification",
+                    ]
+                    has_legal_content = any(
+                        indicator in text_lower for indicator in legal_indicators
+                    )
+
+                    if has_legal_content or len(text) > 500:  # Substantive content
+                        logger.debug(f"Document type from URL pattern ({pattern}): {doc_type}")
+                        return {
+                            "classification": doc_type,
+                            "classification_justification": f"Detected from URL pattern: {pattern}",
+                            "is_legal_document": True,
+                            "is_legal_document_justification": "URL pattern and content indicate legal document",
+                        }
+
+        # 2. Check metadata for document type indicators
+        if metadata:
+            title = (metadata.get("title") or "").lower()
+            description = (
+                metadata.get("description") or metadata.get("og:description") or ""
+            ).lower()
+            combined_meta = f"{title} {description}"
+
+            meta_keywords = {
+                "privacy_policy": [
+                    "privacy policy",
+                    "privacy notice",
+                    "data protection",
+                    "datenschutz",
+                ],
+                "terms_of_service": [
+                    "terms of service",
+                    "terms and conditions",
+                    "user agreement",
+                    "tos",
+                ],
+                "cookie_policy": ["cookie policy", "cookie notice", "cookie consent"],
+                "copyright_policy": ["copyright", "dmca", "intellectual property"],
+            }
+
+            for doc_type, keywords in meta_keywords.items():
+                if any(keyword in combined_meta for keyword in keywords):
+                    # Check if content is substantial (not just a navigation page)
+                    if len(text) > 300:
+                        logger.debug(f"Document type from metadata: {doc_type}")
+                        return {
+                            "classification": doc_type,
+                            "classification_justification": "Detected from metadata keywords",
+                            "is_legal_document": True,
+                            "is_legal_document_justification": "Metadata and content indicate legal document",
+                        }
+
+        # 3. Check content heuristics (keywords and structure)
+        text_lower = text.lower()
+        text_sample = text_lower[:2000]  # Check first 2000 chars
+
+        # Legal document indicators
+        legal_keywords = {
+            "privacy_policy": [
+                "personal information",
+                "data collection",
+                "data processing",
+                "privacy rights",
+                "data protection",
+                "personal data",
+                "information we collect",
+            ],
+            "terms_of_service": [
+                "terms of service",
+                "user agreement",
+                "acceptance of terms",
+                "governing law",
+                "dispute resolution",
+                "limitation of liability",
+                "indemnification",
+            ],
+            "cookie_policy": [
+                "cookie policy",
+                "cookies we use",
+                "cookie consent",
+                "tracking technologies",
+                "third-party cookies",
+            ],
+        }
+
+        # Count matches for each document type
+        doc_type_scores: dict[str, int] = {}
+        for doc_type, keywords in legal_keywords.items():
+            score = sum(1 for keyword in keywords if keyword in text_sample)
+            if score > 0:
+                doc_type_scores[doc_type] = score
+
+        # If we have strong indicators, classify without LLM
+        if doc_type_scores:
+            best_type = max(doc_type_scores.items(), key=lambda x: x[1])
+            if best_type[1] >= 3:  # At least 3 keyword matches
+                # Verify it's not just a navigation/link page
+                if len(text) > 500 and (
+                    "effective" in text_sample or "last updated" in text_sample
+                ):
+                    logger.debug(
+                        f"Document type from content heuristics: {best_type[0]} (score: {best_type[1]})"
+                    )
+                    return {
+                        "classification": best_type[0],
+                        "classification_justification": f"Detected from content keywords (score: {best_type[1]})",
+                        "is_legal_document": True,
+                        "is_legal_document_justification": "Content keywords and structure indicate legal document",
+                    }
+
+        # 4. Quick rejection: If content is too short or lacks legal structure, likely not legal
+        if len(text) < 200:
+            logger.debug("Document too short to be legal document")
+            return {
+                "classification": "other",
+                "classification_justification": "Document too short to be substantive legal content",
+                "is_legal_document": False,
+                "is_legal_document_justification": "Content length indicates this is not a legal document",
+            }
+
+        # Check for navigation/page structure indicators (not legal documents)
+        nav_indicators = ["home", "about", "contact", "menu", "navigation", "search"]
+        if any(indicator in text_lower[:500] for indicator in nav_indicators) and len(text) < 1000:
+            logger.debug("Appears to be navigation/page structure, not legal document")
+            return {
+                "classification": "other",
+                "classification_justification": "Content structure indicates navigation/page, not legal document",
+                "is_legal_document": False,
+                "is_legal_document_justification": "Lacks substantive legal content structure",
+            }
+
+        # 5. Use LLM for classification (only if pre-filtering couldn't determine)
+        logger.debug("Inconclusive, using LLM for document classification")
         content_sample = text[: self.max_content_length]
         categories_list = "\n".join(f"- {cat}" for cat in self.categories)
 
@@ -330,6 +621,12 @@ Note: Cookie banners, navigation elements, or links to legal documents don't cou
         """
         Detect if document applies globally or to specific regions.
 
+        Priority order:
+        1. Check URL patterns for region indicators
+        2. Check metadata for region information
+        3. Check content for explicit region mentions and compliance frameworks
+        4. Use LLM analysis (only if needed)
+
         Args:
             text: Document content
             metadata: Document metadata
@@ -338,76 +635,166 @@ Note: Cookie banners, navigation elements, or links to legal documents don't cou
         Returns:
             Dict containing region analysis with mapped region codes
         """
-        # Use reasonable text sample for analysis
-        text_sample = text[:3000] if len(text) > 3000 else text
+        # 1. Check URL patterns for region indicators
+        url_lower = url.lower()
+        url_region_patterns = {
+            r"/eu/": ["EU"],
+            r"/europe/": ["EU"],
+            r"/uk/": ["UK"],
+            r"/gb/": ["UK"],
+            r"/us/": ["US"],
+            r"/usa/": ["US"],
+            r"/ca/": ["Canada"],
+            r"/canada/": ["Canada"],
+            r"/au/": ["Australia"],
+            r"/australia/": ["Australia"],
+            r"/br/": ["Brazil"],
+            r"/brazil/": ["Brazil"],
+            r"/kr/": ["South Korea"],
+            r"/korea/": ["South Korea"],
+            r"/jp/": ["Asia"],  # Japan
+            r"/asia/": ["Asia"],
+        }
 
-        prompt = f"""Analyze this legal document to determine geographic scope (WHERE it applies).
+        detected_regions = []
+        for pattern, regions in url_region_patterns.items():
+            if re.search(pattern, url_lower):
+                detected_regions.extend(regions)
+                logger.debug(f"Found region from URL pattern ({pattern}): {regions}")
 
-URL: {url}
-Text: {text_sample}
-Metadata: {json.dumps(metadata, indent=2) if metadata else "None"}
+        if detected_regions:
+            mapped_regions = []
+            for region in detected_regions:
+                mapped = self._map_region_name_to_code(region)
+                if mapped and mapped not in mapped_regions:
+                    mapped_regions.append(mapped)
 
-IMPORTANT: Distinguish between the document's language (English) and its jurisdiction/applicability.
-Look for:
-- Explicit mentions of targeted users ("For California residents", "For users in the EU")
-- Governing law/Jurisdiction clauses ("governed by the laws of England and Wales")
-- Compliance with regional frameworks (GDPR, CCPA, LGPD)
-- Regional URL structures (/eu/, /uk/, /en-ca/)
-- Address information in the document body
+            if mapped_regions:
+                return {
+                    "regions": mapped_regions,
+                    "confidence": 0.80,
+                    "justification": "Detected from URL pattern",
+                    "regional_indicators": [f"URL pattern: {url}"],
+                }
 
-Return JSON:
-{{
-    "is_global": boolean,
-    "specific_regions": ["region names, e.g., 'United States', 'European Union', 'California'"],
-    "confidence": float 0-1,
-    "justification": "Short reasoning explaining why these regions were chosen (cite specific clauses)",
-    "regional_indicators": ["text snippets showing geographic scope"]
-}}
-"""
+        # 2. Check metadata for region information
+        if metadata:
+            # Check for region-specific metadata
+            meta_text = json.dumps(metadata).lower()
+            if any(term in meta_text for term in ["eu", "european union", "gdpr"]):
+                return {
+                    "regions": ["EU"],
+                    "confidence": 0.75,
+                    "justification": "Detected from metadata (EU/GDPR references)",
+                    "regional_indicators": ["Metadata contains EU/GDPR references"],
+                }
 
-        system_prompt = """You are a legal geographic scope analyst. Determine document applicability accurately."""
+        # 3. Check content for explicit region mentions and compliance frameworks
+        text_lower = text.lower()
+        text_sample = text_lower[:3000] if len(text_lower) > 3000 else text_lower
 
-        try:
-            async with usage_tracking(self._create_usage_tracker("detect_regions")):
-                response = await acompletion_with_fallback(
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt},
-                    ],
-                    response_format={"type": "json_object"},
-                )
+        # Compliance framework indicators
+        compliance_frameworks = {
+            "GDPR": ["EU", "European Union"],
+            "CCPA": ["US"],
+            "PIPEDA": ["Canada"],
+            "LGPD": ["Brazil"],
+            "PDPA": ["South Korea"],
+        }
 
-            choice = response.choices[0]
-            if not hasattr(choice, "message"):
-                raise ValueError("Unexpected response format: missing message attribute")
-            message = choice.message  # type: ignore[attr-defined]
-            if not message:
-                raise ValueError("Unexpected response format: message is None")
-            content = message.content  # type: ignore[attr-defined]
-            if not content:
-                raise ValueError("Empty response from LLM")
+        detected_from_content = []
+        for framework, regions in compliance_frameworks.items():
+            if framework.lower() in text_sample:
+                detected_from_content.extend(regions)
+                logger.debug(f"Found region from compliance framework ({framework}): {regions}")
 
-            result: dict[str, Any] = json.loads(content)
+        # Explicit region mentions
+        region_phrases = {
+            "for california residents": ["US"],
+            "for california users": ["US"],
+            "california privacy": ["US"],
+            "for users in the eu": ["EU"],
+            "for european users": ["EU"],
+            "for uk residents": ["UK"],
+            "for canadian users": ["Canada"],
+            "for users in canada": ["Canada"],
+            "for australian users": ["Australia"],
+            "for users in brazil": ["Brazil"],
+        }
 
-            regions = self._map_regions_to_document_format(
-                result.get("is_global", True), result.get("specific_regions", [])
-            )
+        for phrase, regions in region_phrases.items():
+            if phrase in text_sample:
+                detected_from_content.extend(regions)
+                logger.debug(f"Found region from explicit mention ({phrase}): {regions}")
 
-            return {
-                "regions": regions,
-                "confidence": result.get("confidence", 0.5),
-                "justification": result.get("justification", ""),
-                "regional_indicators": result.get("regional_indicators", []),
-            }
+        # Governing law / jurisdiction clauses
+        jurisdiction_patterns = [
+            (r"governed by the laws of (?:the )?([^,\.]+)", ["UK", "US", "Canada"]),
+            (r"jurisdiction.*(?:england|wales|united kingdom)", ["UK"]),
+            (r"jurisdiction.*(?:california|new york|united states)", ["US"]),
+            (r"jurisdiction.*(?:ontario|british columbia|canada)", ["Canada"]),
+        ]
 
-        except Exception as e:
-            logger.warning(f"Region detection failed: {e}")
-            return {
-                "regions": ["global"],
-                "confidence": 0.5,
-                "justification": f"Region detection failed: {e}",
-                "regional_indicators": [],
-            }
+        for pattern, default_regions in jurisdiction_patterns:
+            matches = list(re.finditer(pattern, text_sample, re.IGNORECASE))
+            if matches:
+                # Try to extract specific region from match
+                detected_from_content.extend(default_regions)
+                logger.debug(f"Found region from jurisdiction clause: {default_regions}")
+
+        if detected_from_content:
+            # Deduplicate and map regions
+            unique_regions = []
+            for region in detected_from_content:
+                mapped = self._map_region_name_to_code(region)
+                if mapped and mapped not in unique_regions:
+                    unique_regions.append(mapped)
+
+            if unique_regions:
+                return {
+                    "regions": unique_regions,
+                    "confidence": 0.85,
+                    "justification": "Detected from content (compliance frameworks, explicit mentions, or jurisdiction clauses)",
+                    "regional_indicators": [f"Content analysis found: {', '.join(unique_regions)}"],
+                }
+
+        # 4. Default to global if no specific regions found via pre-filtering
+        logger.debug("Found no specific regions, defaulting to global")
+        return {
+            "regions": ["global"],
+            "confidence": 0.70,
+            "justification": "No specific regions detected, defaulting to global",
+            "regional_indicators": [],
+        }
+
+    def _map_region_name_to_code(self, region_name: str) -> Region | None:
+        """Map a region name to a Document Region code."""
+        region_mapping = {
+            "united states": "US",
+            "usa": "US",
+            "us": "US",
+            "america": "US",
+            "california": "US",  # California is part of US
+            "european union": "EU",
+            "eu": "EU",
+            "europe": "EU",
+            "united kingdom": "UK",
+            "uk": "UK",
+            "gb": "UK",
+            "britain": "UK",
+            "england": "UK",
+            "wales": "UK",
+            "asia": "Asia",
+            "australia": "Australia",
+            "canada": "Canada",
+            "brazil": "Brazil",
+            "south korea": "South Korea",
+            "korea": "South Korea",
+            "israel": "Israel",
+        }
+
+        mapped = region_mapping.get(region_name.lower())
+        return cast(Region, mapped) if mapped else None
 
     def _map_regions_to_document_format(
         self, is_global: bool, specific_regions: list[str]
@@ -416,30 +803,11 @@ Return JSON:
         if is_global:
             return ["global"]
 
-        region_mapping = {
-            "united states": "US",
-            "usa": "US",
-            "us": "US",
-            "america": "US",
-            "european union": "EU",
-            "eu": "EU",
-            "europe": "EU",
-            "united kingdom": "UK",
-            "uk": "UK",
-            "britain": "UK",
-            "asia": "Asia",
-            "australia": "Australia",
-            "canada": "Canada",
-            "brazil": "Brazil",
-            "south korea": "South Korea",
-            "israel": "Israel",
-        }
-
         regions: list[Region] = []
         for region in specific_regions:
-            mapped = region_mapping.get(region.lower(), "Other")
-            if mapped not in regions:
-                regions.append(cast(Region, mapped))
+            mapped = self._map_region_name_to_code(region)
+            if mapped and mapped not in regions:
+                regions.append(mapped)
 
         return regions if regions else ["Other"]
 
@@ -542,25 +910,50 @@ Return JSON:
                     if parsed_date:
                         return parsed_date
 
-        # Common effective date patterns in legal documents
+        # Common effective date patterns in legal documents (ordered by specificity)
+        # More specific patterns first to avoid false matches
         patterns = [
-            r"effective\s+(?:date|as\s+of):\s*([^.\n]+)",
-            r"effective\s+([^.\n]+)",
-            r"last\s+updated:?\s*([^.\n]+)",
-            r"(?:this\s+policy\s+)?(?:is\s+)?effective\s+(?:as\s+of\s+)?([^.\n]+)",
-            r"updated\s+on:?\s*([^.\n]+)",
-            r"revision\s+date:?\s*([^.\n]+)",
+            # Explicit "Effective date:" or "Effective as of:"
+            r"effective\s+(?:date|as\s+of):\s*([^.\n<]+)",
+            # "Last updated:" or "Last modified:"
+            r"last\s+(?:updated|modified):?\s*([^.\n<]+)",
+            # "Updated on:" or "Modified on:"
+            r"(?:updated|modified)\s+on:?\s*([^.\n<]+)",
+            # "Revision date:" or "Version date:"
+            r"(?:revision|version)\s+date:?\s*([^.\n<]+)",
+            # "This policy is effective..." or "This agreement takes effect..."
+            r"(?:this\s+(?:policy|agreement|document|terms?)\s+)?(?:is\s+)?(?:effective|takes\s+effect)\s+(?:as\s+of\s+)?([^.\n<]+)",
+            # "Effective:" standalone
+            r"effective:?\s*([^.\n<]+)",
+            # "Date of effect:" or "Date effective:"
+            r"date\s+(?:of\s+effect|effective):?\s*([^.\n<]+)",
+            # "Published:" or "Publication date:"
+            r"(?:publication\s+)?date:?\s*([^.\n<]+)",
+            # ISO date format in context (YYYY-MM-DD)
+            r"(?:effective|updated|modified|published).*?(\d{4}[-/]\d{1,2}[-/]\d{1,2})",
+            # Common date formats near "effective" keywords
+            r"(?:effective|updated).*?((?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4})",
+            r"(?:effective|updated).*?((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[\s\.]+\d{1,2},?\s+\d{4})",
         ]
 
-        search_text = content.lower()
+        # Search in first 5000 chars where dates are typically mentioned
+        search_text = content[:5000].lower()
 
         for pattern in patterns:
             matches = re.finditer(pattern, search_text, re.IGNORECASE | re.MULTILINE)
             for match in matches:
                 date_str = match.group(1).strip()
-                parsed_date = self._parse_date_string(date_str)
-                if parsed_date:
-                    return parsed_date
+                # Clean up common trailing words/phrases
+                date_str = re.sub(r"\s*(and|or|,|;|\.|$).*$", "", date_str, flags=re.IGNORECASE)
+                date_str = date_str.strip()
+
+                if date_str:
+                    parsed_date = self._parse_date_string(date_str)
+                    if parsed_date:
+                        logger.debug(
+                            f"Extracted date from pattern '{pattern}': {date_str} -> {parsed_date}"
+                        )
+                        return parsed_date
 
         return None
 
@@ -619,7 +1012,7 @@ IMPORTANT: Return null for effective_date if you cannot find a clear effective d
             message = choice.message  # type: ignore[attr-defined]
             if not message:
                 raise ValueError("Unexpected response format: message is None")
-            content = message.content  # type: ignore[attr-defined]
+            content = message.content  # type: ignore
             if not content:
                 raise ValueError("Empty response from LLM")
 
@@ -836,27 +1229,7 @@ class LegalDocumentPipeline:
             # Convert markdown to plain text for analysis
             text_content = markdown_to_text(result.markdown)
 
-            # Detect locale
-            locale_result = await self.analyzer.detect_locale(text_content, result.metadata)
-            detected_locale = locale_result.get("locale", "en-US")
-            language_name = locale_result.get("language_name", "English")
-
-            logger.debug(
-                f"Locale detection for {result.url}: {detected_locale} "
-                f"({language_name}, confidence: {locale_result.get('confidence', 0):.2f})"
-            )
-
-            # Skip non-English documents*
-            # TODO: Support other languages
-            if "en" not in detected_locale.lower():
-                logger.debug(f"Skipping non-English document: {result.url}")
-                self.stats.non_english_skipped += 1
-                usage_reason = f"non-English locale: {detected_locale}"
-                return None
-
-            self.stats.english_documents += 1
-
-            # Classify document
+            # Classify document first (regardless of language)
             classification = await self.analyzer.classify_document(
                 result.url, text_content, result.metadata
             )
@@ -874,6 +1247,27 @@ class LegalDocumentPipeline:
                 )
                 return None
 
+            # Detect locale only for legal documents
+            locale_result = await self.analyzer.detect_locale(
+                text_content, result.metadata, result.url
+            )
+            detected_locale = locale_result.get("locale", "en-US")
+            language_name = locale_result.get("language_name", "English")
+
+            logger.debug(
+                f"Locale detection for {result.url}: {detected_locale} "
+                f"({language_name}, confidence: {locale_result.get('confidence', 0):.2f})"
+            )
+
+            # Skip non-English documents*
+            # TODO: Support other languages
+            if "en" not in detected_locale.lower():
+                logger.debug(f"Skipping non-English document: {result.url}")
+                self.stats.non_english_skipped += 1
+                usage_reason = f"non-English locale: {detected_locale}"
+                return None
+
+            self.stats.english_documents += 1
             self.stats.legal_documents_processed += 1
 
             # Detect regions

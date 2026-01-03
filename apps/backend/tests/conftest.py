@@ -1,6 +1,5 @@
 """Pytest configuration and shared fixtures for Clausea tests."""
 
-# Add src to path for imports
 import sys
 from pathlib import Path
 from typing import Any
@@ -11,6 +10,8 @@ import pytest
 from src.models.clerkUser import ClerkUser
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+pytest_plugins = ["pytest_asyncio"]
 
 
 @pytest.fixture

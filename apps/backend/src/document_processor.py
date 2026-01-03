@@ -1,5 +1,6 @@
 """Document processing service for uploaded documents with OCR, classification, and summarization."""
 
+import importlib
 import json
 from io import BytesIO
 from typing import Any
@@ -35,11 +36,26 @@ class DocumentProcessor:
         self,
         model: SupportedModel | None = None,
         max_content_length: int = 5000,
+        enable_binary_parsing: bool = False,
+        prefer_tika: bool = False,
+        prefer_pdfminer: bool = False,
     ):
-        """Initialize the document processor."""
+        """Initialize the document processor.
+
+        Args:
+            enable_binary_parsing: If True, attempt to extract text from binary files (PDF/Office) using
+                optional parsers (pdfminer / tika) when available.
+            prefer_tika: If True and tika is available, prefer Tika for broad binary parsing (Office, PDF).
+            prefer_pdfminer: If True and pdfminer is available, use it as a fallback for PDFs when pdfplumber fails.
+        """
         # Store model_name for potential future use, but we'll use fallback system
         self.model_name = model
         self.max_content_length = max_content_length
+
+        # Binary parsing configuration (opt-in)
+        self.enable_binary_parsing = enable_binary_parsing
+        self.prefer_tika = prefer_tika
+        self.prefer_pdfminer = prefer_pdfminer
 
         # Document type categories for classification
         self.categories = [
@@ -149,9 +165,14 @@ class DocumentProcessor:
             return None
 
     async def _extract_text_from_pdf(self, file_content: bytes) -> str | None:
-        """Extract text from PDF using pdfplumber."""
+        """Extract text from PDF using pdfplumber, with optional fallbacks (pdfminer / tika).
+
+        This method prefers pdfplumber for text-based PDFs (fast and reliable). If that
+        fails to produce text and binary parsing is enabled, it will optionally try
+        pdfminer (if available) and then Tika (if configured and available).
+        """
         try:
-            # Use pdfplumber to extract text from PDF
+            # Primary strategy: pdfplumber
             with BytesIO(file_content) as pdf_file:
                 with pdfplumber.open(pdf_file) as pdf:
                     text_parts = []
@@ -164,18 +185,52 @@ class DocumentProcessor:
                         return "\n".join(text_parts)
                     else:
                         # If no text extracted, the PDF might be image-based
-                        # In production, you'd want to add OCR here
-                        logger.warning("No text extracted from PDF - may need OCR")
-                        return None
+                        logger.warning("No text extracted from PDF - may need OCR or other parser")
+
+            # If binary parsing is not enabled, return
+            if not self.enable_binary_parsing:
+                return None
+
+            # Optional fallback: pdfminer.six (if available and requested)
+            if self.prefer_pdfminer:
+                try:
+                    from pdfminer.high_level import extract_text as pdfminer_extract_text
+
+                    with BytesIO(file_content) as fp:
+                        text = pdfminer_extract_text(fp)
+                        if text and text.strip():
+                            return text
+                except Exception as e:
+                    logger.warning(f"pdfminer fallback failed: {e}")
+
+            # Optional: Tika (broad support for PDF and Office). Tika may not be installed.
+            if self.prefer_tika:
+                try:
+                    tika_module = importlib.import_module("tika")
+                    tika_parser = tika_module.parser
+
+                    parsed = tika_parser.from_buffer(file_content)
+                    text = parsed.get("content") if isinstance(parsed, dict) else None
+                    if text and text.strip():
+                        return text
+                except Exception as e:
+                    logger.warning(f"Tika parsing failed or not available: {e}")
+
+            return None
 
         except Exception as e:
             logger.error(f"Error extracting text from PDF: {str(e)}")
             return None
 
     async def _extract_text_from_docx(self, file_content: bytes) -> str | None:
-        """Extract text from DOCX file using python-docx."""
+        """Extract text from DOCX file using python-docx, or fallback to Tika when enabled.
+
+        Tika provides broader support for legacy Office formats and binary extraction but it is
+        optional and not installed by default. This method will only try Tika when
+        `self.enable_binary_parsing` and `self.prefer_tika` are True.
+        """
         try:
-            # Use python-docx to extract text from DOCX
+            # Primary: python-docx for modern .docx
             with BytesIO(file_content) as docx_file:
                 doc = DocxDocument(docx_file)
                 text_parts = []
@@ -186,7 +241,26 @@ class DocumentProcessor:
                 if text_parts:
                     return "\n".join(text_parts)
                 else:
-                    return None
+                    # Fallthrough to optional Tika if configured
+                    logger.debug(
+                        "No text extracted from DOCX by python-docx; attempting Tika if enabled"
+                    )
+
+            if not (self.enable_binary_parsing and self.prefer_tika):
+                return None
+
+            try:
+                tika_module = importlib.import_module("tika")
+                tika_parser = tika_module.parser
+
+                parsed = tika_parser.from_buffer(file_content)
+                text = parsed.get("content") if isinstance(parsed, dict) else None
+                if text and text.strip():
+                    return text
+            except Exception as e:
+                logger.warning(f"Tika parsing for DOCX failed or not available: {e}")
+
+            return None
         except Exception as e:
             logger.error(f"Error extracting text from DOCX: {str(e)}")
             return None

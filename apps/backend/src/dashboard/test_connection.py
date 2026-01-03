@@ -15,8 +15,8 @@ MONGO_URI = config.database.mongodb_uri
 DATABASE_NAME = "toast"
 
 
-async def test_connection() -> bool:
-    """Test MongoDB connection and basic operations."""
+async def _test_connection_async() -> bool:
+    """Async helper to test MongoDB connection and basic operations."""
     if not MONGO_URI:
         print("❌ MONGO_URI environment variable is not set")
         print("💡 Please set MONGO_URI in your .env file")
@@ -68,7 +68,13 @@ async def test_connection() -> bool:
         return False
 
 
+def test_connection() -> None:
+    """Runner that executes the async test synchronously so pytest works without async plugins."""
+    success = asyncio.run(_test_connection_async())
+    assert success
+
+
 if __name__ == "__main__":
-    success = asyncio.run(test_connection())
+    success = asyncio.run(_test_connection_async())
     if not success:
         exit(1)

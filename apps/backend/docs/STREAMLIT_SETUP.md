@@ -144,11 +144,13 @@ PRODUCTION_MONGO_URI = "mongodb+srv://prod-username:prod-password@prod-cluster.m
 import streamlit as st
 
 def show_example():
+    import os
+
     st.title("Example Dashboard Page")
     st.markdown("This is an example dashboard component.")
 
-    # Access secrets
-    api_url = st.secrets.get("API_BASE_URL", "http://localhost:8000")
+    # Access environment variables
+    api_url = os.getenv("API_BASE_URL", "http://localhost:8000")
 
     # Your dashboard logic here
     if st.button("Test Connection"):
@@ -183,15 +185,15 @@ source .venv/bin/activate
 pip install streamlit
 ```
 
-#### 2. Secrets File Not Found
+#### 2. Environment Variables Not Set
 
-**Error:** `st.secrets.get()` returns None
+**Error:** `os.getenv()` returns None
 
 **Solution:**
 
-- Ensure `.streamlit/secrets.toml` exists
-- Check file permissions
-- Verify the secrets file is in the correct location
+- Ensure environment variables are set in your deployment environment
+- For local development, use a `.env` file (loaded automatically)
+- Verify the environment variable names match what the code expects
 
 #### 3. Database Connection Failed
 
@@ -210,7 +212,7 @@ pip install streamlit
 **Solution:**
 
 - Ensure the backend API is running on `http://localhost:8000`
-- Check `API_BASE_URL` in secrets.toml
+- Check `API_BASE_URL` environment variable is set
 - Verify API endpoints are accessible
 
 ### Debug Mode
@@ -224,7 +226,6 @@ streamlit run src/dashboard/app.py --logger.level=debug
 ## 📚 Additional Resources
 
 - [Streamlit Documentation](https://docs.streamlit.io/)
-- [Streamlit Secrets Management](https://docs.streamlit.io/library/advanced-features/secrets-management)
 - [Clausea Backend Documentation](../README.md)
 - [MongoDB Connection Guide](https://docs.mongodb.com/guides/server/drivers/)
 
@@ -234,7 +235,7 @@ If you encounter issues with the Streamlit dashboard:
 
 1. Check the troubleshooting section above
 2. Review the Streamlit logs in the terminal
-3. Verify your configuration in `.streamlit/secrets.toml`
+3. Verify your environment variables are set correctly
 4. Ensure all prerequisites are met
 
 For additional support, contact the Clausea team or create an issue in the repository.

@@ -1,6 +1,6 @@
 """Unit tests for ClauseaCrawler domain and subdomain logic."""
 
-from src.clausea_crawler import ClauseaCrawler
+from src.crawler import ClauseaCrawler
 
 
 class TestCrawlerDomainLogic:

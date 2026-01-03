@@ -1,6 +1,6 @@
 """Unit tests for ClauseaCrawler depth and state management."""
 
-from src.clausea_crawler import ClauseaCrawler
+from src.crawler import ClauseaCrawler
 
 
 class TestCrawlerState:

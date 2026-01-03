@@ -2,6 +2,7 @@ from datetime import datetime
 
 import streamlit as st
 
+from src.dashboard.components.summarization import run_summarization_async
 from src.dashboard.db_utils import get_all_companies_isolated, get_company_documents_by_id_isolated
 from src.dashboard.utils import run_async_with_retry
 from src.models.company import Company
@@ -91,6 +92,46 @@ def show_documents_view() -> None:
             doc_types[doc_type] = doc_types.get(doc_type, 0) + 1
         unique_types = len(doc_types)
         st.metric("Document Types", unique_types)
+
+    st.divider()
+
+    # Document Summarization Section
+    st.subheader("🔍 Document Analysis")
+
+    col1, col2, col3 = st.columns([1, 1, 1])
+
+    with col2:
+        if st.button(
+            "🚀 Summarize Documents", type="primary", key="summarize_documents_from_docs_page"
+        ):
+            if not documents:
+                st.warning("No documents to analyze.")
+            else:
+                # Start document analysis
+                with st.spinner(
+                    f"Analyzing documents for {selected_company.name}... This may take several minutes."
+                ):
+                    progress_placeholder = st.empty()
+                    progress_placeholder.info("🔍 Processing documents...")
+
+                    # Run the summarization process
+                    success = run_summarization_async(selected_company.slug)
+
+                    progress_placeholder.empty()
+
+                    if success:
+                        st.success("✅ Document analysis completed successfully!")
+                        st.info("""
+                        **What happened:**
+                        • Each document was analyzed for privacy practices
+                        • Summaries were generated with transparency and data usage scores
+                        • Key points were extracted for each document
+                        • Analysis data was stored in the database
+                        """)
+                        # Refresh the page to show updated analysis count
+                        st.rerun()
+                    else:
+                        st.error("Document analysis failed. Please check the logs and try again.")
 
     st.divider()
 
