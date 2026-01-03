@@ -83,7 +83,7 @@
 - Higher memory for UI rendering
 - More dependencies (UI libraries)
 - Can be scaled down when idle
-- Can use sleep mode (Railway Pro)
+- Can use sleep mode
 
 **Cost Impact:**
 
