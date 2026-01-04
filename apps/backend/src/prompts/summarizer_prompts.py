@@ -42,6 +42,8 @@ Summary Field Requirements:
   * Key privacy concerns or protections
   * What users can control
   * The overall privacy posture
+- The summary value MUST be a markdown string with sentences only (no nested JSON, no bullet lists, no escaped character sequences).
+- If you truly cannot provide a summary, set the field to the exact literal string "Analysis unavailable".
 - Focus on actionable insights, not describing the document itself.
 - Start directly with the information (e.g., "This service collects email addresses, location data, and browsing history to personalize content and serve targeted ads").
 - DO NOT start with "This document states..." or "The policy indicates..." - just state the facts directly.

@@ -257,7 +257,7 @@ def _write_usage_to_file(
         records: List of usage records
         context: Context identifier
         reason: Optional reason suffix
-    operation_type: Type of operation (e.g., "summarization", "crawl", "product_overview")
+        operation_type: Type of operation (e.g., "summarization", "crawl", "product_overview")
         product_slug: Product slug identifier
         product_id: Product ID identifier
         document_url: URL of the document being processed

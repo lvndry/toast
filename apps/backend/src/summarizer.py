@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from motor.core import AgnosticDatabase
 
 from src.core.logging import get_logger
-from src.llm import SupportedModel, acompletion_with_fallback
+from src.llm import acompletion_with_fallback
 from src.models.document import (
     BusinessImpact,
     BusinessImpactAssessment,
@@ -366,17 +366,6 @@ def _extract_last_updated_from_metadata(metadata: dict[str, Any] | None) -> date
     return None
 
 
-def _get_model_priority(document: Document) -> list[SupportedModel]:
-    """Get model priority list based on document complexity."""
-    if should_use_reasoning_model(document):
-        # For complex documents, prefer reasoning models (provider-agnostic)
-        # The fallback chain will select the best available reasoning model
-        return ["gpt-5-mini", "grok-4-1-fast-reasoning", "gemini-2.5-flash"]
-    else:
-        # For simpler documents, use cost-effective models
-        return ["gpt-5-mini", "grok-4-1-fast-non-reasoning", "gemini-2.5-flash"]
-
-
 async def summarize_document(
     document: Document,
     use_cache: bool = True,
@@ -496,7 +485,6 @@ Document content:
 """.strip()
 
     # Select appropriate model based on document complexity
-    model_priority = _get_model_priority(document)
 
     last_exception: Exception | None = None
 
@@ -511,7 +499,6 @@ Document content:
         try:
             logger.debug(
                 f"Summarizing document {document.id} (attempt {attempt + 1}/{max_retries}) "
-                f"with models: {model_priority}"
             )
 
             async with usage_tracking(tracker_callback):
@@ -525,7 +512,6 @@ Document content:
                             },
                             {"role": "user", "content": prompt},
                         ],
-                        model_priority=model_priority,
                         response_format={"type": "json_object"},
                     )
                 )

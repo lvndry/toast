@@ -126,16 +126,6 @@ check-deps:
 	@command -v bun >/dev/null 2>&1 || { echo "❌ bun is required but not installed. Install from https://bun.sh/"; exit 1; }
 	@echo "✅ All dependencies are installed"
 
-# Database migration (if needed)
-migrate:
-	@echo "🗄️ Running database migrations..."
-	@cd apps/backend && source .venv/bin/activate && python scripts/migrate_users.py
-
-# Update company logos
-update-logos:
-	@echo "🖼️ Updating company logos..."
-	@cd apps/backend && ./scripts/run_logo_update.sh
-
 # Run dashboard
 dashboard:
 	@echo "📊 Starting dashboard..."

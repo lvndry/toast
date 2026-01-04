@@ -31,17 +31,13 @@ SupportedModel = Literal[
     "gpt-5-pro",
     "gpt-5-mini",
     "gpt-5-nano",
-    "gpt-4.1-mini",
-    "gpt-4o-mini",
     # gemini
     "gemini-3-flash-preview",
     "gemini-3-pro-preview",
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
     # anthropic
-    "claude-haiku-4-5",
+    "claude-opus-4-5",
     "claude-sonnet-4-5",
-    "claude-opus-4-1",
+    "claude-haiku-4-5",
     # mistral
     "mistral-small",
     "mistral-medium",
@@ -51,7 +47,6 @@ SupportedModel = Literal[
     # xai
     "grok-4-1-fast-reasoning",
     "grok-4-1-fast-non-reasoning",
-    "grok-3-mini",
     # openrouter
     "kimi-k2-thinking",
 ]
@@ -61,6 +56,7 @@ DEFAULT_MODEL_PRIORITY: list[SupportedModel] = [
     "grok-4-1-fast-non-reasoning",
     "gpt-5-mini",
     "kimi-k2-thinking",
+    "claude-haiku-4-5",
 ]
 
 

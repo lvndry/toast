@@ -202,7 +202,7 @@ async def check_compliance(regulation: str, product_slug: str) -> str:
             parts.extend([f"- {g}" for g in gaps[:6]])
         if limitations:
             parts.append("\nLimitations (missing evidence in retrieved excerpts):")
-            parts.extend([f"- {l}" for l in limitations[:6]])
+            parts.extend([f"- {limitation}" for limitation in limitations[:6]])
         parts.append("\nSources used:")
         for i, m in enumerate(top_matches, start=1):
             md = m.get("metadata", {}) or {}

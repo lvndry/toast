@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import concurrent.futures
 import time
 from datetime import datetime
 from pathlib import Path
+from threading import Event
 
 import streamlit as st
 
@@ -86,17 +89,16 @@ def read_log_file_tail(
         return f"Error reading log file: {str(e)}", last_position
 
 
-def run_crawl_async(product: Product) -> ProcessingStats | None:
-    """Run crawling using LegalDocumentPipeline in a completely isolated thread with its own event loop"""
+def run_crawl_async(product: Product, stop_event: Event | None = None):
+    """Run crawling using LegalDocumentPipeline in a dedicated event loop."""
 
-    def run_in_thread() -> ProcessingStats | None:
+    def run_in_thread():
         # Suppress Streamlit ScriptRunContext warnings in worker threads
         with suppress_streamlit_warnings():
-            # Create a completely fresh event loop in this thread
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            try:
-                # Create pipeline instance for single product processing
+
+            async def runner():
                 pipeline = LegalDocumentPipeline(
                     max_depth=4,
                     max_pages=500,
@@ -105,69 +107,33 @@ def run_crawl_async(product: Product) -> ProcessingStats | None:
                     delay_between_requests=1.0,
                 )
 
-                # Process single product and return documents
-                result = loop.run_until_complete(pipeline.run([product]))
+                monitor_task: asyncio.Task | None = None
+                if stop_event is not None:
 
-                # CRITICAL: Wait until ALL tasks are truly complete before closing the loop
-                # This includes all database operations that may be pending
-                max_wait_seconds = 2  # Reduced from 10
-                wait_interval = 0.1
-                max_iterations = int(max_wait_seconds / wait_interval)
+                    async def monitor_stop_signal() -> None:
+                        while not stop_event.is_set():
+                            await asyncio.sleep(0.2)
 
-                for _ in range(max_iterations):
-                    # Get all pending tasks (excluding the current gather task if any)
-                    all_tasks = asyncio.all_tasks(loop)
-                    pending_tasks = [
-                        t for t in all_tasks if not t.done() and t is not asyncio.current_task(loop)
-                    ]
-
-                    if not pending_tasks:
-                        break
-
-                    # Wait for pending tasks to complete
-                    try:
-                        loop.run_until_complete(asyncio.wait(pending_tasks, timeout=wait_interval))
-                    except Exception:
-                        pass
-
-                # Final verification: ensure no tasks remain
-                final_tasks = [
-                    t
-                    for t in asyncio.all_tasks(loop)
-                    if not t.done() and t is not asyncio.current_task(loop)
-                ]
-                if final_tasks:
-                    # Force wait for any remaining tasks with a small timeout
-                    loop.run_until_complete(asyncio.wait(final_tasks, timeout=1.0))
-
-                return result
-            finally:
-                # Only close the loop after we've verified all tasks are complete
-                # Shutdown async generators first
                 try:
-                    loop.run_until_complete(loop.shutdown_asyncgens())
-                except Exception:
-                    pass
+                    return await pipeline.run([product])
+                finally:
+                    if monitor_task:
+                        monitor_task.cancel()
+                        try:
+                            await monitor_task
+                        except asyncio.CancelledError:
+                            pass
 
-                # Close the loop - all operations should be complete by now
-                loop.close()
+            try:
+                return loop.run_until_complete(runner())
+            except Exception as e:
+                st.error(f"Crawling operation failed: {str(e)}")
+                return {}
 
-    # Run in a separate thread to avoid any event loop conflicts
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(run_in_thread)
-        try:
-            return future.result()
-        except concurrent.futures.TimeoutError:
-            st.error("Crawling operation timed out")
-            return None
-        except Exception as e:
-            st.error(f"Crawling error: {str(e)}")
-            return None
+    return run_in_thread()
 
 
-def run_crawl_all_products_async(
-    products: list[Product], max_parallel: int = 2
-) -> dict[str, ProcessingStats | None]:
+def run_crawl_all_products_async(products: list[Product], max_parallel: int = 2):
     """Run crawling for all products with optional parallelization
 
     Args:
@@ -177,9 +143,9 @@ def run_crawl_all_products_async(
     Returns:
         Dictionary mapping product slugs to their processing stats (or None if failed)
     """
-    results: dict[str, ProcessingStats | None] = {}
+    results = {}
 
-    def run_in_thread() -> dict[str, ProcessingStats | None]:
+    def run_in_thread():
         with suppress_streamlit_warnings():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -189,7 +155,7 @@ def run_crawl_all_products_async(
 
                 async def crawl_with_semaphore(
                     product: Product,
-                ) -> tuple[str, ProcessingStats | None]:
+                ):
                     async with semaphore:
                         try:
                             pipeline = LegalDocumentPipeline(
@@ -293,12 +259,13 @@ def show_crawling() -> None:
         st.warning("No products found. Please create a product first.")
         return
 
-    # Filter products that have crawl_base_urls
-    products_with_urls = [p for p in products if p.crawl_base_urls]
+    # Filter products that have either crawl_base_urls or domains
+    products_with_urls = [p for p in products if p.crawl_base_urls or p.domains]
 
     if not products_with_urls:
         st.warning(
-            "No products have crawl base URLs configured. Please add crawl URLs to at least one product."
+            "No products have crawl base URLs or domains configured. "
+            "Please add crawl URLs or domains to at least one product."
         )
         return
 
@@ -340,8 +307,20 @@ def show_crawling() -> None:
 
     with col2:
         st.write("**Crawl Base URLs:**")
-        for url in selected_product.crawl_base_urls:
-            st.write(f"• [{url}]({url})")
+        if selected_product.crawl_base_urls:
+            for url in selected_product.crawl_base_urls:
+                st.write(f"• [{url}]({url})")
+        elif selected_product.domains:
+            # Show domains that will be used as fallback
+            for domain in selected_product.domains:
+                url = (
+                    f"https://{domain}"
+                    if not domain.startswith(("http://", "https://"))
+                    else domain
+                )
+                st.write(f"• [{url}]({url}) (from domain)")
+        else:
+            st.write("• No crawl URLs configured")
 
     st.write("**Categories:**")
     st.write(
@@ -372,6 +351,9 @@ def show_crawling() -> None:
             "log_position": 0,
             "log_content": "",
             "stats": None,
+            "stop_event": None,
+            "stop_requested": False,
+            "cancelled": False,
         }
 
     crawl_state = st.session_state[crawl_key]
@@ -393,10 +375,17 @@ def show_crawling() -> None:
         crawl_state["log_position"] = 0
         crawl_state["log_content"] = ""
         crawl_state["stats"] = None
+        crawl_state["stop_event"] = Event()
+        crawl_state["stop_requested"] = False
+        crawl_state["cancelled"] = False
 
         # Start crawling in a thread (don't use context manager to keep executor alive)
         executor = concurrent.futures.ThreadPoolExecutor()
-        future = executor.submit(run_crawl_async, selected_product)
+        future = executor.submit(
+            run_crawl_async,
+            selected_product,
+            crawl_state["stop_event"],
+        )
         crawl_state["future"] = future
         crawl_state["executor"] = executor  # Keep executor reference
 
@@ -404,6 +393,19 @@ def show_crawling() -> None:
     if crawl_state.get("running") or crawl_state.get("future"):
         # Check if crawl is still running
         if crawl_state.get("future") and not crawl_state["future"].done():
+            stop_disabled = crawl_state.get("stop_requested", False)
+            if st.button(
+                "⏹ Stop Crawling",
+                type="secondary",
+                disabled=stop_disabled,
+                key=f"stop_crawl_btn_{selected_product.slug}",
+            ):
+                if crawl_state.get("stop_event"):
+                    crawl_state["stop_event"].set()
+                    crawl_state["stop_requested"] = True
+            if crawl_state.get("stop_requested"):
+                st.info("Stop requested. Finishing current tasks safely...")
+
             # Poll for logs
             log_path = Path(crawl_state["log_path"]) if crawl_state.get("log_path") else None
             if log_path and log_path.exists():
@@ -445,6 +447,10 @@ def show_crawling() -> None:
             if crawl_state.get("future"):
                 try:
                     crawl_state["stats"] = crawl_state["future"].result()
+                except asyncio.CancelledError:
+                    crawl_state["stats"] = None
+                    crawl_state["cancelled"] = True
+                    st.warning(f"Crawling for {selected_product.name} was cancelled.")
                 except Exception as e:
                     crawl_state["stats"] = None
                     st.error(f"Crawling error: {str(e)}")
@@ -453,6 +459,7 @@ def show_crawling() -> None:
                     if "executor" in crawl_state:
                         crawl_state["executor"].shutdown(wait=False)
                         del crawl_state["executor"]
+                    crawl_state["stop_event"] = None
                     crawl_state["running"] = False
                     crawl_state["future"] = None
 
@@ -469,13 +476,19 @@ def show_crawling() -> None:
                         crawl_state["log_content"] = final_content
 
             # Show final status
-            with st.status(
-                f"✅ Crawling {selected_product.name} completed!"
-                if crawl_state["stats"] is not None
-                else f"❌ Crawling {selected_product.name} failed",
-                expanded=False,
-                state="complete" if crawl_state["stats"] is not None else "error",
-            ) as status:
+            status_label: str
+            status_state: str
+            if crawl_state.get("cancelled"):
+                status_label = f"🛑 Crawling {selected_product.name} was stopped"
+                status_state = "error"
+            elif crawl_state["stats"] is not None:
+                status_label = f"✅ Crawling {selected_product.name} completed!"
+                status_state = "complete"
+            else:
+                status_label = f"❌ Crawling {selected_product.name} failed"
+                status_state = "error"
+
+            with st.status(status_label, expanded=False, state=status_state) as status:
                 if crawl_state["log_content"]:
                     st.write("---")
                     st.subheader("📋 Crawler Logs")
@@ -485,7 +498,11 @@ def show_crawling() -> None:
                         st.code(crawl_state["log_content"], language="text")
 
             # Show results
-            if crawl_state["stats"] is not None:
+            if crawl_state.get("cancelled"):
+                st.warning(
+                    "Crawling was stopped before completion. Partial results may be available."
+                )
+            elif crawl_state["stats"] is not None:
                 st.success("✅ Crawling completed successfully!")
                 if crawl_state["stats"].legal_documents_stored > 0:
                     st.write(

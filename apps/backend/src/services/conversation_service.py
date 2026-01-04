@@ -9,11 +9,11 @@ from motor.core import AgnosticDatabase
 
 from src.core.logging import get_logger
 from src.document_processor import DocumentProcessingResult, DocumentProcessor
-from src.embedding import embed_document
 from src.llm import acompletion_with_fallback
 from src.models.conversation import Conversation, Message
 from src.rag import get_answer, get_answer_stream
 from src.repositories.conversation_repository import ConversationRepository
+from src.services.embedding_service import EmbeddingService
 
 logger = get_logger(__name__)
 
@@ -278,7 +278,10 @@ class ConversationService:
 
         await self.add_document_to_conversation(db, conversation_id, result.document.id)
         try:
-            await embed_document(result.document, namespace=conversation.product_slug)
+            embedding_service = EmbeddingService()
+            await embedding_service.embed_document(
+                result.document, namespace=conversation.product_slug
+            )
         except Exception as e:
             logger.warning(f"Embedding uploaded document failed: {e}")
 

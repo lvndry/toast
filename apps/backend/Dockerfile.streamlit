@@ -50,5 +50,4 @@ ENV PYTHONPATH="/app:${PYTHONPATH}"
 
 EXPOSE 8501
 
-CMD ["sh", "-c", "uv run streamlit run src/dashboard/app.py --server.port=${PORT:-8501} --server.address=0.0.0.0 --server.headless=true"]
-
+CMD ["sh", "-c", "uv run streamlit run src/dashboard/app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true"]

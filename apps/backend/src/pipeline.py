@@ -1358,6 +1358,54 @@ class LegalDocumentPipeline:
                 document_id=document_id,
             )
 
+    def _normalize_url(self, url_or_domain: str) -> str:
+        """
+        Normalize a URL or domain to ensure it has a protocol.
+
+        Args:
+            url_or_domain: URL or domain string
+
+        Returns:
+            Normalized URL with https:// protocol
+        """
+        url_or_domain = url_or_domain.strip()
+        if not url_or_domain:
+            return url_or_domain
+
+        # If already has a protocol, use it as-is
+        if url_or_domain.startswith(("http://", "https://")):
+            return url_or_domain
+
+        # Prepend https://
+        return f"https://{url_or_domain}"
+
+    def _get_crawl_urls(self, product: Product) -> list[str]:
+        """
+        Get crawl URLs for a product, falling back to domains if crawl_base_urls is empty.
+
+        Args:
+            product: Product to get URLs for
+
+        Returns:
+            List of URLs to crawl (all normalized with https:// protocol)
+        """
+        if product.crawl_base_urls:
+            # Normalize crawl_base_urls to ensure they have https:// protocol
+            return [self._normalize_url(url) for url in product.crawl_base_urls if url.strip()]
+
+        # Fallback to domains if crawl_base_urls is empty
+        if not product.domains:
+            return []
+
+        # Convert domains to URLs (prepend https:// if not already present)
+        urls = []
+        for domain in product.domains:
+            normalized = self._normalize_url(domain)
+            if normalized:
+                urls.append(normalized)
+
+        return urls
+
     async def _process_product(self, product: Product) -> list[Document]:
         """
         Process a single product through the complete pipeline.
@@ -1371,16 +1419,25 @@ class LegalDocumentPipeline:
         product_start_time = time.time()
         log_memory_usage(f"Starting {product.name}")
 
-        if not product.crawl_base_urls:
-            logger.warning(f"No crawl base URLs for {product.name}")
+        # Get crawl URLs (from crawl_base_urls or fallback to domains)
+        crawl_urls = self._get_crawl_urls(product)
+
+        if not crawl_urls:
+            logger.warning(
+                f"No crawl base URLs or domains for {product.name}. "
+                f"Cannot crawl without starting URLs."
+            )
             self.stats.products_failed += 1
             self.stats.failed_product_slugs.append(product.slug)
             return []
 
+        # Log whether we're using crawl_base_urls or domains
+        using_domains = not product.crawl_base_urls
+        source = "domains" if using_domains else "crawl_base_urls"
         try:
             logger.info(
                 f"🕷️ Crawling {product.name} ({len(product.domains)} domains) "
-                f"from {len(product.crawl_base_urls)} base URLs"
+                f"from {len(crawl_urls)} base URLs (using {source})"
             )
 
             # Create crawler and crawl documents
@@ -1388,7 +1445,7 @@ class LegalDocumentPipeline:
             crawl_results = []
 
             try:
-                for base_url in product.crawl_base_urls:
+                for base_url in crawl_urls:
                     logger.info(f"Crawling base URL: {base_url}")
                     results = await crawler.crawl(base_url)
                     crawl_results.extend(results)
