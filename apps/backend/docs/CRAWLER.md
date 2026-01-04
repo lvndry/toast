@@ -13,7 +13,7 @@ The Clausea Crawler is a sophisticated, AI-powered web crawler specifically desi
 - **Per-Domain Rate Limiting**: Prevents overwhelming target servers while allowing concurrent requests to different domains
 - **Browser Support**: Optional headless browser rendering for JavaScript-heavy sites
 - **Comprehensive Error Handling**: Automatic retries with exponential backoff for transient errors
-- **Memory Efficient**: Processes companies sequentially with memory monitoring
+- **Memory Efficient**: Processes products sequentially with memory monitoring
 
 ## Architecture
 
@@ -375,10 +375,10 @@ The `LegalDocumentPipeline` integrates the crawler with AI analysis and database
 ### Pipeline Flow
 
 ```
-1. Get Companies from Database
+1. Get Products from Database
    ↓
-2. For each Company:
-   ├─ Create ClauseaCrawler (configured for company)
+2. For each Product:
+   ├─ Create ClauseaCrawler (configured for product)
    ├─ Crawl base URLs
    ├─ For each CrawlResult:
    │   ├─ Detect Locale (LLM)
@@ -478,7 +478,7 @@ results = await crawler.crawl("https://example.com")
 legal_docs = [r for r in results if r.legal_score >= 3.0]
 ```
 
-### Company-Specific Crawling
+### Product-Specific Crawling
 
 ```python
 from src.pipeline import LegalDocumentPipeline
@@ -491,7 +491,7 @@ pipeline = LegalDocumentPipeline(
     delay_between_requests=1.0,
     respect_robots_txt=True,
     use_browser=True,  # For JS-heavy sites
-    max_parallel_companies=3  # Process 3 companies concurrently
+    max_parallel_products=3  # Process 3 products concurrently
 )
 
 stats = await pipeline.run()
@@ -522,7 +522,7 @@ crawler = ClauseaCrawler(
 
 ### Memory Management
 
-- **Sequential Company Processing**: Processes companies one at a time to manage memory
+- **Sequential Product Processing**: Processes products one at a time to manage memory
 - **Memory Monitoring**: Tracks peak memory usage during crawls
 - **Cache Limits**: LRU caches with size limits (robots.txt: 1000, URL scorer: 10000)
 - **Resource Cleanup**: Closes browser instances and file handlers after use
@@ -580,7 +580,7 @@ crawler = ClauseaCrawler(
 Uses `structlog` for structured, JSON-compatible logs:
 
 - Request IDs for tracing
-- Company context
+- Product context
 - Document metadata
 - Performance metrics
 
@@ -685,7 +685,7 @@ crawler = ClauseaCrawler(respect_robots_txt=True)
 
 - Too many concurrent requests
 - Large documents
-- Processing too many companies in parallel
+- Processing too many products in parallel
 
 **Solutions:**
 
@@ -693,8 +693,8 @@ crawler = ClauseaCrawler(respect_robots_txt=True)
 # Reduce concurrency
 crawler = ClauseaCrawler(max_concurrent=5)
 
-# Process fewer companies in parallel
-pipeline = LegalDocumentPipeline(max_parallel_companies=1)
+# Process fewer products in parallel
+pipeline = LegalDocumentPipeline(max_parallel_products=1)
 ```
 
 #### 4. JavaScript-Heavy Sites
@@ -750,9 +750,9 @@ class CrawlResult(BaseModel):
 
 #### Methods
 
-- `async run(companies: list[Company] | None = None) -> ProcessingStats`: Run complete pipeline
-- `async _process_company(company: Company) -> list[Document]`: Process single company
-- `async _process_crawl_result(result: CrawlResult, company: Company) -> Document | None`: Process crawl result
+- `async run(products: list[Product] | None = None) -> ProcessingStats`: Run complete pipeline
+- `async _process_product(product: Product) -> list[Document]`: Process single product
+- `async _process_crawl_result(result: CrawlResult, product: Product) -> Document | None`: Process crawl result
 
 ## Examples
 
@@ -826,7 +826,7 @@ async def main():
 
     stats = await pipeline.run()
 
-    print(f"✅ Processed {stats.companies_processed} companies")
+    print(f"✅ Processed {stats.products_processed} products")
     print(f"📄 Found {stats.legal_documents_stored} legal documents")
     print(f"⏱️  Time: {stats.processing_time_seconds:.1f}s")
     print(f"💰 Cost: ${stats.total_cost:.4f}")

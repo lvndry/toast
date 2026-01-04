@@ -117,7 +117,7 @@ export default function Hero() {
               5k<span className="text-primary">+</span>
             </p>
             <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mt-1">
-              Companies
+              Products
             </p>
           </div>
         </motion.div>

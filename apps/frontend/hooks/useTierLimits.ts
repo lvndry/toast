@@ -34,9 +34,9 @@ export function useTierLimits() {
 
   const formatLimitText = (limit: number) => {
     if (limit >= 1000) {
-      return "Unlimited company searches";
+      return "Unlimited product searches";
     }
-    return `${limit} company searches per month`;
+    return `${limit} product searches per month`;
   };
 
   return {

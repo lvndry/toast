@@ -738,7 +738,7 @@ Summary: {summary}
     document_types = list({doc.doc_type for doc in documents})
 
     prompt = f"""
-Your task is to create a warm, accessible, and explanatory summary that helps everyday people understand what they're agreeing to. We analyzed {num_documents} document(s) for this company: {", ".join(document_types)}.
+Your task is to create a warm, accessible, and explanatory summary that helps everyday people understand what they're agreeing to. We analyzed {num_documents} document(s) for this product: {", ".join(document_types)}.
 
 **CRITICAL REQUIREMENTS:**
 1. **Start with document count**: Begin your summary by clearly stating "We analyzed {num_documents} document(s): [list document types]"
@@ -1100,7 +1100,7 @@ Document Summaries:
 {"".join(doc_summaries)}
 
 **CRITICAL: When prioritizing risks, consider document scope:**
-- Global/company-wide documents: Risks affect all users → prioritize higher
+- Global/product-wide documents: Risks affect all users → prioritize higher
 - Product-specific documents: Risks affect only specific product users → prioritize lower (but still important)
 - When the same risk appears in multiple documents, prioritize based on scope (global > product-specific)
 
@@ -1247,7 +1247,7 @@ async def main() -> None:
 
         await summarize_all_product_documents(db, "notion", doc_svc)
 
-        print("Generating company meta-summary:")
+        print("Generating product meta-summary:")
         print("=" * 50)
         meta_summary = await generate_product_meta_summary(
             db, "notion", product_svc=product_svc, document_svc=doc_svc

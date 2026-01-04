@@ -37,14 +37,3 @@ def embed_products(product_slugs: list[str], max_concurrency: int = 3) -> list[t
     """
     result = run_async(_embed_products_impl(product_slugs, max_concurrency=max_concurrency))
     return result or []
-
-
-# Legacy aliases for backward compatibility with dashboard components
-def embed_company(company_slug: str) -> bool:
-    """Legacy alias for embed_product."""
-    return embed_product(company_slug)
-
-
-def embed_companies(company_slugs: list[str], max_concurrency: int = 3) -> list[tuple[str, bool]]:
-    """Legacy alias for embed_products."""
-    return embed_products(company_slugs, max_concurrency=max_concurrency)

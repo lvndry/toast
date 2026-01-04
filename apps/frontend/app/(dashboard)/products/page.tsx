@@ -179,7 +179,7 @@ function ProductCard({
               )}
             </div>
 
-            {/* Company Info */}
+            {/* Product Info */}
             <div className="space-y-1">
               <h3 className="font-display font-bold text-lg text-foreground group-hover:text-primary transition-colors">
                 {product.name}
@@ -498,7 +498,7 @@ export default function ProductsPage() {
             </div>
             <div className="space-y-1">
               <h3 className="text-xl font-bold font-display">
-                No services found
+                No products found
               </h3>
               <p className="text-muted-foreground max-w-sm mx-auto text-sm">
                 Try searching for a different product or check back later.

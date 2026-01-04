@@ -70,20 +70,20 @@ async def execute_promotion(request: PromotionRequest) -> PromotionResponse:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/promote-companies", response_model=PromotionResponse)
-async def promote_companies_only(request: PromotionRequest) -> PromotionResponse:
-    """Promote only companies from local to production."""
+@router.post("/promote-products", response_model=PromotionResponse)
+async def promote_products_only(request: PromotionRequest) -> PromotionResponse:
+    """Promote only products from local to production."""
     try:
-        result = await promotion_service.promote_companies(dry_run=request.dry_run)
+        result = await promotion_service.promote_products(dry_run=request.dry_run)
 
         action = "dry run" if request.dry_run else "actual"
         return PromotionResponse(
             success=True,
-            message=f"Companies {action} promotion completed successfully",
+            message=f"Products {action} promotion completed successfully",
             data=result,
         )
     except Exception as e:
-        logger.error(f"Error in companies promotion: {e}")
+        logger.error(f"Error in products promotion: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

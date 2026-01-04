@@ -7,7 +7,7 @@ from src.dashboard.utils import run_async_with_retry
 from src.models.product import Product
 
 
-def show_company_creation() -> None:
+def show_product_creation() -> None:
     st.title("Create New Product")
 
     # Show success message if product was just created
@@ -126,3 +126,4 @@ def show_company_creation() -> None:
                 st.write("• Check that your MongoDB connection is working")
                 st.write("• Verify your environment variables are set correctly")
                 st.write("• Try refreshing the page and trying again")
+

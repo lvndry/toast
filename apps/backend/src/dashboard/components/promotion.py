@@ -91,15 +91,15 @@ def show_promotion() -> None:
 
                         with col1:
                             st.metric(
-                                "Companies (Local)",
+                                "Products (Local)",
                                 summary.get("collections", {})
-                                .get("companies", {})
+                                .get("products", {})
                                 .get("local_count", 0),
                             )
                             st.metric(
-                                "Companies (Production)",
+                                "Products (Production)",
                                 summary.get("collections", {})
-                                .get("companies", {})
+                                .get("products", {})
                                 .get("production_count", 0),
                             )
 
@@ -161,11 +161,11 @@ def show_promotion() -> None:
             run_promotion(api_url, "/promotion/dry-run", "Full dry run promotion")
 
     with col2:
-        if st.button("Dry Run - Companies Only"):
+        if st.button("Dry Run - Products Only"):
             run_promotion(
                 api_url,
-                "/promotion/promote-companies",
-                "Companies dry run promotion",
+                "/promotion/promote-products",
+                "Products dry run promotion",
                 {"dry_run": True},
             )
 
@@ -200,11 +200,11 @@ def show_promotion() -> None:
                 )
 
         with col2:
-            if st.button("Promote Companies Only", type="secondary"):
+            if st.button("Promote Products Only", type="secondary"):
                 run_promotion(
                     api_url,
-                    "/promotion/promote-companies",
-                    "Companies promotion",
+                    "/promotion/promote-products",
+                    "Products promotion",
                     {"dry_run": False},
                 )
 
@@ -329,7 +329,7 @@ def display_promotion_results(data: dict[str, Any]) -> None:
 
     # Check if this is a single collection result or full promotion result
     if "promoted" in data and "skipped" in data:
-        # Single collection result (e.g., documents only, companies only)
+        # Single collection result (e.g., documents only, products only)
         result = data
         collection_name = "Promotion"  # Generic name for single collection
 
@@ -443,7 +443,7 @@ def display_promotion_results(data: dict[str, Any]) -> None:
     # Tier Visibility Management Section
     st.write("---")
     st.header("Tier Visibility Management")
-    st.markdown("Manage which user tiers can access specific companies")
+    st.markdown("Manage which user tiers can access specific products")
 
     # Get current products
     try:

@@ -23,14 +23,14 @@ Architecture Decisions:
 6. **Deduplication**: Smart URL and content deduplication to avoid processing
    duplicate documents.
 
-7. **Incremental Processing**: Processes companies sequentially to manage memory
+7. **Incremental Processing**: Processes products sequentially to manage memory
    and respect rate limits while maintaining data consistency.
 
 Performance Characteristics:
-- Memory efficient: Processes companies one at a time
+- Memory efficient: Processes products one at a time
 - Network optimized: Concurrent requests with configurable limits
 - Database efficient: Bulk operations and smart update logic
-- Scalable: Can handle hundreds of companies and thousands of documents
+- Scalable: Can handle hundreds of products and thousands of documents
 
 Usage:
     # Run the complete pipeline
@@ -1103,7 +1103,7 @@ class LegalDocumentPipeline:
         delay_between_requests: float = 1.0,
         timeout: int = 30,
         respect_robots_txt: bool = True,
-        max_parallel_companies: int = 3,
+        max_parallel_products: int = 3,
         use_browser: bool = True,
         proxy: str | None = None,
     ):
@@ -1111,13 +1111,16 @@ class LegalDocumentPipeline:
         Initialize the legal document pipeline.
 
         Args:
-            max_depth: Maximum crawl depth per company
-            max_pages: Maximum pages to crawl per company
+            max_depth: Maximum crawl depth per product
+            max_pages: Maximum pages to crawl per product
             crawler_strategy: Crawling strategy ("bfs", "dfs", "best_first")
             concurrent_limit: Maximum concurrent requests
             delay_between_requests: Delay between requests in seconds
             timeout: Request timeout in seconds
             respect_robots_txt: Whether to respect robots.txt
+            max_parallel_products: Maximum number of products to process in parallel
+            use_browser: Whether to use browser for crawling
+            proxy: Optional proxy URL
         """
         self.max_depth = max_depth
         self.max_pages = max_pages
@@ -1126,7 +1129,7 @@ class LegalDocumentPipeline:
         self.delay_between_requests = delay_between_requests
         self.timeout = timeout
         self.respect_robots_txt = respect_robots_txt
-        self.max_parallel_companies = max_parallel_companies
+        self.max_parallel_products = max_parallel_products
         self.use_browser = use_browser
         self.proxy = proxy
 
@@ -1465,7 +1468,7 @@ class LegalDocumentPipeline:
             logger.info(f"📊 Processing {len(products)} products")
 
             # Use a semaphore to limit parallel products
-            semaphore = asyncio.Semaphore(self.max_parallel_companies)
+            semaphore = asyncio.Semaphore(self.max_parallel_products)
 
             async def _process_product_with_semaphore(idx: int, product: Product) -> None:
                 async with semaphore:

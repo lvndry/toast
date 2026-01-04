@@ -77,9 +77,9 @@ const siteConfig = {
       },
       {
         icon: FiCheck,
-        title: "Company Intelligence",
+        title: "Product Intelligence",
         description:
-          "Build comprehensive company profiles with extracted legal information and insights.",
+          "Build comprehensive product profiles with extracted legal information and insights.",
       },
       {
         icon: FiCheck,

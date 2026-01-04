@@ -5,12 +5,12 @@ import streamlit as st
 from src.core.config import config
 from src.core.logging import setup_logging
 from src.dashboard.auth import check_password, show_logout_button
-from src.dashboard.components.company_creation import show_company_creation
-from src.dashboard.components.company_view import show_company_view
 from src.dashboard.components.crawling import show_crawling
 from src.dashboard.components.deep_analysis import show_deep_analysis
 from src.dashboard.components.documents_view import show_documents_view
 from src.dashboard.components.embedding import show_embedding
+from src.dashboard.components.product_creation import show_product_creation
+from src.dashboard.components.product_view import show_product_view
 from src.dashboard.components.promotion import show_promotion
 from src.dashboard.components.rag import show_rag
 from src.dashboard.components.summarization import show_summarization
@@ -35,8 +35,8 @@ def main() -> None:
 
     # Create page options with id and display_name
     page_options = [
-        {"id": "create_company", "display_name": "Create Company"},
-        {"id": "view_companies", "display_name": "View Companies"},
+        {"id": "create_product", "display_name": "Create Product"},
+        {"id": "view_products", "display_name": "View Products"},
         {"id": "view_documents", "display_name": "View Documents"},
         {"id": "start_crawling", "display_name": "Start Crawling"},
         {"id": "generate_embeddings", "display_name": "Generate & Store Embeddings"},
@@ -52,13 +52,13 @@ def main() -> None:
     page_options.append({"id": "settings", "display_name": "Settings"})
 
     # Check if we have a current page in session state
-    current_page_id = st.session_state.get("current_page", "view_companies")
+    current_page_id = st.session_state.get("current_page", "view_products")
 
     # Promotion: Handle legacy display names in session state
     # Map old display names to new page IDs for backward compatibility
     legacy_page_mapping = {
-        "Create Company": "create_company",
-        "View Companies": "view_companies",
+        "Create Product": "create_product",
+        "View Products": "view_products",
         "View Documents": "view_documents",
         "Start Crawling": "start_crawling",
         "Generate Embeddings": "generate_embeddings",
@@ -75,9 +75,9 @@ def main() -> None:
         current_page_id = legacy_page_mapping[current_page_id]
         st.session_state["current_page"] = current_page_id
 
-    # If promotion page is selected but we're in production, redirect to view_companies
+    # If promotion page is selected but we're in production, redirect to view_products
     if current_page_id == "promotion" and not config.app.is_development:
-        current_page_id = "view_companies"
+        current_page_id = "view_products"
         st.session_state["current_page"] = current_page_id
 
     # Find the index of the current page
@@ -86,9 +86,9 @@ def main() -> None:
             i for i, option in enumerate(page_options) if option["id"] == current_page_id
         )
     except StopIteration:
-        # If page ID is invalid, default to "View Companies"
+        # If page ID is invalid, default to "View Products"
         default_index = 1
-        current_page_id = "view_companies"
+        current_page_id = "view_products"
         st.session_state["current_page"] = current_page_id
 
     # Extract display names for the radio button
@@ -104,10 +104,10 @@ def main() -> None:
     # Update session state with id
     st.session_state["current_page"] = page_id
 
-    if page_id == "create_company":
-        show_company_creation()
-    elif page_id == "view_companies":
-        show_company_view()
+    if page_id == "create_product":
+        show_product_creation()
+    elif page_id == "view_products":
+        show_product_view()
     elif page_id == "view_documents":
         show_documents_view()
     elif page_id == "start_crawling":
@@ -126,8 +126,8 @@ def main() -> None:
             show_promotion()
         else:
             st.error("Promotion page is only available in development mode.")
-            st.info("Redirecting to View Companies...")
-            st.session_state["current_page"] = "view_companies"
+            st.info("Redirecting to View Products...")
+            st.session_state["current_page"] = "view_products"
             st.rerun()
     else:
         st.title("Settings")

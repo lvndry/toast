@@ -207,7 +207,7 @@ class ConversationService:
         """Generate a short, descriptive conversation title using a lightweight model."""
         system_prompt = (
             "You create concise, descriptive conversation titles (4-7 words). "
-            "Avoid quotes, punctuation at the end, and product/company names unless essential."
+            "Avoid quotes, punctuation at the end, and product names unless essential."
         )
         company_info = f"Company: {company_name}\n" if company_name else ""
         user_content = (

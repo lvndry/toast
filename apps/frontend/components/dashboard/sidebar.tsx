@@ -17,7 +17,7 @@ export function Sidebar({ className }: SidebarProps) {
 
   const routes = [
     {
-      label: "Companies",
+      label: "Products",
       icon: Building2,
       href: "/products",
       active: pathname?.startsWith("/products") || pathname?.startsWith("/c/"),

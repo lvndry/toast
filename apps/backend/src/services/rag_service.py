@@ -21,31 +21,31 @@ class RAGService:
     """
 
     async def get_answer(
-        self, question: str, company_name: str, namespace: str | None = None
+        self, question: str, product_slug: str, namespace: str | None = None
     ) -> str:
         """Get an answer using RAG.
 
         Args:
             question: User's question
-            company_name: Company name for context
+            product_slug: Product slug for context
             namespace: Optional namespace for vector search
 
         Returns:
             AI-generated answer
         """
         try:
-            answer = await get_answer(question, company_name, namespace=namespace)
-            logger.info(f"Generated RAG answer for company {company_name}")
+            answer = await get_answer(question, product_slug, namespace=namespace)
+            logger.info(f"Generated RAG answer for product {product_slug}")
             return str(answer)
         except Exception as e:
-            logger.error(f"Error getting RAG answer for company {company_name}: {e}")
+            logger.error(f"Error getting RAG answer for product {product_slug}: {e}")
             raise e
 
-    def get_company_context(self, company_name: str) -> dict[str, Any]:
-        """Get context information for a company.
+    def get_product_context(self, product_slug: str) -> dict[str, Any]:
+        """Get context information for a product.
 
         Args:
-            company_name: Company name
+            product_slug: Product slug
 
         Returns:
             Context dictionary
@@ -53,10 +53,10 @@ class RAGService:
         try:
             # This could be expanded to include more context gathering
             context = {
-                "company_name": company_name,
-                "namespace": company_name.lower().replace(" ", "_"),
+                "product_slug": product_slug,
+                "namespace": product_slug.lower().replace(" ", "_"),
             }
             return context
         except Exception as e:
-            logger.error(f"Error getting context for company {company_name}: {e}")
+            logger.error(f"Error getting context for product {product_slug}: {e}")
             raise e

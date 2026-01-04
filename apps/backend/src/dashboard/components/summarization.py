@@ -120,7 +120,7 @@ def show_summarization() -> None:
                         all_success = False
                         st.error(f"Failed to process documents for {product.name}")
             finally:
-                # Clean up the loop after all companies are processed
+                # Clean up the loop after all products are processed
                 pending_tasks = asyncio.all_tasks(loop)
                 if pending_tasks:
                     for task in pending_tasks:

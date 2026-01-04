@@ -33,7 +33,7 @@ const testimonials = {
       children: (
         <>
           "The pre-analyzed database is incredible. I can compare privacy
-          policies across companies instantly and identify compliance issues in
+          policies across products instantly and identify compliance issues in
           seconds."
         </>
       ),

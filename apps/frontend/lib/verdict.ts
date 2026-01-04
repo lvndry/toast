@@ -21,7 +21,7 @@ export interface VerdictConfig {
   label: string;
   description: string;
 
-  // For company cards (companies page)
+  // For product cards (products page)
   variant: "success" | "warning" | "danger" | "secondary";
   cardIcon: LucideIcon;
   cardColor: string;

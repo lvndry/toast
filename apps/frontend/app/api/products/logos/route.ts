@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
     let logo = product.logo;
 
     if (!logo && product.domains) {
-      const domain = product.domains[0];
+      let domain = product.domains[0];
+
+      domain = domain.replace(/^https?:\/\//, "");
 
       const logoDevToken = process.env.LOGO_DEV_PUBLIC_KEY;
 
@@ -32,16 +34,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Cache logos for 24 hours since they don't change frequently
-    return NextResponse.json(
-      { logo },
-      {
-        headers: {
-          "Cache-Control":
-            "public, max-age=86400, stale-while-revalidate=604800",
-        },
-      },
-    );
+    return NextResponse.json({ logo });
   } catch (error) {
     console.error("Error fetching logo:", error);
     return NextResponse.json(

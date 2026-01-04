@@ -178,7 +178,7 @@ export function Header() {
               {isLoaded && (
                 <>
                   {isSignedIn ? (
-                    <Link href="/companies" onClick={() => setIsOpen(false)}>
+                    <Link href="/products" onClick={() => setIsOpen(false)}>
                       <Button
                         size="lg"
                         className="w-full rounded-full h-14 text-lg font-medium bg-primary text-primary-foreground"

@@ -110,7 +110,7 @@ function DeepAnalysisTab({ slug }: { slug: string }) {
       <ErrorDisplay
         variant="error"
         title="Analysis Unavailable"
-        message={error || "Deep analysis is not available for this company."}
+        message={error || "Deep analysis is not available for this product."}
       />
     );
   }
@@ -268,10 +268,10 @@ export default function CompanyPage() {
           const json = await res.json();
           setData(json);
         } else {
-          console.error("Failed to fetch company overview:", res.statusText);
+          console.error("Failed to fetch product overview:", res.statusText);
         }
       } catch (error) {
-        console.error("Failed to fetch company data", error);
+        console.error("Failed to fetch product data", error);
       } finally {
         setLoading(false);
       }
@@ -288,10 +288,10 @@ export default function CompanyPage() {
           const json = await res.json();
           setDocuments(json);
         } else {
-          console.error("Failed to fetch company documents:", res.statusText);
+          console.error("Failed to fetch product documents:", res.statusText);
         }
       } catch (error) {
-        console.error("Failed to fetch company documents", error);
+        console.error("Failed to fetch product documents", error);
       } finally {
         setDocumentsLoading(false);
       }
@@ -322,7 +322,7 @@ export default function CompanyPage() {
     return (
       <ErrorDisplay
         variant="not-found"
-        title="Company Not Found"
+        title="Product Not Found"
         message="The product you're looking for doesn't exist or has been removed."
         actionLabel="Browse Products"
         actionHref="/products"

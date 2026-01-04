@@ -9,7 +9,7 @@ The promotion system allows you to:
 - View a summary of data in both local and production databases
 - Perform dry runs to see what would be promoted
 - Execute actual promotions with safety checks
-- Promote specific data types (companies, documents, meta summaries)
+- Promote specific data types (products, documents, meta summaries)
 
 ## Prerequisites
 
@@ -74,7 +74,7 @@ The promotion system allows you to:
 
 Click "Get Promotion Summary" to see:
 
-- Number of companies, documents, and meta summaries in both databases
+- Number of products, documents, and meta summaries in both databases
 - Detailed breakdown of what data exists where
 
 ### 3. Dry Run
@@ -88,7 +88,7 @@ Before performing actual promotions, always run a dry run to:
 Available dry run options:
 
 - **All Data**: Complete promotion simulation
-- **Companies Only**: Only company data
+- **Products Only**: Only product data
 - **Documents Only**: Only document data
 
 ### 4. Execute Promotion
@@ -98,7 +98,7 @@ Available dry run options:
 1. **Confirm**: Check the confirmation checkbox
 2. **Choose Promotion Type**:
    - **All Data**: Complete promotion
-   - **Companies Only**: Only company data
+   - **Products Only**: Only product data
    - **Documents Only**: Only document data
 
 ## Promotion Behavior
@@ -111,9 +111,9 @@ Available dry run options:
 
 ### What Gets Promoted
 
-- **Companies**: Company information, domains, categories
+- **Products**: Product information, domains, categories
 - **Documents**: Document content, metadata, analysis
-- **Meta Summaries**: Company-level document summaries
+- **Meta Summaries**: Product-level document summaries
 
 ### Promotion Process
 
@@ -129,7 +129,7 @@ The promotion system provides these REST API endpoints:
 - `GET /promotion/summary` - Get promotion summary
 - `POST /promotion/dry-run` - Run dry run promotion
 - `POST /promotion/execute` - Execute actual promotion
-- `POST /promotion/promote-companies` - Promote companies only
+- `POST /promotion/promote-products` - Promote products only
 - `POST /promotion/promote-documents` - Promote documents only
 - `POST /promotion/promote-meta-summaries` - Promote meta summaries only
 

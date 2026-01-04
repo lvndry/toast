@@ -148,7 +148,7 @@ class DocumentService:
     async def store_document(self, db: AgnosticDatabase, document: Document) -> Document:
         """Store a document in the database.
 
-        Includes business logic: invalidates company meta-summary cache.
+        Includes business logic: invalidates product meta-summary cache.
 
         Args:
             db: Database instance
@@ -183,7 +183,7 @@ class DocumentService:
     async def update_document(self, db: AgnosticDatabase, document: Document) -> bool:
         """Update a document in the database.
 
-        Includes business logic: invalidates company meta-summary cache.
+        Includes business logic: invalidates product meta-summary cache.
 
         Args:
             db: Database instance
@@ -219,7 +219,7 @@ class DocumentService:
     async def delete_document(self, db: AgnosticDatabase, document_id: str) -> bool:
         """Delete a document from the database.
 
-        Includes business logic: invalidates company meta-summary cache.
+        Includes business logic: invalidates product meta-summary cache.
 
         Args:
             db: Database instance

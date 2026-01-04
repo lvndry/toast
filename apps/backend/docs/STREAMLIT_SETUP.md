@@ -106,11 +106,11 @@ PRODUCTION_MONGO_URI = "mongodb+srv://prod-username:prod-password@prod-cluster.m
    - View promotion summaries and status
    - Execute bulk data operations
 
-2. **Company Management**
+2. **Product Management**
 
-   - Create and manage company profiles
-   - View company data and analytics
-   - Update company information
+   - Create and manage product profiles
+   - View product data and analytics
+   - Update product information
 
 3. **Document Processing**
 

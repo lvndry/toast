@@ -4,10 +4,10 @@ const faq = {
     "We're here to help you understand how Clausea works and answer any questions you may have.",
   items: [
     {
-      q: "How many companies can I search per month?",
+      q: "How many products can I search per month?",
       a: (
         <>
-          The free plan includes 100 company searches per month. Pro plan
+          The free plan includes 100 product searches per month. Pro plan
           includes 100 searches, and Enterprise plan includes unlimited
           searches. <br /> You can upgrade your plan at any time.
         </>
@@ -15,7 +15,7 @@ const faq = {
     },
     {
       q: "What types of legal documents do you analyze?",
-      a: "We analyze terms of service, privacy policies, user agreements, and other legal documents from thousands of companies. Our AI provides clear summaries and answers to your specific questions about these documents.",
+          a: "We analyze terms of service, privacy policies, user agreements, and other legal documents from thousands of products. Our AI provides clear summaries and answers to your specific questions about these documents.",
     },
     {
       q: "How accurate is the AI analysis?",

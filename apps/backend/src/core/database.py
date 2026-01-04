@@ -36,7 +36,7 @@ async def get_db() -> AsyncIterator[AgnosticDatabase]:
     Usage:
         async with get_db() as db:
             # Use db for queries
-            result = await db.companies.find_one({"slug": "example"})
+            result = await db.products.find_one({"slug": "example"})
 
     Yields:
         AgnosticDatabase: MongoDB database instance bound to current event loop

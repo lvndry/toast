@@ -119,7 +119,7 @@ class MetaSummary(BaseModel):
         None  # Structured: who gets data, what, and why
     )
     your_rights: list[str] | None = (
-        None  # 8-12 rights with explicit instructions: ["Access your data (email, profile) via account.company.com/privacy", ...]
+        None  # 8-12 rights with explicit instructions: ["Access your data (email, profile) via account.organization.com/privacy", ...]
     )
     dangers: list[str] | None = None  # 5-7 specific concerns with details
     benefits: list[str] | None = None  # 5-7 specific positive privacy protections
@@ -199,7 +199,7 @@ class ProductOverview(BaseModel):
 
     # User Empowerment
     your_rights: list[str] | None = (
-        None  # 8-12 rights with explicit instructions: ["Access your data (email, profile) via account.company.com/privacy", ...]
+        None  # 8-12 rights with explicit instructions: ["Access your data (email, profile) via account.organization.com/privacy", ...]
     )
     dangers: list[str] | None = None  # 5-7 specific concerns with details
     benefits: list[str] | None = None  # 5-7 specific positive privacy protections

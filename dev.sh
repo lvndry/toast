@@ -29,19 +29,63 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Function to kill process and its children
+kill_process_tree() {
+    local pid=$1
+    if [ -z "$pid" ]; then
+        return
+    fi
+
+    # Try graceful shutdown first
+    if kill -0 $pid 2>/dev/null; then
+        # Send TERM signal to the process group (negative PID kills the group)
+        kill -TERM -$pid 2>/dev/null || kill -TERM $pid 2>/dev/null || true
+
+        # Wait a bit for graceful shutdown
+        sleep 2
+
+        # Force kill if still running
+        if kill -0 $pid 2>/dev/null; then
+            kill -KILL -$pid 2>/dev/null || kill -KILL $pid 2>/dev/null || true
+        fi
+    fi
+}
+
 # Function to cleanup background processes
 cleanup() {
     print_status "Shutting down development servers..."
 
-    # Kill background processes
+    # Kill backend process tree
     if [ ! -z "$BACKEND_PID" ]; then
-        kill $BACKEND_PID 2>/dev/null || true
-        print_status "Backend server stopped"
+        print_status "Stopping backend server (PID: $BACKEND_PID)..."
+        kill_process_tree $BACKEND_PID
     fi
 
+    # Kill frontend process tree
     if [ ! -z "$FRONTEND_PID" ]; then
-        kill $FRONTEND_PID 2>/dev/null || true
-        print_status "Frontend server stopped"
+        print_status "Stopping frontend server (PID: $FRONTEND_PID)..."
+        kill_process_tree $FRONTEND_PID
+    fi
+
+    # Fallback: Kill processes by port (in case PIDs weren't captured correctly)
+    print_status "Cleaning up any remaining processes on ports 8000 and 3000..."
+
+    # Kill processes on port 8000 (backend)
+    if command -v lsof &> /dev/null; then
+        lsof -ti:8000 | xargs kill -TERM 2>/dev/null || true
+        sleep 1
+        lsof -ti:8000 | xargs kill -KILL 2>/dev/null || true
+    elif command -v fuser &> /dev/null; then
+        fuser -k 8000/tcp 2>/dev/null || true
+    fi
+
+    # Kill processes on port 3000 (frontend)
+    if command -v lsof &> /dev/null; then
+        lsof -ti:3000 | xargs kill -TERM 2>/dev/null || true
+        sleep 1
+        lsof -ti:3000 | xargs kill -KILL 2>/dev/null || true
+    elif command -v fuser &> /dev/null; then
+        fuser -k 3000/tcp 2>/dev/null || true
     fi
 
     # Remove temporary files
@@ -113,8 +157,9 @@ start_backend() {
     print_status "Starting backend server..."
     cd apps/backend
 
-    # Start backend server using uv
-    uv run python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
+    # Start backend server using uv in a new process group
+    # Using setsid or starting in subshell to ensure process group creation
+    (uv run python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload) &
     BACKEND_PID=$!
     echo $BACKEND_PID > /tmp/clausea_backend.pid
 
@@ -127,8 +172,8 @@ start_frontend() {
     print_status "Starting frontend server..."
     cd apps/frontend
 
-    # Start Next.js development server
-    bun run dev &
+    # Start Next.js development server in a new process group
+    (bun run dev) &
     FRONTEND_PID=$!
     echo $FRONTEND_PID > /tmp/clausea_frontend.pid
 

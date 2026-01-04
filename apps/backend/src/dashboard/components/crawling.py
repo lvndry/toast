@@ -504,19 +504,19 @@ def show_crawling() -> None:
             if crawl_key in st.session_state:
                 del st.session_state[crawl_key]
 
-    # All companies crawling section
+    # All products crawling section
     st.write("---")
-    st.subheader("Crawl All Companies")
+    st.subheader("Crawl All Products")
 
     st.info(f"""
     **All Products ({len(products_with_urls)} products):**
-    • Crawl all companies with crawl URLs configured
-    • Process up to 2 companies in parallel
+    • Crawl all products with crawl URLs configured
+    • Process up to 2 products in parallel
     • This process may take a long time
     """)
 
-    # Start crawling all companies button
-    if st.button("🚀 Crawl All Companies", type="secondary", key="start_crawl_all_btn"):
+    # Start crawling all products button
+    if st.button("🚀 Crawl All Products", type="secondary", key="start_crawl_all_btn"):
         # Start crawling all products
         with st.status(
             f"🕷️ Crawling {len(products_with_urls)} products... This may take a very long time.",
@@ -568,11 +568,11 @@ def show_crawling() -> None:
         else:
             st.error("Crawling operation failed to return results.")
 
-    # Back to companies button
+    # Back to products button
     st.write("---")
-    if st.button("← Back to Companies", key="back_to_companies"):
+    if st.button("← Back to Products", key="back_to_products"):
         # Clear crawl session state and navigate back
-        if "selected_company_for_crawl" in st.session_state:
-            del st.session_state["selected_company_for_crawl"]
-        st.session_state["current_page"] = "view_companies"
+        if "selected_product_for_crawl" in st.session_state:
+            del st.session_state["selected_product_for_crawl"]
+        st.session_state["current_page"] = "view_products"
         st.rerun()

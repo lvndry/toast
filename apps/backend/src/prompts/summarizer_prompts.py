@@ -190,7 +190,7 @@ Beyond scores, extract actionable structured fields:
 ## Style Guidelines:
 
 - Use plain language, avoid legal jargon
-- Refer to organization by name or "the company" (never "they/them")
+- Refer to organization by name or "the organization" (never "they/them")
 - Assume reader is privacy-aware but not a lawyer
 - Structure with clear paragraphs
 - If information is missing/unclear, explicitly state this
@@ -258,16 +258,16 @@ Create a warm, accessible summary that makes anyone feel informed and empowered.
 
 4. **Balanced Assessment - The Full Picture**: Clearly highlight BOTH:
    - **Dangers (5-7 items)**: Specific concerning practices with details AND what they mean for users
-     - Example: "Your personal data (email, browsing history) is sold to third-party advertisers. This means companies you've never heard of can target you with ads, and you might receive more spam emails"
+     - Example: "Your personal data (email, browsing history) is sold to third-party advertisers. This means organizations you've never heard of can target you with ads, and you might receive more spam emails"
      - NOT: "Data sharing concerns"
      - Always explain the user impact: "This affects you because..."
    - **Benefits (5-7 items)**: Specific positive privacy protections AND why they matter
-     - Example: "End-to-end encryption means your messages are scrambled so only you and the person you're talking to can read them - even the company can't see what you're saying. This protects your private conversations"
+     - Example: "End-to-end encryption means your messages are scrambled so only you and the person you're talking to can read them - even the organization can't see what you're saying. This protects your private conversations"
      - NOT: "Good privacy practices"
      - Always explain why it's good: "This protects you because..."
 
 5. **Complete Summary - A Friendly Overview**: Write a comprehensive 3-5 paragraph summary that:
-   - **Starts with document count**: "We analyzed [X] documents for [Company Name]: [list document types]"
+   - **Starts with document count**: "We analyzed [X] documents for [Product Name]: [list document types]"
    - Explains the complete data collection and usage picture in everyday language
    - Highlights both positive and concerning aspects with real-world context
    - Provides context for the risk score and verdict in terms anyone can understand
@@ -351,10 +351,10 @@ Create a warm, accessible summary that makes anyone feel informed and empowered.
 - Include what data is affected, the risk, and the real-world impact
 - Always explain: "This affects you because..." or "This means for you..."
 - Examples:
-  - "Your personal data (email, browsing history, location) is sold to third-party advertisers for targeted advertising, and there's no easy way to opt out. This means you'll see ads based on your private browsing, and companies you don't know will have your information"
+  - "Your personal data (email, browsing history, location) is sold to third-party advertisers for targeted advertising, and there's no easy way to opt out. This means you'll see ads based on your private browsing, and organizations you don't know will have your information"
   - "There's no clear statement about how long your data is stored - this means your information could be kept indefinitely, even after you stop using the service, which limits your control over your digital footprint"
-  - "Your data is shared with many third parties (analytics companies, advertisers, data brokers) without asking your permission first. This means your information spreads to companies you've never interacted with, increasing your exposure to data breaches and unwanted marketing"
-  - "Location tracking is turned on automatically when you use the app, and it's hard to turn off. This means the company knows where you are throughout your day, which can feel invasive and could be used to build a detailed picture of your daily routines"
+  - "Your data is shared with many third parties (analytics organizations, advertisers, data brokers) without asking your permission first. This means your information spreads to organizations you've never interacted with, increasing your exposure to data breaches and unwanted marketing"
+  - "Location tracking is turned on automatically when you use the app, and it's hard to turn off. This means the organization knows where you are throughout your day, which can feel invasive and could be used to build a detailed picture of your daily routines"
 - Order by severity (most concerning first)
 - Make it relatable: Use "you" and "your" to connect with the reader
 
@@ -363,9 +363,9 @@ Create a warm, accessible summary that makes anyone feel informed and empowered.
 - Include what makes it good, how it protects users, AND why it matters
 - Always explain: "This protects you because..." or "This is good for you because..."
 - Examples:
-  - "End-to-end encryption protects all your messages - this means your private conversations stay private, even if someone hacks the company's servers, giving you peace of mind about sensitive communications"
+  - "End-to-end encryption protects all your messages - this means your private conversations stay private, even if someone hacks the organization's servers, giving you peace of mind about sensitive communications"
   - "You have clear, easy-to-find privacy controls in your account settings where you can control exactly what data is shared. This gives you real power over your information and lets you customize your privacy to match your comfort level"
-  - "The company follows GDPR rules, which means you have strong legal rights to access, delete, or export your data. This is important because it means you're protected by law, not just company policy, so you have real recourse if something goes wrong"
+  - "The organization follows GDPR rules, which means you have strong legal rights to access, delete, or export your data. This is important because it means you're protected by law, not just organizational policy, so you have real recourse if something goes wrong"
   - "Strong security measures like two-factor authentication and regular security checks protect your account from hackers. This means your personal information is less likely to be stolen, reducing your risk of identity theft or fraud"
   - "They show you exactly what data they collect in a privacy dashboard - this transparency helps you understand and control your information, making you feel more informed and in charge"
 - Order by importance (most valuable first)
@@ -384,14 +384,14 @@ Create a warm, accessible summary that makes anyone feel informed and empowered.
 
 ### summary (comprehensive 3-5 paragraphs, warm and explanatory):
 - Paragraph 1: Start with document count and overview
-  - "We analyzed [X] documents for [Company Name]: [list document types]. Here's what you need to know about how they handle your information..."
+  - "We analyzed [X] documents for [Product Name]: [list document types]. Here's what you need to know about how they handle your information..."
   - Give an overall assessment in plain terms: "This service [explain verdict in everyday language - e.g., 'collects quite a bit of your data' or 'is pretty respectful of your privacy']"
 - Paragraph 2: Complete data collection picture - explained
-  - "The company collects [list key data types]. Here's what this means for you: [explain real-world impact]. They use this data for [list main purposes], which means [explain what each purpose means in practice]..."
+  - "The organization collects [list key data types]. Here's what this means for you: [explain real-world impact]. They use this data for [list main purposes], which means [explain what each purpose means in practice]..."
 - Paragraph 3: User rights and control - made accessible
   - "The good news is you have several rights here: [list key rights]. Here's why this matters: [explain why each right is valuable]. To exercise these rights, [explain how in simple steps]..."
 - Paragraph 4: Key concerns and benefits (balanced, with explanations)
-  - "There are some things to be aware of: [list top 3 dangers with explanations of impact]. However, the company also does some things well: [list top 3 benefits with explanations of why they matter]..."
+  - "There are some things to be aware of: [list top 3 dangers with explanations of impact]. However, the organization also does some things well: [list top 3 benefits with explanations of why they matter]..."
 - Paragraph 5: Overall verdict and recommendations - actionable
   - "Overall, this service [verdict explanation in plain terms - e.g., 'is pretty standard for the industry' or 'goes above and beyond to protect your privacy']. Here's what you should do: [top 2-3 recommended actions with brief explanations of why each matters]..."
 
@@ -418,7 +418,7 @@ Apply the same 0-10 scoring rubrics, but:
 - **Write like a helpful friend, not a legal document**: Use warm, conversational language that makes people feel informed, not intimidated
 - Use plain language, avoid legal jargon - if you must use a technical term, explain it immediately
 - Be explicit and specific - never use generic terms, and always explain what they mean
-- Refer to organization by name or "the company" (never "they/them")
+- Refer to organization by name or "the organization" (never "they/them")
 - **Assume readers have varying levels of privacy knowledge**: Some might be completely new to these concepts - explain everything
 - Structure with clear paragraphs and bullet points
 - If information is missing/unclear, explicitly state this AND explain why that matters
@@ -681,7 +681,7 @@ For EACH applicable regulation (GDPR, CCPA, PIPEDA, LGPD), provide:
 
 1. **Compliance Score** (0-10) with justification
 2. **Status**: Compliant / Partially Compliant / Non-Compliant / Unknown
-3. **Strengths**: What the company does well (3-5 items)
+3. **Strengths**: What the organization does well (3-5 items)
 4. **Gaps**: What's missing or unclear (3-5 items)
 5. **Violations**: Specific violations with:
    - Requirement (e.g., "GDPR Article 15 - Right of access")
@@ -754,7 +754,7 @@ Categorize ALL identified risks, **considering document scope**:
 - **Global policies** (applying to all products/services) should have risks weighted MORE heavily than product-specific policies
 - A risk in a global privacy policy affects all users, while the same risk in a product-specific policy affects only users of that product
 - When ranking risks, prioritize:
-  1. Risks in global/company-wide documents (higher priority)
+  1. Risks in global/organization-wide documents (higher priority)
   2. Risks in product-specific documents (lower priority, but still important)
   3. Risks in region-specific documents (context-dependent priority)
 
@@ -950,7 +950,7 @@ AGGREGATE_DEEP_ANALYSIS_PROMPT = f"""You are a world-class legal and compliance 
 
 ## Core Mandate:
 
-Synthesize the provided document analyses into a unified company-level assessment. Focus on cross-document contradictions, overall compliance, and business impact.
+Synthesize the provided document analyses into a unified product-level assessment. Focus on cross-document contradictions, overall compliance, and business impact.
 
 ## Analysis Goals:
 
@@ -983,7 +983,7 @@ You will be provided with:
 ### Risk Prioritization:
 - Categorize risks into Critical, High, Medium, Low
 - **CRITICAL: Consider document scope when prioritizing risks**
-  - Global/company-wide documents: Risks affect all users → higher priority
+  - Global/organization-wide documents: Risks affect all users → higher priority
   - Product-specific documents: Risks affect only specific product users → lower priority (but still important)
   - Region-specific documents: Context-dependent priority based on user base
   - When the same risk appears in multiple documents, prioritize based on scope (global > product-specific)

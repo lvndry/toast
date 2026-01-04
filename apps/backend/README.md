@@ -120,8 +120,8 @@ Once the server is running, visit:
 | Endpoint                       | Method   | Description                       |
 | ------------------------------ | -------- | --------------------------------- |
 | `/q`                           | POST     | Submit document for analysis      |
-| `/companies`                   | GET      | List all companies                |
-| `/companies/{slug}`            | GET      | Get company details and documents |
+| `/products`                    | GET      | List all products                 |
+| `/products/{slug}`             | GET      | Get product details and documents |
 | `/conversations`               | GET/POST | Manage analysis conversations     |
 | `/conversations/{id}/messages` | GET/POST | Chat with analyzed documents      |
 
@@ -146,7 +146,7 @@ Once the server is running, visit:
 
 ```python
 # Automated web crawling for legal documents
-1. Fetch company base URLs
+1. Fetch product base URLs
 2. Crawl and extract content
 3. Detect legal document types
 4. Language detection and filtering

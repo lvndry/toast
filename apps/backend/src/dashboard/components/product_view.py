@@ -118,7 +118,7 @@ def show_edit_form(product: Product) -> None:
                 success = run_async_with_retry(update_product_isolated(updated_product))
 
                 if success:
-                    st.success(f"Company '{name}' updated successfully!")
+                    st.success(f"Product '{name}' updated successfully!")
                     # Clear the edit state
                     if f"editing_product_{product.id}" in st.session_state:
                         del st.session_state[f"editing_product_{product.id}"]
@@ -127,7 +127,7 @@ def show_edit_form(product: Product) -> None:
                     st.error("Failed to update product. Please try again.")
 
             except Exception as e:
-                st.error(f"Error updating company: {str(e)}")
+                st.error(f"Error updating product: {str(e)}")
 
 
 def show_delete_confirmation(product: Product) -> None:
@@ -167,7 +167,7 @@ def show_delete_confirmation(product: Product) -> None:
             st.rerun()
 
 
-def show_company_view() -> None:
+def show_product_view() -> None:
     st.title("All Products")
 
     # Add a refresh button
@@ -426,3 +426,4 @@ def show_company_view() -> None:
         st.write("• Check that your MongoDB connection is working")
         st.write("• Verify your environment variables are set correctly")
         st.write("• Try restarting the Streamlit application")
+

@@ -99,7 +99,7 @@ For each applicable regulation (GDPR, CCPA, PIPEDA, LGPD, etc.):
 
 - **Compliance Score**: 0-10 with justification
 - **Status**: Compliant / Partially Compliant / Non-Compliant / Unknown
-- **Strengths**: What the company does well
+- **Strengths**: What the organization does well
 - **Gaps**: Specific violations or missing requirements
 - **Remediation Recommendations**: How to fix compliance issues
 
@@ -347,14 +347,14 @@ class RiskPrioritization(BaseModel):
 
 ### Phase 4: API & Frontend
 
-1. Add `/companies/{slug}/deep-analysis` route
+1. Add `/products/{slug}/deep-analysis` route
 2. Update frontend to display deep analysis
 3. Add document viewer with annotations
 4. Add export functionality
 
 ## Performance Considerations
 
-- **Generation Time**: Deep analysis may take 30-60 seconds for companies with multiple documents
+- **Generation Time**: Deep analysis may take 30-60 seconds for products with multiple documents
 - **Caching**: Cache deep analysis results (invalidate when documents change)
 - **Async Processing**: Consider async generation with status updates for large analyses
 - **Token Usage**: Deep analysis will use more LLM tokens - optimize prompts and use appropriate models

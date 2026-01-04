@@ -9,7 +9,7 @@ const pricing = {
       price: "Free",
       features: [
         {
-          title: "100 company searches per month",
+          title: "100 product searches per month",
           dynamicKey: "monthly_limit",
         },
         {
@@ -44,7 +44,7 @@ const pricing = {
       isRecommended: true,
       features: [
         {
-          title: "100 company searches per month", // This will be replaced dynamically
+          title: "100 product searches per month", // This will be replaced dynamically
           dynamicKey: "monthly_limit",
         },
         {
@@ -85,7 +85,7 @@ const pricing = {
       pricePeriod: "/month",
       features: [
         {
-          title: "Unlimited company searches", // This will be replaced dynamically
+          title: "Unlimited product searches", // This will be replaced dynamically
           dynamicKey: "monthly_limit",
         },
         {

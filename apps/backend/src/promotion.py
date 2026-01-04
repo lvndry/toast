@@ -100,22 +100,22 @@ class PromotionManager:
                 "collection": collection_name,
             }
 
-    async def promote_companies(self, dry_run: bool = True) -> dict[str, Any]:
-        """Promote companies from local to production."""
+    async def promote_products(self, dry_run: bool = True) -> dict[str, Any]:
+        """Promote products from local to production."""
         try:
             if self.local_db is None or self.production_db is None:
                 raise ValueError("Database connections not established")
 
-            companies = await self.local_db.companies.find().to_list(length=None)
+            products = await self.local_db.products.find().to_list(length=None)
             promoted_count = 0
             skipped_count = 0
             errors = []
 
-            for company_data in companies:
+            for product_data in products:
                 try:
-                    # Check if company already exists in production
-                    existing = await self.production_db.companies.find_one(
-                        {"id": company_data["id"]}
+                    # Check if product already exists in production
+                    existing = await self.production_db.products.find_one(
+                        {"id": product_data["id"]}
                     )
 
                     if existing:
@@ -123,12 +123,12 @@ class PromotionManager:
                         continue
 
                     if not dry_run:
-                        await self.production_db.companies.insert_one(company_data)
+                        await self.production_db.products.insert_one(product_data)
                     promoted_count += 1
 
                 except Exception as e:
                     errors.append(
-                        f"Error promoting company {company_data.get('id', 'unknown')}: {str(e)}"
+                        f"Error promoting product {product_data.get('id', 'unknown')}: {str(e)}"
                     )
 
             return {
@@ -139,7 +139,7 @@ class PromotionManager:
             }
 
         except Exception as e:
-            logger.error(f"Error promoting companies: {e}")
+            logger.error(f"Error promoting products: {e}")
             return {
                 "promoted": 0,
                 "skipped": 0,
@@ -320,7 +320,7 @@ class PromotionManager:
     async def get_promotion_summary(self) -> dict[str, Any]:
         """Get a summary of all collections in both databases."""
         collections = [
-            "companies",
+            "products",
             "documents",
             "users",
             "conversations",
@@ -348,14 +348,14 @@ class PromotionManager:
             await self.connect_databases()
 
             summary = await self.get_promotion_summary()
-            companies_result = await self.promote_companies(dry_run)
+            products_result = await self.promote_products(dry_run)
             documents_result = await self.promote_documents(dry_run)
             meta_summaries_result = await self.promote_meta_summaries(dry_run)
             users_result = await self.promote_users_to_tier_system(dry_run)
 
             return {
                 "summary": summary,
-                "companies": companies_result,
+                "products": products_result,
                 "documents": documents_result,
                 "meta_summaries": meta_summaries_result,
                 "users": users_result,

@@ -47,7 +47,7 @@ export default function CheckoutSuccessPage() {
             href="/products"
             className="block rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-3 font-semibold text-white transition-colors hover:from-purple-700 hover:to-pink-700"
           >
-            Browse Companies
+            Browse Products
           </Link>
 
           <Link

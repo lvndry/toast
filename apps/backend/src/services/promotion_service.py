@@ -31,11 +31,11 @@ async def execute(dry_run: bool) -> dict[str, Any] | None:
     return result
 
 
-async def promote_companies(dry_run: bool) -> dict[str, Any]:
-    """Promote companies."""
+async def promote_products(dry_run: bool) -> dict[str, Any]:
+    """Promote products."""
     promotion_manager = PromotionManager()
     await promotion_manager.connect_databases()
-    result: dict[str, Any] = await promotion_manager.promote_companies(dry_run=dry_run)
+    result: dict[str, Any] = await promotion_manager.promote_products(dry_run=dry_run)
     await promotion_manager.close_connections()
     return result
 
