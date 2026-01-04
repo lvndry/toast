@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.core.config import config
+from src.core.database import get_db
+from src.core.db_indexes import ensure_all_indexes
 from src.core.logging import setup_logging
 from src.core.middleware import AuthMiddleware
 from src.routes import conversations, list, paddle, products, promotion, q, subscription
@@ -14,7 +16,10 @@ setup_logging()
 
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application lifecycle events."""
-    # Startup
+    # Startup: Ensure database indexes are created
+    async with get_db() as db:
+        await ensure_all_indexes(db)
+
     yield
 
 

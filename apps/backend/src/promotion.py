@@ -21,6 +21,10 @@ logger = get_logger(__name__)
 class PromotionManager:
     """
     This class is used to promote data from the local database to the production database.
+
+    Promotion operations completely replace production collections with local data,
+    not merging or diffing. All existing data in production collections is deleted
+    before inserting the local data.
     """
 
     def __init__(self) -> None:
@@ -101,39 +105,44 @@ class PromotionManager:
             }
 
     async def promote_products(self, dry_run: bool = True) -> dict[str, Any]:
-        """Promote products from local to production."""
+        """Promote products from local to production by completely replacing production collection."""
         try:
             if self.local_db is None or self.production_db is None:
                 raise ValueError("Database connections not established")
 
             products = await self.local_db.products.find().to_list(length=None)
-            promoted_count = 0
-            skipped_count = 0
+            local_count = len(products)
+            deleted_count = 0
+            inserted_count = 0
             errors = []
 
-            for product_data in products:
-                try:
-                    # Check if product already exists in production
-                    existing = await self.production_db.products.find_one(
-                        {"id": product_data["id"]}
-                    )
+            if not dry_run:
+                # Delete all existing products in production
+                delete_result = await self.production_db.products.delete_many({})
+                deleted_count = delete_result.deleted_count
+                logger.info(f"Deleted {deleted_count} products from production")
 
-                    if existing:
-                        skipped_count += 1
-                        continue
-
-                    if not dry_run:
-                        await self.production_db.products.insert_one(product_data)
-                    promoted_count += 1
-
-                except Exception as e:
-                    errors.append(
-                        f"Error promoting product {product_data.get('id', 'unknown')}: {str(e)}"
-                    )
+                # Insert all products from local
+                if products:
+                    try:
+                        await self.production_db.products.insert_many(products)
+                        inserted_count = len(products)
+                        logger.info(f"Inserted {inserted_count} products into production")
+                    except Exception as e:
+                        errors.append(f"Error inserting products: {str(e)}")
+            else:
+                # In dry run, just count what would be deleted
+                production_count = await self.production_db.products.count_documents({})
+                deleted_count = production_count
+                inserted_count = local_count
+                logger.info(
+                    f"DRY RUN: Would delete {deleted_count} products and insert {inserted_count} products"
+                )
 
             return {
-                "promoted": promoted_count,
-                "skipped": skipped_count,
+                "local_count": local_count,
+                "deleted_count": deleted_count,
+                "inserted_count": inserted_count,
                 "errors": errors,
                 "dry_run": dry_run,
             }
@@ -141,46 +150,52 @@ class PromotionManager:
         except Exception as e:
             logger.error(f"Error promoting products: {e}")
             return {
-                "promoted": 0,
-                "skipped": 0,
+                "local_count": 0,
+                "deleted_count": 0,
+                "inserted_count": 0,
                 "errors": [str(e)],
                 "dry_run": dry_run,
             }
 
     async def promote_documents(self, dry_run: bool = True) -> dict[str, Any]:
-        """Promote documents from local to production."""
+        """Promote documents from local to production by completely replacing production collection."""
         try:
             if self.local_db is None or self.production_db is None:
                 raise ValueError("Database connections not established")
 
             documents = await self.local_db.documents.find().to_list(length=None)
-            promoted_count = 0
-            skipped_count = 0
+            local_count = len(documents)
+            deleted_count = 0
+            inserted_count = 0
             errors = []
 
-            for document_data in documents:
-                try:
-                    # Check if document already exists in production
-                    existing = await self.production_db.documents.find_one(
-                        {"id": document_data["id"]}
-                    )
+            if not dry_run:
+                # Delete all existing documents in production
+                delete_result = await self.production_db.documents.delete_many({})
+                deleted_count = delete_result.deleted_count
+                logger.info(f"Deleted {deleted_count} documents from production")
 
-                    if existing:
-                        skipped_count += 1
-                        continue
-
-                    if not dry_run:
-                        await self.production_db.documents.insert_one(document_data)
-                    promoted_count += 1
-
-                except Exception as e:
-                    errors.append(
-                        f"Error promoting document {document_data.get('id', 'unknown')}: {str(e)}"
-                    )
+                # Insert all documents from local
+                if documents:
+                    try:
+                        await self.production_db.documents.insert_many(documents)
+                        inserted_count = len(documents)
+                        logger.info(f"Inserted {inserted_count} documents into production")
+                    except Exception as e:
+                        errors.append(f"Error inserting documents: {str(e)}")
+            else:
+                # In dry run, just count what would be deleted
+                production_count = await self.production_db.documents.count_documents({})
+                deleted_count = production_count
+                inserted_count = local_count
+                logger.info(
+                    f"DRY RUN: Would delete {deleted_count} documents and insert {inserted_count} documents"
+                )
 
             return {
-                "promoted": promoted_count,
-                "skipped": skipped_count,
+                "local_count": local_count,
+                "deleted_count": deleted_count,
+                "inserted_count": inserted_count,
                 "errors": errors,
                 "dry_run": dry_run,
             }
@@ -188,55 +203,62 @@ class PromotionManager:
         except Exception as e:
             logger.error(f"Error promoting documents: {e}")
             return {
-                "promoted": 0,
-                "skipped": 0,
+                "local_count": 0,
+                "deleted_count": 0,
+                "inserted_count": 0,
                 "errors": [str(e)],
                 "dry_run": dry_run,
             }
 
-    async def promote_meta_summaries(self, dry_run: bool = True) -> dict[str, Any]:
-        """Promote meta summaries from local to production."""
+    async def promote_product_overviews(self, dry_run: bool = True) -> dict[str, Any]:
+        """Promote product overviews from local to production by completely replacing production collection."""
         try:
             if self.local_db is None or self.production_db is None:
                 raise ValueError("Database connections not established")
 
-            meta_summaries = await self.local_db.meta_summaries.find().to_list(length=None)
-            promoted_count = 0
-            skipped_count = 0
+            overviews = await self.local_db.product_overviews.find().to_list(length=None)
+            local_count = len(overviews)
+            deleted_count = 0
+            inserted_count = 0
             errors = []
 
-            for meta_summary_data in meta_summaries:
-                try:
-                    # Check if meta summary already exists in production
-                    existing = await self.production_db.meta_summaries.find_one(
-                        {"product_id": meta_summary_data["product_id"]}
-                    )
+            if not dry_run:
+                # Delete all existing product overviews in production
+                delete_result = await self.production_db.product_overviews.delete_many({})
+                deleted_count = delete_result.deleted_count
+                logger.info(f"Deleted {deleted_count} product overviews from production")
 
-                    if existing:
-                        skipped_count += 1
-                        continue
-
-                    if not dry_run:
-                        await self.production_db.meta_summaries.insert_one(meta_summary_data)
-                    promoted_count += 1
-
-                except Exception as e:
-                    errors.append(
-                        f"Error promoting meta summary for product {meta_summary_data.get('product_id', 'unknown')}: {str(e)}"
-                    )
+                # Insert all product overviews from local
+                if overviews:
+                    try:
+                        await self.production_db.product_overviews.insert_many(overviews)
+                        inserted_count = len(overviews)
+                        logger.info(f"Inserted {inserted_count} product overviews into production")
+                    except Exception as e:
+                        errors.append(f"Error inserting product overviews: {str(e)}")
+            else:
+                # In dry run, just count what would be deleted
+                production_count = await self.production_db.product_overviews.count_documents({})
+                deleted_count = production_count
+                inserted_count = local_count
+                logger.info(
+                    f"DRY RUN: Would delete {deleted_count} product overviews and insert {inserted_count} product overviews"
+                )
 
             return {
-                "promoted": promoted_count,
-                "skipped": skipped_count,
+                "local_count": local_count,
+                "deleted_count": deleted_count,
+                "inserted_count": inserted_count,
                 "errors": errors,
                 "dry_run": dry_run,
             }
 
         except Exception as e:
-            logger.error(f"Error promoting meta summaries: {e}")
+            logger.error(f"Error promoting product overviews: {e}")
             return {
-                "promoted": 0,
-                "skipped": 0,
+                "local_count": 0,
+                "deleted_count": 0,
+                "inserted_count": 0,
                 "errors": [str(e)],
                 "dry_run": dry_run,
             }
@@ -324,7 +346,7 @@ class PromotionManager:
             "documents",
             "users",
             "conversations",
-            "meta_summaries",
+            "product_overviews",
         ]
         stats = {}
 
@@ -350,14 +372,14 @@ class PromotionManager:
             summary = await self.get_promotion_summary()
             products_result = await self.promote_products(dry_run)
             documents_result = await self.promote_documents(dry_run)
-            meta_summaries_result = await self.promote_meta_summaries(dry_run)
+            product_overviews_result = await self.promote_product_overviews(dry_run)
             users_result = await self.promote_users_to_tier_system(dry_run)
 
             return {
                 "summary": summary,
                 "products": products_result,
                 "documents": documents_result,
-                "meta_summaries": meta_summaries_result,
+                "product_overviews": product_overviews_result,
                 "users": users_result,
                 "dry_run": dry_run,
                 "timestamp": datetime.now().isoformat(),

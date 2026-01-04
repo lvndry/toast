@@ -163,12 +163,12 @@ class DocumentService:
         try:
             result = await self._document_repo.save(db, document)
 
-            # Business logic: Invalidate meta-summary cache for this product
+            # Business logic: Invalidate product overview cache for this product
             try:
                 product = await self._product_repo.find_by_id(db, document.product_id)
                 if product:
-                    await self._product_repo.delete_meta_summary(db, product.slug)
-                    logger.debug(f"Deleted meta-summary for product {product.slug}")
+                    await self._product_repo.delete_product_overview(db, product.slug)
+                    logger.debug(f"Deleted product overview for product {product.slug}")
             except Exception as cache_error:
                 # Don't fail document storage if cache invalidation fails
                 logger.warning(
@@ -199,12 +199,12 @@ class DocumentService:
             success = await self._document_repo.update(db, document)
 
             if success:
-                # Business logic: Invalidate meta-summary cache for this product
+                # Business logic: Invalidate product overview cache for this product
                 try:
                     product = await self._product_repo.find_by_id(db, document.product_id)
                     if product:
-                        await self._product_repo.delete_meta_summary(db, product.slug)
-                        logger.debug(f"Deleted meta-summary for product {product.slug}")
+                        await self._product_repo.delete_product_overview(db, product.slug)
+                        logger.debug(f"Deleted product overview for product {product.slug}")
                 except Exception as cache_error:
                     # Don't fail document update if cache invalidation fails
                     logger.warning(
@@ -239,12 +239,12 @@ class DocumentService:
             success = await self._document_repo.delete(db, document_id)
 
             if success and product_id:
-                # Business logic: Invalidate meta-summary cache for this product
+                # Business logic: Invalidate product overview cache for this product
                 try:
                     product = await self._product_repo.find_by_id(db, product_id)
                     if product:
-                        await self._product_repo.delete_meta_summary(db, product.slug)
-                        logger.debug(f"Deleted meta-summary for product {product.slug}")
+                        await self._product_repo.delete_product_overview(db, product.slug)
+                        logger.debug(f"Deleted product overview for product {product.slug}")
                 except Exception as cache_error:
                     # Don't fail document deletion if cache invalidation fails
                     logger.warning(

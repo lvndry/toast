@@ -97,68 +97,57 @@ class ProductRepository(BaseRepository):
         return [Product(**product_data) for product_data in products_data]
 
     # ============================================================================
-    # Meta-Summary Storage Operations
+    # Product Overview Storage Operations
     # ============================================================================
 
-    async def get_meta_summary(
+    async def get_product_overview(
         self, db: AgnosticDatabase, product_slug: str
     ) -> dict[str, Any] | None:
-        """Get the stored meta-summary data for a product.
+        """Get the stored product overview data for a product.
 
         Args:
             db: Database instance
             product_slug: Product slug
 
         Returns:
-            Dictionary with 'meta_summary' and 'document_signature' keys, or None
+            Dictionary with 'overview' key, or None
         """
-        stored_data = await db.meta_summaries.find_one({"product_slug": product_slug})
-        if not stored_data:
-            return None
+        stored_data = await db.product_overviews.find_one({"product_slug": product_slug})
+        return {"overview": stored_data} if stored_data else None
 
-        return {
-            "meta_summary": stored_data,
-            "document_signature": stored_data.get("document_signature"),
-        }
-
-    async def save_meta_summary(
+    async def save_product_overview(
         self,
         db: AgnosticDatabase,
         product_slug: str,
         meta_summary: MetaSummary,
-        document_signature: str,
     ) -> None:
-        """Save the meta-summary to the database with document signature.
+        """Save the product overview payload to the database.
 
         Args:
             db: Database instance
             product_slug: Product slug
-            meta_summary: MetaSummary object to save
-            document_signature: Hash signature of all document contents
+            meta_summary: Overview payload (MetaSummary shape)
         """
         summary_data = meta_summary.model_dump()
         summary_data["product_slug"] = product_slug
-        summary_data["document_signature"] = document_signature
         summary_data["updated_at"] = datetime.now().isoformat()
 
-        await db.meta_summaries.update_one(
+        await db.product_overviews.update_one(
             {"product_slug": product_slug},
             {"$set": summary_data},
             upsert=True,
         )
-        logger.debug(
-            f"Saved meta-summary for {product_slug} with signature {document_signature[:16]}..."
-        )
+        logger.debug(f"Saved product overview for {product_slug}")
 
-    async def delete_meta_summary(self, db: AgnosticDatabase, product_slug: str) -> None:
-        """Delete the stored meta-summary for a product.
+    async def delete_product_overview(self, db: AgnosticDatabase, product_slug: str) -> None:
+        """Delete the stored product overview for a product.
 
         Args:
             db: Database instance
             product_slug: Product slug
         """
-        await db.meta_summaries.delete_one({"product_slug": product_slug})
-        logger.debug(f"Deleted meta-summary for {product_slug}")
+        await db.product_overviews.delete_one({"product_slug": product_slug})
+        logger.debug(f"Deleted product overview for {product_slug}")
 
     # ============================================================================
     # Deep Analysis Storage Operations

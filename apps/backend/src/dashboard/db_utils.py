@@ -30,9 +30,7 @@ def get_database_name() -> str:
                 logger.info(f"Extracted database name '{db_name}' from MongoDB URI")
                 return db_name
 
-    # Default fallback
-    # TODO: Change to clausea
-    return "toast"
+    return "clausea"
 
 
 DATABASE_NAME = get_database_name()

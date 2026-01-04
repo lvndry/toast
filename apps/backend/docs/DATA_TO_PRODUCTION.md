@@ -9,7 +9,7 @@ The promotion system allows you to:
 - View a summary of data in both local and production databases
 - Perform dry runs to see what would be promoted
 - Execute actual promotions with safety checks
-- Promote specific data types (products, documents, meta summaries)
+- Promote specific data types (products, documents, product overviews)
 
 ## Prerequisites
 
@@ -74,7 +74,7 @@ The promotion system allows you to:
 
 Click "Get Promotion Summary" to see:
 
-- Number of products, documents, and meta summaries in both databases
+- Number of products, documents, and product overviews in both databases
 - Detailed breakdown of what data exists where
 
 ### 3. Dry Run
@@ -113,7 +113,7 @@ Available dry run options:
 
 - **Products**: Product information, domains, categories
 - **Documents**: Document content, metadata, analysis
-- **Meta Summaries**: Product-level document summaries
+- **Product Overviews**: Product-level overview payloads derived from analyzed documents
 
 ### Promotion Process
 
@@ -124,14 +124,7 @@ Available dry run options:
 
 ## API Endpoints
 
-The promotion system provides these REST API endpoints:
-
-- `GET /promotion/summary` - Get promotion summary
-- `POST /promotion/dry-run` - Run dry run promotion
-- `POST /promotion/execute` - Execute actual promotion
-- `POST /promotion/promote-products` - Promote products only
-- `POST /promotion/promote-documents` - Promote documents only
-- `POST /promotion/promote-meta-summaries` - Promote meta summaries only
+The promotion system provides use `/promotion`router (apps/backend/src/dashboard/components/promotion.py)
 
 ## Troubleshooting
 

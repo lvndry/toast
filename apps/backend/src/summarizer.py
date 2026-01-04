@@ -33,6 +33,7 @@ from src.prompts.summarizer_prompts import (
     SINGLE_DOC_DEEP_ANALYSIS_PROMPT,
 )
 from src.services.document_service import DocumentService
+from src.services.extraction_service import extract_document_facts
 from src.services.product_service import ProductService
 from src.utils.cancellation import CancellationToken
 from src.utils.llm_usage import UsageTracker, log_usage_summary, usage_tracking
@@ -243,6 +244,79 @@ def _ensure_required_scores(parsed: DocumentAnalysis) -> DocumentAnalysis:
     return parsed
 
 
+def _attach_keypoint_evidence(
+    analysis: DocumentAnalysis,
+    extraction_json: dict[str, Any] | None,
+) -> None:
+    """Best-effort attach evidence spans from extraction to keypoints.
+
+    This is intentionally heuristic: it improves auditability immediately without
+    requiring the LLM to emit citations. The UI can still rely on `Document.extraction`
+    for fully structured, evidence-backed facts.
+    """
+    if not analysis.keypoints or not extraction_json:
+        return
+
+    # Build a small pool of evidence spans keyed by a normalized "value".
+    evidence_pool: list[tuple[str, list[dict[str, Any]]]] = []
+    for key in [
+        "data_collected",
+        "data_purposes",
+        "your_rights",
+        "dangers",
+        "benefits",
+        "recommended_actions",
+    ]:
+        items = extraction_json.get(key) or []
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            value = str(item.get("value") or "").strip()
+            evidence = item.get("evidence") or []
+            if value and isinstance(evidence, list) and evidence:
+                evidence_pool.append((value.lower(), evidence))
+
+    if not evidence_pool:
+        return
+
+    keypoints_with_evidence = []
+    for kp in analysis.keypoints:
+        kp_str = str(kp or "").strip()
+        if not kp_str:
+            continue
+        kp_lower = kp_str.lower()
+
+        matched_evidence: list[dict[str, Any]] = []
+        for value_norm, evidence in evidence_pool:
+            if value_norm and value_norm in kp_lower:
+                matched_evidence.extend(evidence)
+                if len(matched_evidence) >= 3:
+                    break
+
+        # Keep a small number of spans to avoid huge payloads
+        matched_evidence = matched_evidence[:3]
+
+        try:
+            from src.models.document import EvidenceSpan, KeypointWithEvidence
+
+            keypoints_with_evidence.append(
+                KeypointWithEvidence(
+                    keypoint=kp_str,
+                    evidence=[
+                        EvidenceSpan.model_validate(e, strict=False) for e in matched_evidence
+                    ],
+                )
+            )
+        except Exception:
+            # Never break analysis creation due to evidence attachment
+            continue
+
+    if keypoints_with_evidence:
+        analysis.keypoints_with_evidence = keypoints_with_evidence
+
+
 def should_use_reasoning_model(document: Document) -> bool:
     """
     Determine if a reasoning/complex model should be used for legal analysis.
@@ -358,25 +432,56 @@ async def summarize_document(
                     "Re-analyzing to generate fresh analysis."
                 )
 
-    # Prepare document content
-    # For very long documents, we'd chunk here, but for now we'll optimize tokens
-    doc_text = document.text
-    max_tokens = 200000  # Approximate token limit (roughly 4 chars per token)
+    # Evidence-first: extract structured facts WITH quotes, then generate analysis only from extracted facts.
+    # Fallback to raw text only if extraction fails unexpectedly.
+    extracted_prompt: str | None = None
+    extraction_for_evidence: dict[str, Any] | None = None
+    try:
+        await token.check_cancellation()
+        extraction = await extract_document_facts(
+            document,
+            use_cache=True,
+            cancellation_token=token,
+        )
+        extraction_for_evidence = extraction.model_dump()
+        extracted_prompt = f"""
+Document Title: {document.title or "Not specified"}
+Document Type: {document.doc_type}
+Document URL: {document.url}
+Document Regions: {document.regions}
+Document Locale: {document.locale or "Not specified"}
 
-    if len(doc_text) > max_tokens:
+CRITICAL REQUIREMENT:
+- Use ONLY the extracted facts below. Do NOT add any new data types, purposes, rights, third parties, or claims that are not present in the extracted facts.
+- If something is missing from the extracted facts, explicitly say "Not specified in document" (or equivalent).
+
+Extracted facts (evidence-backed JSON):
+{extraction.model_dump_json()}
+""".strip()
+    except Exception as e:
         logger.warning(
-            f"Document {document.id} is very long ({len(doc_text)} chars). "
-            "Consider implementing chunking for better results."
-        )
-        # Truncate to most relevant sections (keep beginning and end)
-        # In production, implement proper chunking with hierarchical summarization
-        doc_text = (
-            doc_text[: max_tokens // 2]
-            + "\n\n[... document truncated ...]\n\n"
-            + doc_text[-max_tokens // 2 :]
+            f"Extraction failed for document {document.id}: {e}. Falling back to raw text."
         )
 
-    prompt = f"""
+    if extracted_prompt is not None:
+        prompt = extracted_prompt
+    else:
+        # Prepare document content (legacy fallback path)
+        doc_text = document.text
+        max_tokens = 200000  # Approximate token limit (roughly 4 chars per token)
+
+        if len(doc_text) > max_tokens:
+            logger.warning(
+                f"Document {document.id} is very long ({len(doc_text)} chars). "
+                "Consider implementing chunking for better results."
+            )
+            doc_text = (
+                doc_text[: max_tokens // 2]
+                + "\n\n[... document truncated ...]\n\n"
+                + doc_text[-max_tokens // 2 :]
+            )
+
+        prompt = f"""
 Document Title: {document.title or "Not specified"}
 Document Type: {document.doc_type}
 Document URL: {document.url}
@@ -388,7 +493,7 @@ Consider if this is a global policy, product-specific, region-specific, or servi
 
 Document content:
 {doc_text}
-"""
+""".strip()
 
     # Select appropriate model based on document complexity
     model_priority = _get_model_priority(document)
@@ -500,6 +605,9 @@ Document content:
 
                 # Ensure all required scores are present, normalize names, and calculate risk_score/verdict
                 parsed = _ensure_required_scores(parsed)
+
+                # Attach evidence spans to keypoints when possible (best-effort)
+                _attach_keypoint_evidence(parsed, extraction_for_evidence)
 
                 # Store content hash in metadata for future cache validation
                 content_hash = _compute_document_hash(document)
@@ -614,7 +722,7 @@ Document content:
     return None
 
 
-async def generate_product_meta_summary(
+async def generate_product_overview(
     db: AgnosticDatabase,
     product_slug: str,
     force_regenerate: bool = False,
@@ -623,10 +731,11 @@ async def generate_product_meta_summary(
     cancellation_token: CancellationToken | None = None,
 ) -> MetaSummary:
     """
-    Generate a meta-summary of all analyzed documents for a product.
+    Generate a cached product overview based on all analyzed documents for a product.
 
-    Uses caching to avoid regenerating meta-summaries when documents haven't changed.
-    Cache is invalidated when document signature (hash of all document hashes) changes.
+    This is intentionally simple right now:
+    - If a cached overview exists and force_regenerate is False, return it.
+    - When any document changes, the DocumentService deletes the cached overview.
 
     Args:
         product_slug: The product slug to generate meta-summary for
@@ -636,7 +745,7 @@ async def generate_product_meta_summary(
         cancellation_token: Optional cancellation token for interrupting the operation
 
     Returns:
-        MetaSummary: The generated meta-summary
+        MetaSummary: The generated overview payload
 
     Raises:
         asyncio.CancelledError: If cancellation is requested
@@ -653,44 +762,23 @@ async def generate_product_meta_summary(
     doc_svc = document_svc
 
     documents = await doc_svc.get_product_documents_by_slug(db, product_slug)
-    logger.info(f"Generating meta-summary for {product_slug} with {len(documents)} documents")
-
-    # Compute current document signature
-    current_signature = _compute_document_signature(documents)
-    logger.debug(f"Document signature for {product_slug}: {current_signature[:16]}...")
+    logger.info(f"Generating product overview for {product_slug} with {len(documents)} documents")
 
     # Check cache unless force_regenerate is True
     if not force_regenerate:
-        cached_meta_summary_data = await prod_svc.get_meta_summary(db, product_slug)
-        if cached_meta_summary_data:
-            cached_signature = cached_meta_summary_data.get("document_signature")
-            cached_summary = cached_meta_summary_data.get("meta_summary")
-
-            if cached_signature == current_signature and cached_summary:
-                logger.info(
-                    f"Using cached meta-summary for {product_slug} "
-                    f"(signature match: {current_signature[:16]}...)"
+        cached_overview_data = await prod_svc.get_product_overview_data(db, product_slug)
+        if cached_overview_data and cached_overview_data.get("overview"):
+            cached = cached_overview_data["overview"]
+            logger.info(f"Using cached product overview for {product_slug}")
+            try:
+                return MetaSummary.model_validate(cached)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to parse cached product overview for {product_slug}: {e}. Regenerating..."
                 )
-                try:
-                    meta_summary: MetaSummary = MetaSummary.model_validate(cached_summary)
-                    return meta_summary
-                except Exception as e:
-                    logger.warning(
-                        f"Failed to parse cached meta-summary for {product_slug}: {e}. "
-                        "Regenerating..."
-                    )
-            else:
-                if cached_signature != current_signature:
-                    logger.info(
-                        f"Cache invalidated for {product_slug}: "
-                        f"signature changed ({cached_signature[:16] if cached_signature else 'none'}... "
-                        f"-> {current_signature[:16]}...)"
-                    )
-                else:
-                    logger.debug(f"No cached meta-summary found for {product_slug}")
 
     # Cache miss or invalid - generate new meta-summary
-    logger.info(f"Generating new meta-summary for {product_slug}")
+    logger.info(f"Generating new product overview for {product_slug}")
 
     summaries = []
     for doc in documents:
@@ -738,26 +826,38 @@ Summary: {summary}
     document_types = list({doc.doc_type for doc in documents})
 
     prompt = f"""
-Your task is to create a warm, accessible, and explanatory summary that helps everyday people understand what they're agreeing to. We analyzed {num_documents} document(s) for this product: {", ".join(document_types)}.
+Your task is to create a clear, comprehensive overview that gives users immediate, actionable insights about their privacy and rights. Synthesize information from the following {num_documents} document(s) ({", ".join(document_types)}) into a unified picture.
 
 **CRITICAL REQUIREMENTS:**
-1. **Start with document count**: Begin your summary by clearly stating "We analyzed {num_documents} document(s): [list document types]"
-2. **Be COMPREHENSIVE**: Extract and aggregate information from ALL documents - don't miss any data types, purposes, or rights mentioned
-3. **Be EXPLICIT AND EXPLANATORY**: Specify exact data types (not "personal information" but "email address, IP address, location data") AND explain what each means for users in real life
-4. **Be SPECIFIC AND HELPFUL**: For user rights, include WHAT data, WHY it matters, HOW to exercise, and WHERE to go (URLs, email addresses, specific steps)
-5. **Be BALANCED**: Clearly highlight both concerning practices (dangers) AND positive privacy protections (benefits), always explaining the impact on users
-6. **Explain user impact**: For every fact, explain what it means for someone's daily life, privacy, and control
+1. **Summary field (MOST IMPORTANT)**: Write a clear, comprehensive paragraph (4-6 sentences) that:
+   - Starts directly with the information (e.g., "This platform collects...", "Users have the right to...")
+   - Synthesizes insights from ALL documents into a unified picture
+   - Explains what data is collected, key privacy concerns/protections, user control, and overall privacy posture
+   - Focuses on actionable insights and real-world impact
+   - DO NOT mention "we analyzed" or describe the analysis process - just present the information directly
 
-The following {num_documents} document(s) have been analyzed:
+2. **Be COMPREHENSIVE**: Extract and aggregate information from ALL documents - don't miss any data types, purposes, or rights mentioned
+
+3. **Be EXPLICIT AND EXPLANATORY**: Specify exact data types (not "personal information" but "email address, IP address, location data") AND explain what each means for users in real life
+
+4. **Be SPECIFIC AND HELPFUL**: For user rights, include WHAT data, WHY it matters, HOW to exercise, and WHERE to go (URLs, email addresses, specific steps)
+
+5. **Be BALANCED**: Clearly highlight both concerning practices (dangers) AND positive privacy protections (benefits), always explaining the impact on users
+
+6. **Synthesize, don't list**: Combine information from all documents into a unified picture - don't list what each document says separately
+
+7. **Explain user impact**: For every fact, explain what it means for someone's daily life, privacy, and control
+
+The following document summaries are provided:
 
 {document_summaries}
 
-Create a unified summary that provides complete value in under 5 minutes of reading. Write like a helpful friend explaining complex legal documents - be warm, clear, and always explain what things mean for the user. Make sure anyone, regardless of their privacy knowledge, can understand and get value from your summary.
+Create a unified overview that provides complete value in under 5 minutes of reading. Write clearly and directly - focus on giving users the information they need to understand their privacy and make informed decisions. Make sure anyone, regardless of their privacy knowledge, can understand and get value from your overview.
 """
 
     # Set up usage tracking for meta-summary generation
     usage_tracker = UsageTracker()
-    tracker_callback = usage_tracker.create_tracker("generate_meta_summary")
+    tracker_callback = usage_tracker.create_tracker("generate_product_overview")
 
     # Check for cancellation before making LLM call
     await token.check_cancellation()
@@ -821,14 +921,13 @@ Create a unified summary that provides complete value in under 5 minutes of read
         # Parse the meta-summary
         meta_summary = MetaSummary.model_validate_json(content, strict=False)
 
-        # Save to database with document signature
-        await prod_svc.save_meta_summary(
+        # Save to database (simple single-cache entry)
+        await prod_svc.save_product_overview(
             db,
             product_slug=product_slug,
             meta_summary=meta_summary,
-            document_signature=current_signature,
         )
-        logger.info(f"✓ Saved meta-summary for {product_slug}")
+        logger.info(f"✓ Saved product overview for {product_slug}")
 
         # Log LLM usage for meta-summary generation (success case)
         usage_summary, records = usage_tracker.consume_summary()
@@ -837,13 +936,13 @@ Create a unified summary that provides complete value in under 5 minutes of read
             records,
             context=f"product_{product_slug}",
             reason="success",
-            operation_type="meta_summary",
+            operation_type="product_overview",
             product_slug=product_slug,
         )
 
         return meta_summary
     except asyncio.CancelledError:
-        logger.info(f"Meta-summary generation cancelled for {product_slug}")
+        logger.info(f"Product overview generation cancelled for {product_slug}")
         raise
     except Exception as e:
         # Log LLM usage even on failure
@@ -853,19 +952,21 @@ Create a unified summary that provides complete value in under 5 minutes of read
             records,
             context=f"product_{product_slug}",
             reason="failed",
-            operation_type="meta_summary",
+            operation_type="product_overview",
             product_slug=product_slug,
         )
 
         # Log the full error with context
         logger.error(
-            f"Error generating meta-summary for {product_slug}: {str(e)}",
+            f"Error generating product overview for {product_slug}: {str(e)}",
             exc_info=True,
         )
 
         # Re-raise the exception so callers can handle it appropriately
         # This provides transparency about what actually failed
-        raise RuntimeError(f"Failed to generate meta-summary for {product_slug}: {str(e)}") from e
+        raise RuntimeError(
+            f"Failed to generate product overview for {product_slug}: {str(e)}"
+        ) from e
 
 
 async def _generate_single_document_deep_analysis(
@@ -1008,7 +1109,7 @@ async def generate_product_deep_analysis(
     if not analysis:
         # Generate meta-summary first (which creates Level 2)
         logger.info(f"Level 2 analysis not found for {product_slug}, generating...")
-        await generate_product_meta_summary(
+        await generate_product_overview(
             db, product_slug=product_slug, product_svc=prod_svc, document_svc=doc_svc
         )
         analysis = await prod_svc.get_product_analysis(db, product_slug)
@@ -1247,12 +1348,12 @@ async def main() -> None:
 
         await summarize_all_product_documents(db, "notion", doc_svc)
 
-        print("Generating product meta-summary:")
+        print("Generating product overview:")
         print("=" * 50)
-        meta_summary = await generate_product_meta_summary(
+        overview = await generate_product_overview(
             db, "notion", product_svc=product_svc, document_svc=doc_svc
         )
-        logger.info(meta_summary)
+        logger.info(overview)
         print("\n" + "=" * 50)
 
 

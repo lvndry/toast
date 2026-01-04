@@ -303,7 +303,7 @@ export default function ProductsPage() {
     (slug: string) => {
       if (!slug || productSummaries[slug] || summaryLoading[slug]) return;
       setSummaryLoading((s) => ({ ...s, [slug]: true }));
-      fetch(`/api/meta-summary/${slug}`)
+      fetch(`/api/products/${slug}/overview`)
         .then((res) => {
           if (res.ok) return res.json();
           return null;

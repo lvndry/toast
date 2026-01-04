@@ -9,16 +9,17 @@ export async function GET(
 ) {
   const { slug } = await params;
   try {
-    // Use the overview endpoint which returns verdict and risk_score
     const overview = await httpJson(
       `${apiEndpoints.products()}/${slug}/overview`,
-      { method: "GET" },
+      {
+        method: "GET",
+      },
     );
     return NextResponse.json(overview);
   } catch (error) {
-    console.error("Error fetching meta summary:", error);
+    console.error("Error fetching product overview:", error);
     return NextResponse.json(
-      { error: `Failed to fetch meta summary: ${error}` },
+      { error: `Failed to fetch product overview: ${error}` },
       { status: 500 },
     );
   }

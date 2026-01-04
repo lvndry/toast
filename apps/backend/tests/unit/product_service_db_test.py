@@ -15,7 +15,7 @@ def mock_db() -> MagicMock:
     db = MagicMock()
     # Mocking collections for legacy or direct access tests if any remain
     db.products = AsyncMock()
-    db.meta_summaries = AsyncMock()
+    db.product_overviews = AsyncMock()
     db.documents = MagicMock()
     db.documents.find_one = AsyncMock()
     db.documents.insert_one = AsyncMock()
@@ -68,8 +68,8 @@ async def test_get_product_by_slug(
 async def test_get_product_overview(
     product_service: ProductService, mock_product_repo: MagicMock, mock_db: MagicMock
 ) -> None:
-    mock_product_repo.get_meta_summary.return_value = {
-        "meta_summary": {
+    mock_product_repo.get_product_overview.return_value = {
+        "overview": {
             "summary": "Test summary",
             "scores": {
                 "transparency": {"score": 8, "justification": "Good"},
@@ -96,7 +96,7 @@ async def test_get_product_overview(
     assert overview is not None
     assert overview.product_slug == "test-product"
     assert overview.risk_score == 5
-    mock_product_repo.get_meta_summary.assert_called_once_with(mock_db, "test-product")
+    mock_product_repo.get_product_overview.assert_called_once_with(mock_db, "test-product")
 
 
 @pytest.mark.asyncio
@@ -106,9 +106,9 @@ async def test_get_product_analysis(
     mock_document_repo: MagicMock,
     mock_db: MagicMock,
 ) -> None:
-    # Mock meta summary
-    mock_product_repo.get_meta_summary.return_value = {
-        "meta_summary": {
+    # Mock overview payload (stored in product_overviews)
+    mock_product_repo.get_product_overview.return_value = {
+        "overview": {
             "summary": "Test summary",
             "scores": {
                 "transparency": {"score": 8, "justification": "Good"},

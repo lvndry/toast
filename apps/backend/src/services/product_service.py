@@ -102,53 +102,49 @@ class ProductService:
         return products
 
     # ============================================================================
-    # Meta-Summary Storage Operations
+    # Product Overview Storage Operations
     # ============================================================================
 
-    async def delete_meta_summary(self, db: AgnosticDatabase, slug: str) -> None:
-        """Delete the stored meta-summary for a product.
+    async def delete_product_overview(self, db: AgnosticDatabase, slug: str) -> None:
+        """Delete the stored product overview for a product.
 
         Args:
             db: Database instance
             slug: Product slug
         """
-        await self._product_repo.delete_meta_summary(db, slug)
+        await self._product_repo.delete_product_overview(db, slug)
 
-    async def get_meta_summary(
+    async def get_product_overview_data(
         self, db: AgnosticDatabase, product_slug: str
     ) -> dict[str, Any] | None:
-        """Get the stored meta-summary data for a product.
+        """Get the stored product overview data for a product.
 
         Args:
             db: Database instance
             product_slug: Product slug
 
         Returns:
-            Dictionary with 'meta_summary' and 'document_signature' keys, or None
+            Dictionary with 'overview' key, or None
         """
-        meta_summary_data: dict[str, Any] | None = await self._product_repo.get_meta_summary(
+        overview_data: dict[str, Any] | None = await self._product_repo.get_product_overview(
             db, product_slug
         )
-        return meta_summary_data
+        return overview_data
 
-    async def save_meta_summary(
+    async def save_product_overview(
         self,
         db: AgnosticDatabase,
         product_slug: str,
         meta_summary: MetaSummary,
-        document_signature: str,
     ) -> None:
-        """Save the meta-summary to the database with document signature.
+        """Save the product overview payload to the database.
 
         Args:
             db: Database instance
             product_slug: Product slug
-            meta_summary: MetaSummary object to save
-            document_signature: Hash signature of all document contents
+            meta_summary: Overview payload (MetaSummary shape)
         """
-        await self._product_repo.save_meta_summary(
-            db, product_slug, meta_summary, document_signature
-        )
+        await self._product_repo.save_product_overview(db, product_slug, meta_summary)
 
     # ============================================================================
     # Deep Analysis Storage Operations
@@ -206,11 +202,10 @@ class ProductService:
         Returns:
             ProductOverview or None if not available
         """
-        meta_summary_data = await self._product_repo.get_meta_summary(db, slug)
-        if not meta_summary_data:
+        overview_data = await self._product_repo.get_product_overview(db, slug)
+        if not overview_data:
             return None
-
-        meta_summary = MetaSummary(**meta_summary_data["meta_summary"])
+        meta_summary = MetaSummary(**overview_data["overview"])
 
         # Fetch product info (name, id)
         product = await self._product_repo.find_by_slug(db, slug)
@@ -222,11 +217,11 @@ class ProductService:
             document_counts = await self._product_repo.get_document_counts(db, product.id)
             document_types = await self._product_repo.get_document_types(db, product.id)
 
-        # Extract updated_at from meta_summary_data if present
+        # Extract updated_at from overview payload if present
         updated_at = None
-        if "updated_at" in meta_summary_data["meta_summary"]:
+        if "updated_at" in overview_data["overview"]:
             try:
-                updated_at = datetime.fromisoformat(meta_summary_data["meta_summary"]["updated_at"])
+                updated_at = datetime.fromisoformat(overview_data["overview"]["updated_at"])
             except Exception:
                 pass
 
@@ -258,16 +253,16 @@ class ProductService:
         Returns:
             ProductAnalysis or None if not available
         """
-        meta_summary_data = await self._product_repo.get_meta_summary(db, slug)
-        if not meta_summary_data:
+        overview_data = await self._product_repo.get_product_overview(db, slug)
+        if not overview_data:
             return None
-        meta_summary = MetaSummary(**meta_summary_data["meta_summary"])
+        meta_summary = MetaSummary(**overview_data["overview"])
 
-        # Extract updated_at from meta_summary_data if present
+        # Extract updated_at from overview payload if present
         updated_at = None
-        if "updated_at" in meta_summary_data["meta_summary"]:
+        if "updated_at" in overview_data["overview"]:
             try:
-                updated_at = datetime.fromisoformat(meta_summary_data["meta_summary"]["updated_at"])
+                updated_at = datetime.fromisoformat(overview_data["overview"]["updated_at"])
             except Exception:
                 pass
 

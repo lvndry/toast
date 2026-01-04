@@ -18,6 +18,45 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { getVerdictConfig } from "@/lib/verdict";
 
+interface EvidenceSpan {
+  document_id: string;
+  url: string;
+  content_hash?: string | null;
+  quote: string;
+  start_char?: number | null;
+  end_char?: number | null;
+  section_title?: string | null;
+}
+
+interface KeypointWithEvidence {
+  keypoint: string;
+  evidence: EvidenceSpan[];
+}
+
+interface DocumentExtraction {
+  version: string;
+  generated_at: string;
+  source_content_hash: string;
+  data_collected: Array<{ value: string; evidence: EvidenceSpan[] }>;
+  data_purposes: Array<{ value: string; evidence: EvidenceSpan[] }>;
+  data_collection_details: Array<{
+    data_type: string;
+    purposes: string[];
+    evidence: EvidenceSpan[];
+  }>;
+  third_party_details: Array<{
+    recipient: string;
+    data_shared: string[];
+    purpose?: string | null;
+    risk_level: "low" | "medium" | "high";
+    evidence: EvidenceSpan[];
+  }>;
+  your_rights: Array<{ value: string; evidence: EvidenceSpan[] }>;
+  dangers: Array<{ value: string; evidence: EvidenceSpan[] }>;
+  benefits: Array<{ value: string; evidence: EvidenceSpan[] }>;
+  recommended_actions: Array<{ value: string; evidence: EvidenceSpan[] }>;
+}
+
 interface DocumentSummary {
   id: string;
   title: string | null;
@@ -28,14 +67,75 @@ interface DocumentSummary {
   risk_score?: number | null;
   summary?: string;
   keypoints?: string[];
+  keypoints_with_evidence?: KeypointWithEvidence[] | null;
 }
 
 interface SourcesListProps {
+  productSlug: string;
   documents: DocumentSummary[];
 }
 
-export function SourcesList({ documents }: SourcesListProps) {
+function normalizeForMatch(s: string): string {
+  return (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function deriveEvidenceForKeypoint(
+  keypoint: string,
+  extraction: DocumentExtraction,
+): EvidenceSpan[] {
+  const kp = normalizeForMatch(keypoint);
+  if (!kp) return [];
+
+  const pools: Array<Array<{ value: string; evidence: EvidenceSpan[] }>> = [
+    extraction.data_collected,
+    extraction.data_purposes,
+    extraction.your_rights,
+    extraction.dangers,
+    extraction.benefits,
+    extraction.recommended_actions,
+  ];
+
+  const found: EvidenceSpan[] = [];
+  for (const pool of pools) {
+    for (const item of pool) {
+      const value = normalizeForMatch(item.value);
+      if (value && kp.includes(value) && item.evidence?.length) {
+        found.push(...item.evidence);
+        if (found.length >= 3) return found.slice(0, 3);
+      }
+    }
+  }
+
+  // Secondary pass: match third parties / data_collection_details keys
+  for (const tp of extraction.third_party_details || []) {
+    const recipient = normalizeForMatch(tp.recipient);
+    if (recipient && kp.includes(recipient) && tp.evidence?.length) {
+      found.push(...tp.evidence);
+      if (found.length >= 3) return found.slice(0, 3);
+    }
+  }
+  for (const dcd of extraction.data_collection_details || []) {
+    const dt = normalizeForMatch(dcd.data_type);
+    if (dt && kp.includes(dt) && dcd.evidence?.length) {
+      found.push(...dcd.evidence);
+      if (found.length >= 3) return found.slice(0, 3);
+    }
+  }
+
+  return found.slice(0, 3);
+}
+
+export function SourcesList({ productSlug, documents }: SourcesListProps) {
   const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
+  const [expandedKeypoints, setExpandedKeypoints] = useState<
+    Record<string, Set<number>>
+  >({});
+  const [extractions, setExtractions] = useState<
+    Record<string, DocumentExtraction>
+  >({});
+  const [extractionLoading, setExtractionLoading] = useState<
+    Record<string, boolean>
+  >({});
 
   function toggleExpanded(docId: string) {
     const newExpanded = new Set(expandedDocs);
@@ -45,6 +145,34 @@ export function SourcesList({ documents }: SourcesListProps) {
       newExpanded.add(docId);
     }
     setExpandedDocs(newExpanded);
+  }
+
+  function toggleKeypoint(docId: string, idx: number) {
+    setExpandedKeypoints((prev) => {
+      const next = { ...prev };
+      const current = next[docId] ? new Set(next[docId]) : new Set<number>();
+      if (current.has(idx)) current.delete(idx);
+      else current.add(idx);
+      next[docId] = current;
+      return next;
+    });
+  }
+
+  async function ensureExtractionLoaded(docId: string) {
+    if (extractions[docId] || extractionLoading[docId]) return;
+    setExtractionLoading((s) => ({ ...s, [docId]: true }));
+    try {
+      const res = await fetch(
+        `/api/products/${productSlug}/documents/${docId}/extraction`,
+      );
+      if (!res.ok) return;
+      const json = (await res.json()) as DocumentExtraction;
+      setExtractions((s) => ({ ...s, [docId]: json }));
+    } catch {
+      // ignore
+    } finally {
+      setExtractionLoading((s) => ({ ...s, [docId]: false }));
+    }
   }
 
   if (documents.length === 0) {
@@ -86,13 +214,27 @@ export function SourcesList({ documents }: SourcesListProps) {
       </CardHeader>
 
       <CardContent className="space-y-2.5">
-        {documents.map((doc, index) => {
+        {documents.map((doc) => {
           const isExpanded = expandedDocs.has(doc.id);
           const verdictConfig = doc.verdict
             ? getVerdictConfig(doc.verdict)
             : null;
           const hasSummary =
             doc.summary || (doc.keypoints && doc.keypoints.length > 0);
+          const evidenceByKeypoint = new Map<string, EvidenceSpan[]>();
+          if (
+            doc.keypoints_with_evidence &&
+            Array.isArray(doc.keypoints_with_evidence)
+          ) {
+            for (const entry of doc.keypoints_with_evidence) {
+              if (entry?.keypoint && entry.evidence?.length) {
+                evidenceByKeypoint.set(
+                  normalizeForMatch(entry.keypoint),
+                  entry.evidence,
+                );
+              }
+            }
+          }
 
           return (
             <div
@@ -253,17 +395,137 @@ export function SourcesList({ documents }: SourcesListProps) {
                             </h5>
                             <div className="space-y-1.5">
                               {doc.keypoints.map(
-                                (point: string, idx: number) => (
-                                  <div
-                                    key={idx}
-                                    className="flex items-start gap-2.5 p-2 rounded-md bg-card/50 border border-border/50"
-                                  >
-                                    <div className="mt-1 h-1.5 w-1.5 rounded-full bg-violet-500 shrink-0" />
-                                    <span className="text-sm text-foreground/80 leading-snug">
-                                      {point}
-                                    </span>
-                                  </div>
-                                ),
+                                (point: string, idx: number) => {
+                                  const isKpExpanded =
+                                    expandedKeypoints[doc.id]?.has(idx) ||
+                                    false;
+                                  const directEvidence =
+                                    evidenceByKeypoint.get(
+                                      normalizeForMatch(point),
+                                    ) || [];
+                                  const extraction = extractions[doc.id];
+                                  const derivedEvidence =
+                                    !directEvidence.length && extraction
+                                      ? deriveEvidenceForKeypoint(
+                                          point,
+                                          extraction,
+                                        )
+                                      : [];
+                                  const evidence =
+                                    directEvidence.length > 0
+                                      ? directEvidence
+                                      : derivedEvidence;
+
+                                  const canShowSources =
+                                    directEvidence.length > 0 ||
+                                    !!extraction ||
+                                    !!doc.url; // allow fetch
+
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className="rounded-md bg-card/50 border border-border/50 overflow-hidden"
+                                    >
+                                      <div className="flex items-start gap-2.5 p-2">
+                                        <div className="mt-1 h-1.5 w-1.5 rounded-full bg-violet-500 shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-start justify-between gap-3">
+                                            <span className="text-sm text-foreground/80 leading-snug">
+                                              {point}
+                                            </span>
+                                            {canShowSources && (
+                                              <button
+                                                type="button"
+                                                onClick={async () => {
+                                                  if (!extractions[doc.id]) {
+                                                    await ensureExtractionLoaded(
+                                                      doc.id,
+                                                    );
+                                                  }
+                                                  toggleKeypoint(doc.id, idx);
+                                                }}
+                                                className={cn(
+                                                  "shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md border transition-colors",
+                                                  isKpExpanded
+                                                    ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800"
+                                                    : "text-muted-foreground hover:text-foreground hover:bg-muted border-border",
+                                                )}
+                                              >
+                                                {isKpExpanded
+                                                  ? "Hide sources"
+                                                  : "Sources"}
+                                              </button>
+                                            )}
+                                          </div>
+
+                                          <AnimatePresence>
+                                            {isKpExpanded && (
+                                              <motion.div
+                                                initial={{
+                                                  height: 0,
+                                                  opacity: 0,
+                                                }}
+                                                animate={{
+                                                  height: "auto",
+                                                  opacity: 1,
+                                                }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.15 }}
+                                                className="overflow-hidden"
+                                              >
+                                                <div className="mt-2 space-y-2 border-t border-border/60 pt-2">
+                                                  {extractionLoading[doc.id] &&
+                                                  !extractions[doc.id] ? (
+                                                    <div className="text-xs text-muted-foreground">
+                                                      Loading sources…
+                                                    </div>
+                                                  ) : evidence.length > 0 ? (
+                                                    evidence
+                                                      .slice(0, 3)
+                                                      .map((ev, j) => (
+                                                        <div
+                                                          key={j}
+                                                          className="rounded-md bg-muted/40 border border-border/50 p-2"
+                                                        >
+                                                          <div className="text-xs text-muted-foreground mb-1 flex items-center justify-between gap-2">
+                                                            <span className="truncate">
+                                                              Source:{" "}
+                                                              {doc.title ||
+                                                                "Document"}
+                                                            </span>
+                                                            <a
+                                                              href={
+                                                                ev.url ||
+                                                                doc.url
+                                                              }
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              className="inline-flex items-center gap-1 text-xs font-medium hover:text-foreground"
+                                                            >
+                                                              Open
+                                                              <ExternalLink className="h-3 w-3 opacity-60" />
+                                                            </a>
+                                                          </div>
+                                                          <blockquote className="text-xs leading-relaxed text-foreground/85 border-l-2 border-violet-300 dark:border-violet-700 pl-2">
+                                                            {ev.quote}
+                                                          </blockquote>
+                                                        </div>
+                                                      ))
+                                                  ) : (
+                                                    <div className="text-xs text-muted-foreground">
+                                                      No exact quote found for
+                                                      this keypoint yet.
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </motion.div>
+                                            )}
+                                          </AnimatePresence>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                },
                               )}
                             </div>
                           </div>

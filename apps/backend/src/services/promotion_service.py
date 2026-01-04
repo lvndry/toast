@@ -49,11 +49,11 @@ async def promote_documents(dry_run: bool) -> dict[str, Any]:
     return result
 
 
-async def promote_meta_summaries(dry_run: bool) -> dict[str, Any]:
-    """Promote meta summaries."""
+async def promote_product_overviews(dry_run: bool) -> dict[str, Any]:
+    """Promote product overviews."""
     promotion_manager = PromotionManager()
     await promotion_manager.connect_databases()
-    result: dict[str, Any] = await promotion_manager.promote_meta_summaries(dry_run=dry_run)
+    result: dict[str, Any] = await promotion_manager.promote_product_overviews(dry_run=dry_run)
     await promotion_manager.close_connections()
     return result
 

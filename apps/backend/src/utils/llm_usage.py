@@ -257,7 +257,7 @@ def _write_usage_to_file(
         records: List of usage records
         context: Context identifier
         reason: Optional reason suffix
-        operation_type: Type of operation (e.g., "summarization", "crawl", "meta_summary")
+    operation_type: Type of operation (e.g., "summarization", "crawl", "product_overview")
         product_slug: Product slug identifier
         product_id: Product ID identifier
         document_url: URL of the document being processed
@@ -333,7 +333,7 @@ def log_usage_summary(
         context: Context identifier (e.g., URL, request ID, operation name)
         reason: Optional reason suffix for the log message
         log_level: Logging level ("info", "debug", "warning")
-        operation_type: Type of operation (e.g., "summarization", "crawl", "meta_summary", "classify_document")
+        operation_type: Type of operation (e.g., "summarization", "crawl", "product_overview", "classify_document")
         product_slug: Product slug identifier
         product_id: Product ID identifier
         document_url: URL of the document being processed

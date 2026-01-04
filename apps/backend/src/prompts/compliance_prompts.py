@@ -1,64 +1,27 @@
 """Prompts for compliance checking."""
 
-COMPLIANCE_CHECK_PROMPT = """You are a legal compliance expert specializing in privacy regulations.
+COMPLIANCE_CHECK_JSON_SCHEMA = """{
+  "regulation": string,
+  "status": "Compliant" | "Partially Compliant" | "Non-Compliant" | "Unknown",
+  "score": int (0-10),
+  "strengths": [string],
+  "gaps": [string],
+  "limitations": [string] | null,
+  "evidence": [
+    {"source_id": string, "quote": string, "requirement": string}
+  ] | null
+}"""
 
-Regulation: {regulation}
+COMPLIANCE_CHECK_PROMPT = """Regulation: {regulation}
 
-Document Context:
+Context (multiple excerpts, each labeled SOURCE[...] with url + offsets):
 {context}
 
-Task: Assess whether the provided document context demonstrates compliance with {regulation}.
+Task:
+- Assess compliance with {regulation} using ONLY the provided context.
+- If the context does not contain enough information, set status="Unknown" and list missing items in limitations.
+- Do not infer beyond the text.
 
-## Key Requirements by Regulation:
-
-**GDPR (General Data Protection Regulation):**
-- Lawful basis for processing (consent, contract, legal obligation, etc.)
-- Data subject rights (access, rectification, erasure, portability, objection)
-- Transparent information about processing
-- Data transfers outside EU/EEA with adequate safeguards
-- Data Protection Officer (if applicable)
-- Data breach notification procedures
-
-**CCPA (California Consumer Privacy Act):**
-- Right to know what personal information is collected
-- Right to delete personal information
-- Right to opt-out of sale of personal information
-- Do Not Sell My Personal Information link
-- Disclosure of categories of personal information collected
-- Non-discrimination for exercising rights
-
-**PIPEDA (Personal Information Protection and Electronic Documents Act):**
-- Consent for collection, use, or disclosure
-- Purpose limitation for data collection
-- Accuracy and completeness of personal information
-- Safeguards for protecting personal information
-- Individual access to personal information
-- Accountability mechanisms
-
-**LGPD (Lei Geral de Proteção de Dados):**
-- Legal basis for processing
-- Data subject rights (access, correction, deletion, portability)
-- Transparent processing activities
-- Data Protection Officer appointment (if required)
-- Data security measures
-
-## Assessment Instructions:
-
-1. **Evidence Analysis**: Identify specific clauses, statements, or language in the context that addresses the key requirements for {regulation}.
-
-2. **Gap Identification**: Note which requirements are not addressed or only partially addressed.
-
-3. **Clarity Evaluation**: Assess whether the language is clear and unambiguous about compliance.
-
-4. **Overall Assessment**: Provide a professional, balanced evaluation suitable for a privacy-conscious user.
-
-## Response Format:
-
-Provide a clear, conversational assessment that includes:
-- **Compliance Status**: A brief statement (1-2 sentences) on overall compliance
-- **Strengths**: What the document does well (with specific examples)
-- **Gaps or Concerns**: What's missing or unclear (with specific examples)
-- **Recommendation**: What users should know or do based on this assessment
-
-Be specific, cite language from the context, and maintain a professional yet accessible tone. If the context is insufficient to make a determination, clearly state what additional information would be needed.
+Output JSON matching this schema:
+{schema}
 """

@@ -8,6 +8,19 @@ from src.llm import acompletion_with_fallback
 logger = get_logger(__name__)
 
 
+def _truncate(text: str, *, max_chars: int) -> str:
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 15].rstrip() + "\n\n[... truncated ...]"
+
+
+# RAG context budgeting: prefer fewer, higher-signal excerpts with enough surrounding text
+# to capture definitions/exceptions common in legal clauses.
+MAX_TOOL_SOURCES = 12
+EXCERPT_CHARS_FEW_SOURCES = 1800
+EXCERPT_CHARS_MANY_SOURCES = 1200
+
+
 class Agent:
     def __init__(self, system_prompt: str):
         self.system_prompt = system_prompt
@@ -110,10 +123,26 @@ class Agent:
                             content = "No relevant information found."
                         else:
                             chunks = []
-                            for match in search_results["matches"]:
+                            # Hard cap to keep prompts token-efficient, while giving enough room
+                            # for legal definitions/exceptions (adaptive excerpt sizing).
+                            matches = (search_results.get("matches") or [])[:MAX_TOOL_SOURCES]
+                            max_chars = (
+                                EXCERPT_CHARS_FEW_SOURCES
+                                if len(matches) <= 3
+                                else EXCERPT_CHARS_MANY_SOURCES
+                            )
+                            for i, match in enumerate(matches, start=1):
+                                md = match.get("metadata", {}) or {}
+                                url = md.get("url", "Unknown")
+                                doc_type = md.get("document_type", "Unknown")
+                                start = md.get("chunk_start", "")
+                                end = md.get("chunk_end", "")
+                                excerpt = _truncate(
+                                    str(md.get("chunk_text", "") or ""), max_chars=max_chars
+                                )
                                 chunks.append(
-                                    f"Source: {match['metadata'].get('url', 'Unknown')}\n"
-                                    f"Content: {match['metadata'].get('chunk_text', '')}"
+                                    f"SOURCE[{i}] url={url} type={doc_type} chars={start}-{end}\n"
+                                    f"excerpt:\n{excerpt}"
                                 )
                             content = "\n\n---\n\n".join(chunks)
 

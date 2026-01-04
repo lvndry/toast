@@ -32,7 +32,7 @@ class UsageService:
 
     @staticmethod
     async def increment_usage(
-        db: AgnosticDatabase, user_id: str, endpoint: str = "meta_summary"
+        db: AgnosticDatabase, user_id: str, endpoint: str = "product_overview"
     ) -> bool:
         """
         Increment usage counter for the current month.

@@ -11,6 +11,72 @@ class DocumentAnalysisScores(BaseModel):
     justification: str
 
 
+class EvidenceSpan(BaseModel):
+    """A concrete piece of evidence anchored into a specific document text."""
+
+    document_id: str
+    url: str
+    content_hash: str | None = None
+    quote: str
+    start_char: int | None = None
+    end_char: int | None = None
+    section_title: str | None = None
+
+
+class ExtractedTextItem(BaseModel):
+    """An extracted, normalized text item with evidence."""
+
+    value: str
+    evidence: list[EvidenceSpan] = Field(default_factory=list)
+
+
+class ExtractedDataPurposeLink(BaseModel):
+    """Evidence-backed DataPurposeLink."""
+
+    data_type: str
+    purposes: list[str] = Field(default_factory=list)
+    evidence: list[EvidenceSpan] = Field(default_factory=list)
+
+
+class ExtractedThirdPartyRecipient(BaseModel):
+    """Evidence-backed ThirdPartyRecipient."""
+
+    recipient: str
+    data_shared: list[str] = Field(default_factory=list)
+    purpose: str | None = None
+    risk_level: Literal["low", "medium", "high"] = "medium"
+    evidence: list[EvidenceSpan] = Field(default_factory=list)
+
+
+class DocumentExtraction(BaseModel):
+    """
+    Extraction-first, evidence-backed structured facts for a single document.
+
+    This is designed to be used as the ONLY input to downstream summaries, so every
+    claim is traceable to an exact quote in the source document.
+    """
+
+    version: str = "v1"
+    generated_at: datetime = Field(default_factory=datetime.now)
+    source_content_hash: str
+
+    data_collected: list[ExtractedTextItem] = Field(default_factory=list)
+    data_purposes: list[ExtractedTextItem] = Field(default_factory=list)
+    data_collection_details: list[ExtractedDataPurposeLink] = Field(default_factory=list)
+    third_party_details: list[ExtractedThirdPartyRecipient] = Field(default_factory=list)
+    your_rights: list[ExtractedTextItem] = Field(default_factory=list)
+    dangers: list[ExtractedTextItem] = Field(default_factory=list)
+    benefits: list[ExtractedTextItem] = Field(default_factory=list)
+    recommended_actions: list[ExtractedTextItem] = Field(default_factory=list)
+
+
+class KeypointWithEvidence(BaseModel):
+    """A user-facing keypoint paired with evidence spans."""
+
+    keypoint: str
+    evidence: list[EvidenceSpan] = Field(default_factory=list)
+
+
 class DocumentAnalysis(BaseModel):
     """
     Document analysis model.
@@ -44,6 +110,8 @@ class DocumentAnalysis(BaseModel):
         default=None, description="Compliance scores per regulation (e.g., {'GDPR': 8, 'CCPA': 7})"
     )
     keypoints: list[str] | None = None
+    # Optional, evidence-backed keypoints (additive / backward compatible).
+    keypoints_with_evidence: list[KeypointWithEvidence] | None = None
     scope: str | None = Field(
         default=None,
         description="Document scope - e.g., 'Global privacy policy', 'Terms for Product X', 'EU-specific policy'",
@@ -224,6 +292,7 @@ class DocumentSummary(BaseModel):
     top_concerns: list[str] | None = None  # Top 3
     summary: str | None = None  # User-oriented explanation from analysis
     keypoints: list[str] | None = None  # Key bullet points from analysis
+    keypoints_with_evidence: list[KeypointWithEvidence] | None = None  # Optional citations
 
     @classmethod
     def from_document(cls, doc: "Document") -> "DocumentSummary":
@@ -236,11 +305,13 @@ class DocumentSummary(BaseModel):
         if doc.analysis:
             summary_data["summary"] = doc.analysis.summary
             summary_data["keypoints"] = doc.analysis.keypoints
+            summary_data["keypoints_with_evidence"] = doc.analysis.keypoints_with_evidence
             summary_data["verdict"] = doc.analysis.verdict
             summary_data["risk_score"] = doc.analysis.risk_score
         else:
             summary_data["summary"] = None
             summary_data["keypoints"] = None
+            summary_data["keypoints_with_evidence"] = None
             summary_data["verdict"] = None
             summary_data["risk_score"] = None
 
@@ -480,6 +551,7 @@ class Document(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
     versions: list[dict[str, Any]] = Field(default_factory=list)
     analysis: DocumentAnalysis | None = None
+    extraction: DocumentExtraction | None = None
     locale: str | None = None
     regions: list[Region] = Field(default_factory=list)
     effective_date: datetime | None = None

@@ -5,14 +5,16 @@ from fastapi import APIRouter, HTTPException, Query
 from src.core.database import get_db
 from src.core.logging import get_logger
 from src.models.document import (
+    DocumentExtraction,
     DocumentSummary,
     ProductAnalysis,
     ProductDeepAnalysis,
     ProductOverview,
 )
 from src.models.product import Product
+from src.services.extraction_service import extract_document_facts
 from src.services.service_factory import create_product_service, create_services
-from src.summarizer import generate_product_deep_analysis, generate_product_meta_summary
+from src.summarizer import generate_product_deep_analysis, generate_product_overview
 
 logger = get_logger(__name__)
 
@@ -63,8 +65,8 @@ async def get_product_overview(slug: str) -> ProductOverview:
             logger.info(f"Overview not found for {slug}, generating on-the-fly...")
             try:
                 product_svc, doc_svc = create_services()
-                # Generate meta-summary (will raise exception on failure)
-                await generate_product_meta_summary(
+                # Generate product overview (will raise exception on failure)
+                await generate_product_overview(
                     db, slug, product_svc=product_svc, document_svc=doc_svc
                 )
 
@@ -131,13 +133,11 @@ async def get_product_analysis(slug: str) -> ProductAnalysis:
         if analysis:
             return analysis
 
-        # Analysis doesn't exist - generate meta_summary JIT (which creates both overview and analysis)
+        # Analysis doesn't exist - generate product overview JIT (which creates both overview and analysis)
         logger.info(f"Analysis not found for {slug}, generating on-the-fly...")
         try:
             product_svc, doc_svc = create_services()
-            await generate_product_meta_summary(
-                db, slug, product_svc=product_svc, document_svc=doc_svc
-            )
+            await generate_product_overview(db, slug, product_svc=product_svc, document_svc=doc_svc)
             # Now get the analysis (it should exist after generation)
             analysis = await service.get_product_analysis(db, slug)
             if analysis:
@@ -167,6 +167,52 @@ async def get_product_documents(slug: str) -> list[DocumentSummary]:
         service = create_product_service()
         documents = await service.get_product_documents(db, slug)
         return documents
+
+
+@router.get("/{slug}/documents/{document_id}/extraction", response_model=DocumentExtraction)
+async def get_document_extraction(
+    slug: str,
+    document_id: str,
+    force_regenerate: bool = Query(
+        default=False,
+        description="If true, regenerates extraction even if cached by content hash.",
+    ),
+) -> DocumentExtraction:
+    """Get evidence-backed extraction for a specific document (auditability).
+
+    If missing or stale, this will generate extraction and persist it on the Document.
+    """
+    async with get_db() as db:
+        product_svc, doc_svc = create_services()
+
+        product = await product_svc.get_product_by_slug(db, slug)
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        doc = await doc_svc.get_document_by_id(db, document_id)
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        if doc.product_id != product.id:
+            raise HTTPException(status_code=404, detail="Document not found for this product")
+
+        # Ensure extraction exists and is up-to-date
+        extraction = doc.extraction
+        if force_regenerate:
+            extraction = None
+
+        if extraction is None:
+            try:
+                extraction = await extract_document_facts(doc, use_cache=not force_regenerate)
+                doc.extraction = extraction
+                await doc_svc.update_document(db, doc)
+            except Exception as e:
+                logger.error(f"Error generating extraction for {document_id}: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to generate document extraction. Please try again later.",
+                ) from e
+
+        return extraction
 
 
 @router.get("/{slug}/deep-analysis", response_model=ProductDeepAnalysis)

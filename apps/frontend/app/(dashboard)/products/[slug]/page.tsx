@@ -66,6 +66,20 @@ interface DocumentSummary {
   last_updated?: string | null;
   verdict?: string | null;
   risk_score?: number | null;
+  summary?: string;
+  keypoints?: string[];
+  keypoints_with_evidence?: Array<{
+    keypoint: string;
+    evidence: Array<{
+      document_id: string;
+      url: string;
+      content_hash?: string | null;
+      quote: string;
+      start_char?: number | null;
+      end_char?: number | null;
+      section_title?: string | null;
+    }>;
+  }> | null;
 }
 
 function DeepAnalysisTab({ slug }: { slug: string }) {
@@ -263,7 +277,7 @@ export default function CompanyPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch(`/api/meta-summary/${slug}`);
+        const res = await fetch(`/api/products/${slug}/overview`);
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -445,7 +459,7 @@ export default function CompanyPage() {
               <Skeleton className="h-32 rounded-2xl" />
             </div>
           ) : (
-            <SourcesList documents={documents} />
+            <SourcesList productSlug={slug} documents={documents} />
           )}
         </TabsContent>
       </Tabs>

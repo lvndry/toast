@@ -119,15 +119,15 @@ def show_promotion() -> None:
 
                         with col3:
                             st.metric(
-                                "Meta Summaries (Local)",
+                                "Product Overviews (Local)",
                                 summary.get("collections", {})
-                                .get("meta_summaries", {})
+                                .get("product_overviews", {})
                                 .get("local_count", 0),
                             )
                             st.metric(
-                                "Meta Summaries (Production)",
+                                "Product Overviews (Production)",
                                 summary.get("collections", {})
-                                .get("meta_summaries", {})
+                                .get("product_overviews", {})
                                 .get("production_count", 0),
                             )
 
@@ -311,49 +311,83 @@ def display_promotion_results(data: dict[str, Any]) -> None:
                         )
 
                 with col3:
-                    meta_summaries = collections.get("meta_summaries", {})
-                    if isinstance(meta_summaries, dict):
-                        st.metric("Meta Summaries (Local)", meta_summaries.get("local_count", 0))
+                    product_overviews = collections.get("product_overviews", {})
+                    if isinstance(product_overviews, dict):
                         st.metric(
-                            "Meta Summaries (Production)",
-                            meta_summaries.get("production_count", 0),
+                            "Product Overviews (Local)",
+                            product_overviews.get("local_count", 0),
+                        )
+                        st.metric(
+                            "Product Overviews (Production)",
+                            product_overviews.get("production_count", 0),
                         )
                     else:
                         st.metric(
-                            "Meta Summaries",
-                            meta_summaries if isinstance(meta_summaries, int | float) else 0,
+                            "Product Overviews",
+                            product_overviews if isinstance(product_overviews, int | float) else 0,
                         )
 
     # Promotion results
     st.subheader("Promotion Results")
 
     # Check if this is a single collection result or full promotion result
-    if "promoted" in data and "skipped" in data:
+    # Support both old structure (promoted/skipped) and new structure (local_count/deleted_count/inserted_count)
+    is_old_structure = "promoted" in data and "skipped" in data
+    is_new_structure = "local_count" in data or "deleted_count" in data or "inserted_count" in data
+
+    if is_old_structure or is_new_structure:
         # Single collection result (e.g., documents only, products only)
         result = data
         collection_name = "Promotion"  # Generic name for single collection
 
         with st.expander(f"{collection_name}"):
-            col1, col2, col3 = st.columns(3)
+            if is_new_structure:
+                # New structure: complete replacement
+                col1, col2, col3, col4 = st.columns(4)
 
-            with col1:
-                st.metric("Promoted", result.get("promoted", 0))
+                with col1:
+                    st.metric("Local Count", result.get("local_count", 0))
 
-            with col2:
-                st.metric("Skipped", result.get("skipped", 0))
+                with col2:
+                    st.metric("Deleted (Production)", result.get("deleted_count", 0))
 
-            with col3:
-                st.metric("Errors", len(result.get("errors", [])))
+                with col3:
+                    st.metric("Inserted (Production)", result.get("inserted_count", 0))
 
-            if result.get("errors"):
-                st.error("Errors occurred:")
-                for error in result["errors"]:
-                    st.text(f"• {error}")
+                with col4:
+                    st.metric("Errors", len(result.get("errors", [])))
 
-            if result.get("dry_run"):
-                st.info("This was a dry run - no actual data was promoted")
+                if result.get("errors"):
+                    st.error("Errors occurred:")
+                    for error in result["errors"]:
+                        st.text(f"• {error}")
+
+                if result.get("dry_run"):
+                    st.info("This was a dry run - no actual data was promoted")
+                else:
+                    st.success("Data was successfully replaced in production")
             else:
-                st.success("Data was successfully promoted")
+                # Old structure: diff-based promotion
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.metric("Promoted", result.get("promoted", 0))
+
+                with col2:
+                    st.metric("Skipped", result.get("skipped", 0))
+
+                with col3:
+                    st.metric("Errors", len(result.get("errors", [])))
+
+                if result.get("errors"):
+                    st.error("Errors occurred:")
+                    for error in result["errors"]:
+                        st.text(f"• {error}")
+
+                if result.get("dry_run"):
+                    st.info("This was a dry run - no actual data was promoted")
+                else:
+                    st.success("Data was successfully promoted")
     else:
         # Full promotion result with multiple collections
         for collection_name, result_value in data.items():
@@ -373,39 +407,78 @@ def display_promotion_results(data: dict[str, Any]) -> None:
                         f"- **Expected:** Dictionary with promotion results\n"
                         f"- **Got:** {type(result).__name__}\n"
                         f"- **Value:** `{result}`\n\n"
-                        f"This field should contain a dictionary with keys like 'promoted', "
-                        f"'skipped', and 'errors', but instead received a {type(result).__name__}."
+                        f"This field should contain a dictionary with keys like 'local_count', "
+                        f"'deleted_count', 'inserted_count', 'errors' (new structure) or "
+                        f"'promoted', 'skipped', 'errors' (old structure), but instead received a {type(result).__name__}."
                     )
                     with st.expander(f"🔍 Debug: Raw value for '{collection_name}'"):
                         st.json(result)
                     continue
 
                 # Handle case where result might not have expected structure
+                # Support both old structure (promoted/skipped) and new structure (local_count/deleted_count/inserted_count)
                 try:
                     with st.expander(f"{collection_name.title()} Promotion"):
-                        col1, col2, col3 = st.columns(3)
+                        # Check for new structure first
+                        if (
+                            "local_count" in result
+                            or "deleted_count" in result
+                            or "inserted_count" in result
+                        ):
+                            # New structure: complete replacement
+                            col1, col2, col3, col4 = st.columns(4)
 
-                        with col1:
-                            promoted_count = result.get("promoted", 0)
-                            st.metric("Promoted", promoted_count)
+                            with col1:
+                                st.metric("Local Count", result.get("local_count", 0))
 
-                        with col2:
-                            skipped_count = result.get("skipped", 0)
-                            st.metric("Skipped", skipped_count)
+                            with col2:
+                                st.metric("Deleted (Production)", result.get("deleted_count", 0))
 
-                        with col3:
-                            errors = result.get("errors", [])
-                            st.metric("Errors", len(errors))
+                            with col3:
+                                st.metric("Inserted (Production)", result.get("inserted_count", 0))
 
-                        if errors:
-                            st.error("Errors occurred:")
-                            for error in errors:
-                                st.text(f"• {error}")
+                            with col4:
+                                errors = result.get("errors", [])
+                                st.metric("Errors", len(errors))
 
-                        if result.get("dry_run"):
-                            st.info("This was a dry run - no actual data was promoted")
+                            if errors:
+                                st.error("Errors occurred:")
+                                for error in errors:
+                                    st.text(f"• {error}")
+
+                            if result.get("dry_run"):
+                                st.info("This was a dry run - no actual data was promoted")
+                            else:
+                                st.success("Data was successfully replaced in production")
+                        elif "promoted" in result or "skipped" in result:
+                            # Old structure: diff-based promotion
+                            col1, col2, col3 = st.columns(3)
+
+                            with col1:
+                                promoted_count = result.get("promoted", 0)
+                                st.metric("Promoted", promoted_count)
+
+                            with col2:
+                                skipped_count = result.get("skipped", 0)
+                                st.metric("Skipped", skipped_count)
+
+                            with col3:
+                                errors = result.get("errors", [])
+                                st.metric("Errors", len(errors))
+
+                            if errors:
+                                st.error("Errors occurred:")
+                                for error in errors:
+                                    st.text(f"• {error}")
+
+                            if result.get("dry_run"):
+                                st.info("This was a dry run - no actual data was promoted")
+                            else:
+                                st.success("Data was successfully promoted")
                         else:
-                            st.success("Data was successfully promoted")
+                            # Unknown structure - show raw data
+                            st.warning("Unknown promotion result structure")
+                            st.json(result)
                 except (AttributeError, TypeError, KeyError) as e:
                     # Handle case where result structure doesn't match expectations
                     error_type = type(e).__name__
@@ -417,7 +490,8 @@ def display_promotion_results(data: dict[str, Any]) -> None:
                         f"- **Error Details:** `{error_details}`\n"
                         f"- **Collection Name:** `{collection_name}`\n\n"
                         f"The data structure for this collection doesn't match the expected format. "
-                        f"Expected a dictionary with keys: 'promoted', 'skipped', 'errors', etc."
+                        f"Expected a dictionary with keys: 'local_count', 'deleted_count', 'inserted_count', 'errors' "
+                        f"(new structure) or 'promoted', 'skipped', 'errors' (old structure)."
                     )
                     with st.expander(f"🔍 Debug: Raw data structure for '{collection_name}'"):
                         st.json(result)
@@ -429,9 +503,13 @@ def display_promotion_results(data: dict[str, Any]) -> None:
     if isinstance(data, dict) and not any(
         [
             "promoted" in data,
+            "local_count" in data,
             "summary" in data,
             any(
-                isinstance(v, dict) and ("promoted" in v or "skipped" in v)
+                isinstance(v, dict)
+                and (
+                    "promoted" in v or "skipped" in v or "local_count" in v or "deleted_count" in v
+                )
                 for v in data.values()
                 if isinstance(v, dict)
             ),
@@ -528,144 +606,6 @@ def display_promotion_results(data: dict[str, Any]) -> None:
         # Define product categories for strategic gating
         st.write("**Premium Content Strategy**")
         st.info("Make high-value products premium-only to drive conversions")
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            if st.button("🔒 Make Social Media Premium", type="primary"):
-                try:
-                    with st.spinner("Making social media products premium..."):
-                        social_products = [
-                            "facebook",
-                            "tiktok",
-                            "instagram",
-                            "twitter",
-                            "linkedin",
-                            "snapchat",
-                        ]
-                        updated_count = 0
-
-                        for product in products:
-                            if product.slug in social_products:
-                                product.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
-                                success = run_async_with_retry(update_product_isolated(product))
-                                if success:
-                                    updated_count += 1
-
-                        st.success(f"✅ Made {updated_count} social media products premium-only!")
-                except Exception as e:
-                    st.error(f"Error updating social media products: {str(e)}")
-
-        with col2:
-            if st.button("🔒 Make Data Brokers Premium", type="primary"):
-                try:
-                    with st.spinner("Making data broker products premium..."):
-                        data_brokers = ["palantir", "snowflake", "databricks", "splunk"]
-                        updated_count = 0
-
-                        for product in products:
-                            if product.slug in data_brokers:
-                                product.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
-                                success = run_async_with_retry(update_product_isolated(product))
-                                if success:
-                                    updated_count += 1
-
-                        st.success(f"✅ Made {updated_count} data broker products premium-only!")
-                except Exception as e:
-                    st.error(f"Error updating data broker products: {str(e)}")
-
-        with col3:
-            if st.button("🔒 Make Financial Services Premium", type="primary"):
-                try:
-                    with st.spinner("Making financial services products premium..."):
-                        financial_products = ["stripe", "paypal", "square", "robinhood"]
-                        updated_count = 0
-
-                        for product in products:
-                            if product.slug in financial_products:
-                                product.visible_to_tiers = [UserTier.BUSINESS, UserTier.ENTERPRISE]
-                                success = run_async_with_retry(update_product_isolated(product))
-                                if success:
-                                    updated_count += 1
-
-                        st.success(
-                            f"✅ Made {updated_count} financial services products premium-only!"
-                        )
-                except Exception as e:
-                    st.error(f"Error updating financial services products: {str(e)}")
-
-        # Custom tier assignment
-        st.subheader("Custom Tier Assignment")
-
-        # Product selector
-        product_options = {f"{p.name} ({p.slug})": p.slug for p in products}
-        selected_product = st.selectbox(
-            "Select Product",
-            options=list(product_options.keys()),
-            help="Choose a product to modify its tier visibility",
-        )
-
-        if selected_product:
-            product_slug = product_options[selected_product]
-            product = next((p for p in products if p.slug == product_slug), None)
-
-            if product:
-                current_tiers = (
-                    product.visible_to_tiers
-                    if hasattr(product, "visible_to_tiers")
-                    else [UserTier.FREE, UserTier.BUSINESS, UserTier.ENTERPRISE]
-                )
-
-                st.write(f"**Current tier visibility for {product.name}:**")
-                tier_labels = []
-                for tier in current_tiers:
-                    if tier == UserTier.FREE:
-                        tier_labels.append("🟢 Free")
-                    elif tier == UserTier.BUSINESS:
-                        tier_labels.append("🔵 Business")
-                    elif tier == UserTier.ENTERPRISE:
-                        tier_labels.append("🟣 Enterprise")
-
-                st.info(f"Current: {', '.join(tier_labels)}")
-
-                # Tier selection
-                st.write("**Set new tier visibility:**")
-                col1, col2, col3 = st.columns(3)
-
-                with col1:
-                    free_tier = st.checkbox("🟢 Free Tier", value=UserTier.FREE in current_tiers)
-                with col2:
-                    business_tier = st.checkbox(
-                        "🔵 Business Tier", value=UserTier.BUSINESS in current_tiers
-                    )
-                with col3:
-                    enterprise_tier = st.checkbox(
-                        "🟣 Enterprise Tier", value=UserTier.ENTERPRISE in current_tiers
-                    )
-
-                if st.button("Update Tier Visibility", type="primary"):
-                    if not any([free_tier, business_tier, enterprise_tier]):
-                        st.error("At least one tier must be selected!")
-                    else:
-                        try:
-                            new_tiers = []
-                            if free_tier:
-                                new_tiers.append(UserTier.FREE)
-                            if business_tier:
-                                new_tiers.append(UserTier.BUSINESS)
-                            if enterprise_tier:
-                                new_tiers.append(UserTier.ENTERPRISE)
-
-                            product.visible_to_tiers = new_tiers
-                            success = run_async_with_retry(update_product_isolated(product))
-
-                            if success:
-                                st.success(f"✅ Updated {product.name} tier visibility!")
-                                st.rerun()
-                            else:
-                                st.error("Failed to update product tier visibility")
-                        except Exception as e:
-                            st.error(f"Error updating product: {str(e)}")
 
         # Tier visibility statistics
         st.subheader("Current Tier Visibility Statistics")

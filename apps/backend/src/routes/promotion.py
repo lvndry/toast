@@ -104,20 +104,20 @@ async def promote_documents_only(request: PromotionRequest) -> PromotionResponse
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/promote-meta-summaries", response_model=PromotionResponse)
-async def promote_meta_summaries_only(request: PromotionRequest) -> PromotionResponse:
-    """Promote only meta summaries from local to production."""
+@router.post("/promote-product-overviews", response_model=PromotionResponse)
+async def promote_product_overviews_only(request: PromotionRequest) -> PromotionResponse:
+    """Promote only product overviews from local to production."""
     try:
-        result = await promotion_service.promote_meta_summaries(dry_run=request.dry_run)
+        result = await promotion_service.promote_product_overviews(dry_run=request.dry_run)
 
         action = "dry run" if request.dry_run else "actual"
         return PromotionResponse(
             success=True,
-            message=f"Meta summaries {action} promotion completed successfully",
+            message=f"Product overviews {action} promotion completed successfully",
             data=result,
         )
     except Exception as e:
-        logger.error(f"Error in meta summaries promotion: {e}")
+        logger.error(f"Error in product overviews promotion: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

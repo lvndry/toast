@@ -10,7 +10,7 @@ from src.dashboard.db_utils import (
 )
 from src.dashboard.utils import run_async
 from src.services.service_factory import create_document_service, create_product_service
-from src.summarizer import generate_product_meta_summary, summarize_all_product_documents
+from src.summarizer import generate_product_overview, summarize_all_product_documents
 
 
 async def run_summarization_async_internal(
@@ -62,13 +62,13 @@ def run_summarization_async(
         return False
 
 
-async def generate_meta_summary_async(product_slug: str) -> AsyncGenerator[str, None]:
-    """Generate meta summary for a product"""
+async def generate_overview_async(product_slug: str) -> AsyncGenerator[str, None]:
+    """Generate product overview for a product"""
     db = await get_dashboard_db()
     try:
         product_svc = create_product_service()
         document_svc = create_document_service()
-        result = await generate_product_meta_summary(
+        result = await generate_product_overview(
             db.db, product_slug, product_svc=product_svc, document_svc=document_svc
         )
         summary_content = str(result)  # or format as needed
@@ -286,8 +286,8 @@ def show_summarization() -> None:
         • Highlight the most important privacy considerations for users
         """)
 
-        if st.button("📋 Generate Meta Summary", type="primary", key="generate_meta_summary_btn"):
-            with st.spinner(f"Generating comprehensive summary for {selected_product.name}..."):
+        if st.button("📋 Generate Overview", type="primary", key="generate_overview_btn"):
+            with st.spinner(f"Generating overview for {selected_product.name}..."):
                 try:
                     # Create a placeholder for streaming content
                     summary_placeholder = st.empty()
@@ -303,7 +303,7 @@ def show_summarization() -> None:
                             try:
                                 product_svc = create_product_service()
                                 document_svc = create_document_service()
-                                result = await generate_product_meta_summary(
+                                result = await generate_product_overview(
                                     db.db,
                                     selected_product.slug,
                                     product_svc=product_svc,
