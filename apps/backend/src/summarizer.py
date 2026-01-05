@@ -29,7 +29,7 @@ from src.models.document import (
 from src.prompts.summarizer_prompts import (
     AGGREGATE_DEEP_ANALYSIS_PROMPT,
     DOCUMENT_SUMMARY_SYSTEM_PROMPT,
-    META_SUMMARY_SYSTEM_PROMPT,
+    PRODUCT_OVERVIEW_SYSTEM_PROMPT,
     SINGLE_DOC_DEEP_ANALYSIS_PROMPT,
 )
 from src.services.document_service import DocumentService
@@ -838,7 +838,7 @@ The following document summaries are provided:
 
 {document_summaries}
 
-Create a unified overview that provides complete value in under 5 minutes of reading. Write clearly and directly - focus on giving users the information they need to understand their privacy and make informed decisions. Make sure anyone, regardless of their privacy knowledge, can understand and get value from your overview.
+Create a unified overview that provides complete value in under 5 minutes of reading. Write clearly and directly.focus on giving users the information they need to understand their privacy and make informed decisions. Make sure anyone, regardless of their privacy knowledge, can understand and get value from your overview.
 """
 
     # Set up usage tracking for meta-summary generation
@@ -856,7 +856,7 @@ Create a unified overview that provides complete value in under 5 minutes of rea
                     messages=[
                         {
                             "role": "system",
-                            "content": META_SUMMARY_SYSTEM_PROMPT,
+                            "content": PRODUCT_OVERVIEW_SYSTEM_PROMPT,
                         },
                         {"role": "user", "content": prompt},
                     ],

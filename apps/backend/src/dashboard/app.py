@@ -5,6 +5,7 @@ import streamlit as st
 from src.core.config import config
 from src.core.logging import setup_logging
 from src.dashboard.auth import check_password, show_logout_button
+from src.dashboard.components.complete_workflow import show_complete_workflow
 from src.dashboard.components.crawling import show_crawling
 from src.dashboard.components.deep_analysis import show_deep_analysis
 from src.dashboard.components.documents_view import show_documents_view
@@ -38,6 +39,7 @@ def main() -> None:
         {"id": "create_product", "display_name": "Create Product"},
         {"id": "view_products", "display_name": "View Products"},
         {"id": "view_documents", "display_name": "View Documents"},
+        {"id": "complete_workflow", "display_name": "Complete Workflow"},
         {"id": "start_crawling", "display_name": "Start Crawling"},
         {"id": "generate_embeddings", "display_name": "Generate & Store Embeddings"},
         {"id": "summarization", "display_name": "Summarization"},
@@ -49,8 +51,6 @@ def main() -> None:
     if config.app.is_development:
         page_options.append({"id": "promotion", "display_name": "Promotion"})
 
-    page_options.append({"id": "settings", "display_name": "Settings"})
-
     # Check if we have a current page in session state
     current_page_id = st.session_state.get("current_page", "view_products")
 
@@ -60,6 +60,7 @@ def main() -> None:
         "Create Product": "create_product",
         "View Products": "view_products",
         "View Documents": "view_documents",
+        "Complete Workflow": "complete_workflow",
         "Start Crawling": "start_crawling",
         "Generate Embeddings": "generate_embeddings",
         "Generate & Store Embeddings": "generate_embeddings",
@@ -67,7 +68,6 @@ def main() -> None:
         "Deep Analysis & Overview": "deep_analysis",
         "RAG": "rag",
         "Promotion": "promotion",
-        "Settings": "settings",
     }
 
     # If current_page_id is a legacy display name, convert it to page ID
@@ -110,6 +110,8 @@ def main() -> None:
         show_product_view()
     elif page_id == "view_documents":
         show_documents_view()
+    elif page_id == "complete_workflow":
+        show_complete_workflow()
     elif page_id == "start_crawling":
         show_crawling()
     elif page_id == "generate_embeddings":
@@ -129,9 +131,6 @@ def main() -> None:
             st.info("Redirecting to View Products...")
             st.session_state["current_page"] = "view_products"
             st.rerun()
-    else:
-        st.title("Settings")
-        st.info("This feature is coming soon!")
 
 
 if __name__ == "__main__":

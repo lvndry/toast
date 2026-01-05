@@ -47,7 +47,7 @@ export default function SignInPage() {
                 headerSubtitle: "hidden",
               },
             }}
-            fallbackRedirectUrl="/onboarding"
+            fallbackRedirectUrl="/products"
           />
         </div>
       </div>

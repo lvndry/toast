@@ -64,7 +64,7 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
-          <Link href="/sign-up">
+          <Link href="/products">
             <Button
               size="lg"
               className="group h-14 px-8 rounded-full text-base font-medium transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg relative overflow-hidden cursor-pointer"

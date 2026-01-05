@@ -115,7 +115,6 @@ export default function Layout(props: { children: React.ReactNode }) {
           sizes="16x16"
           href="/static/favicons/favicon-16x16.png"
         />
-        <link rel="manifest" href="/static/favicons/manifest.json" />
       </head>
       <body className="antialiased selection:bg-secondary/30">
         <div className="noise-overlay" />
